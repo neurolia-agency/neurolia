@@ -1,0 +1,89 @@
+Comment fonctionne le "swarm" d'agents dans Claude Code                                     
+                                                                                              
+  L'idée simple                                                                               
+                                                                                              
+  Imagine un chef de projet (Claude principal) qui peut embaucher des assistants spécialisés  
+  pour bosser en parallèle. Plutôt que tout faire seul, il délègue.                           
+                                                                                              
+  ---
+  Les 2 systèmes                                                                              
+                                                                                              
+  1. Subagents — Les assistants rapides                                                       
+
+  C'est le système de base. Claude lance des "mini-Claude" qui :
+  - Reçoivent une mission précise
+  - Travaillent dans leur coin
+  - Rapportent le résultat au Claude principal
+
+  Analogie : Tu envoies un stagiaire chercher une info. Il revient avec la réponse, point.
+
+  Exemples concrets :
+  - "Va explorer le codebase et dis-moi où sont les fichiers d'auth"
+  - "Lance les tests et dis-moi lesquels échouent"
+  - "Cherche tous les fichiers qui utilisent cette fonction"
+
+  Les types built-in :
+  ┌─────────────────┬───────────────────────────────────────┐
+  │      Agent      │                 Rôle                  │
+  ├─────────────────┼───────────────────────────────────────┤
+  │ Explore         │ Chercher dans le code (lecture seule) │
+  ├─────────────────┼───────────────────────────────────────┤
+  │ Plan            │ Réfléchir à une architecture          │
+  ├─────────────────┼───────────────────────────────────────┤
+  │ Bash            │ Exécuter des commandes                │
+  ├─────────────────┼───────────────────────────────────────┤
+  │ General-purpose │ Tâches complexes multi-étapes         │
+  └─────────────────┴───────────────────────────────────────┘
+  Tu peux aussi créer tes propres agents dans .claude/agents/ avec un simple fichier Markdown.
+
+  ---
+  2. Agent Teams — Le vrai "swarm" (expérimental)
+
+  Là c'est le niveau au-dessus. Chaque agent a son propre cerveau indépendant et ils peuvent
+  se parler entre eux.
+
+  Analogie : Une vraie équipe de développeurs. Chacun a son écran, son contexte, et ils
+  communiquent via Slack (la task list partagée).
+
+          Chef d'équipe (Lead)
+          /       |       \
+     Agent 1   Agent 2   Agent 3
+     Sécurité  Perfs     Tests
+          \       |       /
+       [  Task List partagée  ]
+
+  Chaque agent peut :
+  - Prendre une tâche dans la liste
+  - Envoyer un message à un autre agent
+  - Travailler en parallèle sans attendre les autres
+
+  ---
+  Différence clé entre les deux
+  ┌───────────────┬────────────────────────────────┬────────────────────────────────┐
+  │               │           Subagents            │          Agent Teams           │
+  ├───────────────┼────────────────────────────────┼────────────────────────────────┤
+  │ Image         │ Stagiaire qui rapporte au chef │ Équipe autonome                │
+  ├───────────────┼────────────────────────────────┼────────────────────────────────┤
+  │ Communication │ Uniquement vers le lead        │ Entre eux aussi                │
+  ├───────────────┼────────────────────────────────┼────────────────────────────────┤
+  │ Mémoire       │ Partagée                       │ Chacun la sienne               │
+  ├───────────────┼────────────────────────────────┼────────────────────────────────┤
+  │ Vitesse       │ Rapide                         │ Plus lent (mais plus puissant) │
+  ├───────────────┼────────────────────────────────┼────────────────────────────────┤
+  │ Coût          │ Léger                          │ Plus de tokens                 │
+  └───────────────┴────────────────────────────────┴────────────────────────────────┘
+  ---
+  Quand utiliser quoi ?
+
+  - Subagent : "Va me chercher un truc" ou "Fais cette tâche isolée"
+  - Agent Team : "On a un gros projet, chacun prend une partie et on se coordonne"
+
+  ---
+  En pratique dans Claude Code
+
+  Quand je fais un Task dans notre conversation, c'est un subagent. Par exemple, juste avant,
+  j'en ai lancé un pour aller chercher la documentation sur les agent swarms.
+
+  Les Agent Teams s'activent avec un flag expérimental et permettent de spawner plusieurs
+  teammates qui travaillent simultanément, chacun avec sa spécialité.
+

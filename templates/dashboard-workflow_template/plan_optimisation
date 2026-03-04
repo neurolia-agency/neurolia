@@ -1,0 +1,575 @@
+Plan d'Optimisation — Dashboard Workflow Template v2                                                                                                               │
+│                                                                                                                                                                    │
+│ Contexte : Le template templates/dashboard-workflow_template/ existe avec 12 stages, 3 agents, 3 rules. L'objectif est d'identifier chaque point d'optimisation ou │
+│  un agent, un skill, ou une amelioration de documentation pourrait accelerer et fiabiliser le workflow.                                                            │
+│                                                                                                                                                                    │
+│ Contraintes connues :                                                                                                                                              │
+│ - n8n est heberge sur Hostinger avec des workflows existants                                                                                                       │
+│ - Le design dashboard est simpliste — on extrait les elements necessaires du design system Neurolia                                                                │
+│ - Les skills vivent dans le template (chaque projet est autonome)                                                                                                  │
+│ - Les skills techniques contiennent des snippets complets (pas juste des guidelines)                                                                               │
+│ - Les stages A02 (Brand) et A03 (Art Direction) sont supprimes et remplaces par une etape d'extraction design system                                               │
+│                                                                                                                                                                    │
+│ ---                                                                                                                                                                │
+│ 1. Vue d'ensemble — Cartographie des points d'optimisation                                                                                                         │
+│                                                                                                                                                                    │
+│ Legende                                                                                                                                                            │
+│                                                                                                                                                                    │
+│ ┌─────────┬──────────────────────────────────────────────┐                                                                                                         │
+│ │ Symbole │                Signification                 │                                                                                                         │
+│ ├─────────┼──────────────────────────────────────────────┤                                                                                                         │
+│ │ [SKILL] │ Un skill (SKILL.md) serait benefique ici     │                                                                                                         │
+│ ├─────────┼──────────────────────────────────────────────┤                                                                                                         │
+│ │ [AGENT] │ Un agent (subagent) serait benefique ici     │                                                                                                         │
+│ ├─────────┼──────────────────────────────────────────────┤                                                                                                         │
+│ │ [RULE]  │ Une rule conditionnelle serait benefique ici │                                                                                                         │
+│ ├─────────┼──────────────────────────────────────────────┤                                                                                                         │
+│ │ [DOC]   │ Amelioration de documentation necessaire     │                                                                                                         │
+│ ├─────────┼──────────────────────────────────────────────┤                                                                                                         │
+│ │ [INFRA] │ Configuration infrastructure a anticiper     │                                                                                                         │
+│ └─────────┴──────────────────────────────────────────────┘                                                                                                         │
+│                                                                                                                                                                    │
+│ ---                                                                                                                                                                │
+│ 2. Avant le pipeline — Initialisation projet                                                                                                                       │
+│                                                                                                                                                                    │
+│ 2.1 Bootstrapping [SKILL] [DOC]                                                                                                                                    │
+│                                                                                                                                                                    │
+│ Etat actuel : Pas de mecanisme d'initialisation. L'utilisateur doit copier manuellement le template et remplacer les placeholders.                                 │
+│                                                                                                                                                                    │
+│ Point d'optimisation :                                                                                                                                             │
+│ - Skill /init-dashboard qui copie le template, remplace les placeholders, installe les deps                                                                        │
+│ - Documentation du process d'initialisation (README du template)                                                                                                   │
+│ - Script qui genere le .env.example adapte au projet (Supabase, Hostinger n8n, etc.)                                                                               │
+│                                                                                                                                                                    │
+│ Questions ouvertes :                                                                                                                                               │
+│ - Le skill doit-il aussi creer le projet Supabase ?                                                                                                                │
+│ - Doit-il configurer les credentials n8n Hostinger ?                                                                                                               │
+│                                                                                                                                                                    │
+│ 2.2 Chargement contexte [SKILL]                                                                                                                                    │
+│                                                                                                                                                                    │
+│ Etat actuel : Pas d'equivalent de load-fog-context. Chaque session doit manuellement trouver ou on en est.                                                         │
+│                                                                                                                                                                    │
+│ Point d'optimisation :                                                                                                                                             │
+│ - Skill load-dashboard-context qui lit CLAUDE.md + PLAN.md + outputs existants                                                                                     │
+│ - Identifie automatiquement la prochaine etape non-cochee                                                                                                          │
+│ - Charge les rules et agents pertinents en contexte                                                                                                                │
+│                                                                                                                                                                    │
+│ ---                                                                                                                                                                │
+│ 3. Phase A — Architecture (sequentielle)                                                                                                                           │
+│                                                                                                                                                                    │
+│ 3.1 A01 — Init : Brief → PRD [SKILL] [AGENT?]                                                                                                                      │
+│                                                                                                                                                                    │
+│ Etat actuel : Stage bien documente (template PRD, MoSCoW, personas, entites). Execution via /apex.                                                                 │
+│                                                                                                                                                                    │
+│ Points d'optimisation :                                                                                                                                            │
+│ - Skill dashboard-brief-analyzer : Template PRD pre-rempli avec sections specifiques dashboard (roles, multi-tenant, RLS, integrations n8n). Exemples de bons PRD  │
+│ dashboard. Checklist de questions a poser au client.                                                                                                               │
+│ - Agent potentiel : Un agent "interviewer" qui pose les bonnes questions au client (via AskUserQuestion) et genere le PRD automatiquement a partir des reponses.   │
+│ - Documentation : Ajouter un questionnaire specifique dashboard dans brief-client.md (questions sur roles, workflows metier, integrations existantes, device       │
+│ principal par role).                                                                                                                                               │
+│                                                                                                                                                                    │
+│ Ce qui manque dans le stage actuel :                                                                                                                               │
+│ - Pas de questions specifiques sur l'infra n8n existante (Hostinger)                                                                                               │
+│ - Pas de mapping explicite features → workflows n8n                                                                                                                │
+│ - Pas de section "integrations existantes a prendre en compte"                                                                                                     │
+│                                                                                                                                                                    │
+│ 3.2 A02-NEW — Extraction Design System [SKILL] [DOC]                                                                                                               │
+│                                                                                                                                                                    │
+│ Etat actuel : A02 (Brand) et A03 (Art Direction) existent mais sont trop lourds pour un dashboard.                                                                 │
+│                                                                                                                                                                    │
+│ Point d'optimisation :                                                                                                                                             │
+│ - Remplacer A02+A03 par un seul stage "A02-design-extraction"                                                                                                      │
+│ - Ce stage extrait les elements visuels necessaires du design system Neurolia :                                                                                    │
+│   - Palette couleurs (primary, secondary, semantic)                                                                                                                │
+│   - Typographies (titres, body, mono)                                                                                                                              │
+│   - Spacing system                                                                                                                                                 │
+│   - Radius, shadows                                                                                                                                                │
+│   - Composants UI de base (boutons, inputs, badges)                                                                                                                │
+│ - Produit un document 02-design-system/ avec UNIQUEMENT ce qui est utile au dashboard                                                                              │
+│ - Skill dashboard-design-extraction : Guide pour extraire les bons elements d'un design system existant. Template de sortie. Criteres de selection (ce qu'on       │
+│ garde, ce qu'on adapte, ce qu'on ignore).                                                                                                                          │
+│                                                                                                                                                                    │
+│ Ce qui manque :                                                                                                                                                    │
+│ - Lien vers le design system Neurolia source                                                                                                                       │
+│ - Regles de simplification (dashboard = moins de decorations, plus de densite info)                                                                                │
+│ - Template globals.css pre-rempli avec les tokens essentiels                                                                                                       │
+│                                                                                                                                                                    │
+│ 3.3 A03-NEW (ex-A04) — Structure : Data Model + Routes + Auth [SKILL] [AGENT?]                                                                                     │
+│                                                                                                                                                                    │
+│ Etat actuel : Stage le plus critique, bien documente. Produit data-model.md, auth-strategy.md, routes.md, webhook-map.md.                                          │
+│                                                                                                                                                                    │
+│ Points d'optimisation :                                                                                                                                            │
+│ - Skill dashboard-data-architect : Templates complets pour chaque output. Patterns multi-tenant. Diagramme Mermaid genere automatiquement. Matrice permissions.    │
+│ Template webhook map avec colonnes Hostinger n8n.                                                                                                                  │
+│ - Agent potentiel : Un agent specialise qui prend le PRD en input et genere le data model + auth strategy + routes en un seul passage. Plus fiable qu'un humain    │
+│ pour la coherence PRD → tables → routes → RLS.                                                                                                                     │
+│ - Documentation : Ajouter une section "Integration n8n Hostinger" dans le webhook-map template. Ajouter un checklist de coherence croisee (chaque feature du PRD → │
+│  au moins 1 table, chaque role → au moins 1 route group, chaque integration → au moins 1 webhook).                                                                 │
+│                                                                                                                                                                    │
+│ Ce qui manque :                                                                                                                                                    │
+│ - Template webhook-map specifique Hostinger (URL patterns, headers, limitations)                                                                                   │
+│ - Pattern invitation flow (tres commun dans les dashboards multi-users)                                                                                            │
+│ - Pattern multi-tenant vs single-tenant (decision tree)                                                                                                            │
+│                                                                                                                                                                    │
+│ 3.4 A04-NEW (ex-A05) — Wireframes [SKILL]                                                                                                                          │
+│                                                                                                                                                                    │
+│ Etat actuel : Stage documente avec template wireframe par page et navigation map.                                                                                  │
+│                                                                                                                                                                    │
+│ Points d'optimisation :                                                                                                                                            │
+│ - Skill dashboard-wireframes : Patterns courants dashboard en ASCII/markdown (sidebar layout, KPI grid, CRUD table, detail page, form page, settings). Templates   │
+│ par type de page. Navigation map template.                                                                                                                         │
+│ - Documentation : Ajouter des exemples de wireframes pour chaque type de page. Ajouter une section "Etats UI" obligatoire (loading, empty, error, success) dans    │
+│ chaque wireframe.                                                                                                                                                  │
+│                                                                                                                                                                    │
+│ Ce qui manque :                                                                                                                                                    │
+│ - Templates wireframe pour les pages les plus courantes (dashboard principal, liste CRUD, detail, formulaire, settings)                                            │
+│ - Guidelines responsive dans les wireframes (que devient chaque element en mobile)                                                                                 │
+│                                                                                                                                                                    │
+│ 3.5 A05-NEW (ex-A06) — Design Tokens [SKILL]                                                                                                                       │
+│                                                                                                                                                                    │
+│ Etat actuel : Stage produit globals.css avec tokens OKLCH et @theme Tailwind 4.                                                                                    │
+│                                                                                                                                                                    │
+│ Points d'optimisation :                                                                                                                                            │
+│ - Skill dashboard-design-tokens : Template globals.css COMPLET avec tous les tokens necessaires. Genere a partir du design system extrait en A02-NEW. Pattern dark │
+│  mode. Integration shadcn/ui.                                                                                                                                      │
+│ - Documentation : Lien entre A02-NEW (extraction) et A05-NEW (tokens CSS). Checklist de verification que tous les tokens du design system extrait sont dans        │
+│ globals.css.                                                                                                                                                       │
+│                                                                                                                                                                    │
+│ Ce qui manque :                                                                                                                                                    │
+│ - globals.css template pre-rempli (actuellement on genere from scratch a chaque fois)                                                                              │
+│ - Mapping design system Neurolia → tokens CSS dashboard                                                                                                            │
+│                                                                                                                                                                    │
+│ ---                                                                                                                                                                │
+│ 4. Phase B — Developpement                                                                                                                                         │
+│                                                                                                                                                                    │
+│ 4.1 B01 — Setup : Supabase + Auth + Layout [SKILL] [AGENT?] [INFRA]                                                                                                │
+│                                                                                                                                                                    │
+│ Etat actuel : Stage bien documente. 2 agents (backend-layer opus, dashboard-ui-builder sonnet).                                                                    │
+│                                                                                                                                                                    │
+│ Points d'optimisation :                                                                                                                                            │
+│ - Skill dashboard-auth-patterns : Snippets complets pour setup Supabase (4 fichiers client), middleware.ts role-based, layouts par role group, invitation flow.    │
+│ Code copier-coller avec placeholders.                                                                                                                              │
+│ - Skill dashboard-layout-patterns : Snippets sidebar + header + mobile nav + breadcrumb. Patterns responsive (sidebar desktop → tab bar mobile).                   │
+│ - Agent potentiel : Un agent "scaffolder" qui genere toute la structure B01 en un seul passage (schema SQL + RLS + clients Supabase + middleware + layouts +       │
+│ composants nav).                                                                                                                                                   │
+│ - Infra Hostinger : Configuration n8n credentials dans .env, webhook URLs Hostinger, test de connectivite.                                                         │
+│                                                                                                                                                                    │
+│ Ce qui manque :                                                                                                                                                    │
+│ - Template middleware.ts complet (actuellement decrit en prose)                                                                                                    │
+│ - Template layouts ((auth)/, (role_1)/, (role_2)/) complets                                                                                                        │
+│ - Script de test connexion Supabase + n8n Hostinger                                                                                                                │
+│ - Configuration Hostinger-specifique (proxy, ports, SSL)                                                                                                           │
+│                                                                                                                                                                    │
+│ 4.2 B02 — Core : CRUD Principal [SKILL]                                                                                                                            │
+│                                                                                                                                                                    │
+│ Etat actuel : Patterns Liste/Detail/Formulaire/Server Action documentes. 2 agents (ui-builder, backend-layer).                                                     │
+│                                                                                                                                                                    │
+│ Points d'optimisation :                                                                                                                                            │
+│ - Skill dashboard-crud-patterns : Snippets TypeScript COMPLETS pour chaque pattern :                                                                               │
+│   a. Page liste (Server Component + Client Table avec search/filter/pagination/sort)                                                                               │
+│   b. Page detail (Server Component + notFound + back navigation)                                                                                                   │
+│   c. Formulaire (react-hook-form + zod + Server Action + toast)                                                                                                    │
+│   d. Server Action (auth check → zod → mutation → revalidate → return typed)                                                                                       │
+│   e. Empty state (illustration + message + CTA)                                                                                                                    │
+│   f. Loading skeleton (per-component)                                                                                                                              │
+│   g. Delete confirmation (dialog + Server Action)                                                                                                                  │
+│ - Documentation : Ajouter un "decision tree" pour Server vs Client Component. Ajouter des exemples de schemas zod pour les types courants.                         │
+│                                                                                                                                                                    │
+│ Ce qui manque :                                                                                                                                                    │
+│ - Pattern de filtrage avance (date range, multi-select, search combine)                                                                                            │
+│ - Pattern d'export CSV/PDF (commun dans les dashboards)                                                                                                            │
+│ - Pattern d'import/upload (CSV, images)                                                                                                                            │
+│ - Pattern realtime (Supabase Realtime subscriptions pour refresh auto des listes)                                                                                  │
+│                                                                                                                                                                    │
+│ 4.3 B03 — Dashboard : Vues + KPIs [SKILL]                                                                                                                          │
+│                                                                                                                                                                    │
+│ Etat actuel : Patterns KPI, calendrier, alertes, graphiques documentes. 1 agent (ui-builder).                                                                      │
+│                                                                                                                                                                    │
+│ Points d'optimisation :                                                                                                                                            │
+│ - Skill dashboard-kpi-patterns : Snippets complets :                                                                                                               │
+│   a. KPI Card (value + trend + icon + loading state)                                                                                                               │
+│   b. KPI Grid (responsive 4→2→1 columns)                                                                                                                           │
+│   c. Chart wrapper (Recharts avec tokens CSS)                                                                                                                      │
+│   d. Bar/Line/Donut chart templates                                                                                                                                │
+│   e. Alerts panel (tri priorite + badge count + "voir tout")                                                                                                       │
+│   f. Calendar mensuel (navigation + events par jour)                                                                                                               │
+│   g. Timeline (chronologie verticale avec dots)                                                                                                                    │
+│   h. "Aujourd'hui" resume panel                                                                                                                                    │
+│ - Documentation : Ajouter des exemples de calculs KPI server-side. Ajouter un pattern pour les comparaisons N vs N-1 (semaine, mois, annee).                       │
+│                                                                                                                                                                    │
+│ Ce qui manque :                                                                                                                                                    │
+│ - Pattern de refresh automatique des KPIs (polling vs realtime)                                                                                                    │
+│ - Pattern export dashboard en PDF/screenshot                                                                                                                       │
+│ - Pattern de personnalisation dashboard (drag-and-drop widgets — Phase 2 ?)                                                                                        │
+│                                                                                                                                                                    │
+│ 4.4 B04 — Automations : n8n Workflows [SKILL] [AGENT?] [INFRA]                                                                                                     │
+│                                                                                                                                                                    │
+│ Etat actuel : Stage documente. 1 agent (integration-builder). Skills n8n existants au niveau workspace.                                                            │
+│                                                                                                                                                                    │
+│ Points d'optimisation :                                                                                                                                            │
+│ - Skill dashboard-n8n-hostinger : Configuration specifique Hostinger (URLs, ports, proxy, SSL). Patterns de test webhook depuis Hostinger. Template patch notes.   │
+│ Pattern error handler (WF00).                                                                                                                                      │
+│ - Agent potentiel : Un agent dedie n8n qui genere les documentations de workflow ET les API routes correspondantes en un seul passage. Connait les skills n8n      │
+│ workspace-level (n8n-workflow-patterns, n8n-node-configuration, n8n-expression-syntax, n8n-code-javascript).                                                       │
+│ - Infra : Test de connectivite Hostinger → Vercel. Configuration CORS. Gestion des timeouts. Retry policies.                                                       │
+│                                                                                                                                                                    │
+│ Ce qui manque dans le stage actuel :                                                                                                                               │
+│ - Configuration specifique Hostinger (URLs, authentication, limitations)                                                                                           │
+│ - Pattern de test end-to-end (n8n trigger → webhook → Supabase → UI refresh)                                                                                       │
+│ - Template de monitoring n8n (alertes si workflow echoue)                                                                                                          │
+│ - Pattern de migration workflows (dev → prod)                                                                                                                      │
+│                                                                                                                                                                    │
+│ 4.5 B05 — Polish : Responsive + PWA [SKILL]                                                                                                                        │
+│                                                                                                                                                                    │
+│ Etat actuel : Stage bien documente avec responsive, loading states, PWA, micro-interactions, accessibilite.                                                        │
+│                                                                                                                                                                    │
+│ Points d'optimisation :                                                                                                                                            │
+│ - Skill dashboard-polish-patterns : Snippets complets :                                                                                                            │
+│   a. Table → Cards responsive (breakpoints + animation)                                                                                                            │
+│   b. Sidebar → Tab bar responsive                                                                                                                                  │
+│   c. Modal → Full-screen mobile                                                                                                                                    │
+│   d. Skeleton components library                                                                                                                                   │
+│   e. Error boundary template                                                                                                                                       │
+│   f. PWA manifest + service worker template                                                                                                                        │
+│   g. Notification permission request UX                                                                                                                            │
+│   h. Micro-interactions CSS (durees, easing, GPU-only)                                                                                                             │
+│   i. Accessibility checklist avec aria-* patterns                                                                                                                  │
+│ - Documentation : Ajouter un guide de test mobile (simulateur, devices reels, viewport sizes).                                                                     │
+│                                                                                                                                                                    │
+│ Ce qui manque :                                                                                                                                                    │
+│ - Pattern offline-first (cache strategies pour dashboard)                                                                                                          │
+│ - Pattern print stylesheet (imprimer un rapport/facture)                                                                                                           │
+│ - Pattern keyboard shortcuts (dashboard pro users)                                                                                                                 │
+│                                                                                                                                                                    │
+│ 4.6 B06 — Deploy : Production [SKILL] [INFRA] [AGENT?]                                                                                                             │
+│                                                                                                                                                                    │
+│ Etat actuel : Stage documente (Vercel, Supabase, n8n, monitoring).                                                                                                 │
+│                                                                                                                                                                    │
+│ Points d'optimisation :                                                                                                                                            │
+│ - Skill dashboard-deploy-checklist : Checklist interactive pre-deploy. Verification automatique (build, lint, env vars, RLS, secrets). Template deploy.md.         │
+│ - Agent potentiel : Un agent "deploy validator" qui execute tous les checks pre-deploy et produit un rapport go/no-go.                                             │
+│ - Infra : Configuration specifique Hostinger pour n8n production. Webhook URLs production. DNS. SSL.                                                               │
+│                                                                                                                                                                    │
+│ Ce qui manque :                                                                                                                                                    │
+│ - Script de verification pre-deploy automatise                                                                                                                     │
+│ - Template de documentation client (guide utilisateur)                                                                                                             │
+│ - Procedure de rollback (Vercel revert, Supabase migration down)                                                                                                   │
+│ - Configuration monitoring specifique (Sentry, uptime, n8n health)                                                                                                 │
+│                                                                                                                                                                    │
+│ ---                                                                                                                                                                │
+│ 5. Cross-cutting — Regles et mecanismes transversaux                                                                                                               │
+│                                                                                                                                                                    │
+│ 5.1 Mise a jour automatique PLAN.md [RULE]                                                                                                                         │
+│                                                                                                                                                                    │
+│ Etat actuel : Aucun mecanisme. La MAJ est manuelle et souvent oubliee.                                                                                             │
+│                                                                                                                                                                    │
+│ Point d'optimisation :                                                                                                                                             │
+│ - Rule plan-update.md qui s'applique a tous les paths pipeline/*, PLAN.md, CLAUDE.md                                                                               │
+│ - Oblige chaque agent a cocher les items du PLAN.md et mettre a jour le journal apres chaque etape                                                                 │
+│                                                                                                                                                                    │
+│ 5.2 Checklist verification humaine [RULE]                                                                                                                          │
+│                                                                                                                                                                    │
+│ Etat actuel : Template de checklist dans PLAN-TEMPLATE.md et dans chaque agent. Mais pas de mecanisme pour FORCER la fourniture.                                   │
+│                                                                                                                                                                    │
+│ Point d'optimisation :                                                                                                                                             │
+│ - Rule post-agent-checklist.md qui s'applique aux paths src/*, components/*, app/*                                                                                 │
+│ - Oblige chaque agent a produire une checklist avec URLs, breakpoints, actions, securite                                                                           │
+│                                                                                                                                                                    │
+│ 5.3 Immutabilite des outputs [RULE]                                                                                                                                │
+│                                                                                                                                                                    │
+│ Etat actuel : Mentionne dans la doc mais pas enforced.                                                                                                             │
+│                                                                                                                                                                    │
+│ Point d'optimisation :                                                                                                                                             │
+│ - Rule pipeline-immutability.md qui s'applique a pipeline/output/*                                                                                                 │
+│ - Interdit la modification des outputs d'etapes precedentes                                                                                                        │
+│ - Seul l'ajout de nouveaux fichiers est autorise                                                                                                                   │
+│                                                                                                                                                                    │
+│ 5.4 Coherence types TS ↔ schema SQL [RULE]                                                                                                                         │
+│                                                                                                                                                                    │
+│ Etat actuel : Mentionne dans backend-layer mais pas de mecanisme automatique.                                                                                      │
+│                                                                                                                                                                    │
+│ Point d'optimisation :                                                                                                                                             │
+│ - Rule ou hook qui verifie que les types TS correspondent au schema SQL                                                                                            │
+│ - Rappel de regenerer les types apres modification du schema                                                                                                       │
+│                                                                                                                                                                    │
+│ 5.5 Securite [RULE]                                                                                                                                                │
+│                                                                                                                                                                    │
+│ Etat actuel : Mentionne dans chaque agent et dans les rules.                                                                                                       │
+│                                                                                                                                                                    │
+│ Point d'optimisation :                                                                                                                                             │
+│ - Rule dediee security-checks.md qui consolide TOUTES les verifications securite :                                                                                 │
+│   - RLS sur chaque table                                                                                                                                           │
+│   - service_role jamais client-side                                                                                                                                │
+│   - Webhook secret validation first                                                                                                                                │
+│   - CORS configure                                                                                                                                                 │
+│   - Pas de credentials dans le code                                                                                                                                │
+│                                                                                                                                                                    │
+│ ---                                                                                                                                                                │
+│ 6. Infrastructure Hostinger — Points specifiques                                                                                                                   │
+│                                                                                                                                                                    │
+│ 6.1 n8n sur Hostinger [INFRA] [DOC]                                                                                                                                │
+│                                                                                                                                                                    │
+│ Points a documenter dans le template :                                                                                                                             │
+│ - URLs d'acces n8n (panel Hostinger, webhook base URL)                                                                                                             │
+│ - Configuration proxy/reverse proxy                                                                                                                                │
+│ - Limitations (RAM, CPU, timeout)                                                                                                                                  │
+│ - SSL/HTTPS pour les webhooks                                                                                                                                      │
+│ - Gestion des credentials dans n8n                                                                                                                                 │
+│ - Backup/restore des workflows                                                                                                                                     │
+│ - Mise a jour n8n                                                                                                                                                  │
+│                                                                                                                                                                    │
+│ 6.2 Integration Hostinger ↔ Vercel [INFRA]                                                                                                                         │
+│                                                                                                                                                                    │
+│ Points a documenter :                                                                                                                                              │
+│ - Latence webhooks Hostinger → Vercel                                                                                                                              │
+│ - Configuration CORS (origines autorisees)                                                                                                                         │
+│ - Retry policies (si webhook echoue)                                                                                                                               │
+│ - Monitoring (alertes si deconnexion)                                                                                                                              │
+│                                                                                                                                                                    │
+│ 6.3 Integration Hostinger ↔ Supabase [INFRA]                                                                                                                       │
+│                                                                                                                                                                    │
+│ Points a documenter :                                                                                                                                              │
+│ - n8n accede a Supabase via API REST ou PostgreSQL direct ?                                                                                                        │
+│ - Credentials Supabase dans n8n (service_role key)                                                                                                                 │
+│ - Securite du stockage des credentials dans Hostinger                                                                                                              │
+│                                                                                                                                                                    │
+│ ---                                                                                                                                                                │
+│ 7. Restructuration des stages Phase A                                                                                                                              │
+│                                                                                                                                                                    │
+│ Avant (12 stages)                                                                                                                                                  │
+│                                                                                                                                                                    │
+│ A01-init → A02-brand → A03-art-direction → A04-structure → A05-wireframes → A06-design-tokens                                                                      │
+│                                                                                                                                                                    │
+│ Apres (10 stages)                                                                                                                                                  │
+│                                                                                                                                                                    │
+│ A01-init → A02-design-extraction → A03-structure → A04-wireframes → A05-design-tokens                                                                              │
+│                                                                                                                                                                    │
+│ Changements :                                                                                                                                                      │
+│                                                                                                                                                                    │
+│ ┌───────────────────┬───────────────────┬────────────────────────────────────────────┐                                                                             │
+│ │      Ancien       │      Nouveau      │                Modification                │                                                                             │
+│ ├───────────────────┼───────────────────┼────────────────────────────────────────────┤                                                                             │
+│ │ A01-init          │ A01-init          │ Inchange (ajouter questions n8n Hostinger) │                                                                             │
+│ ├───────────────────┼───────────────────┼────────────────────────────────────────────┤                                                                             │
+│ │ A02-brand         │ SUPPRIME          │ Remplace par A02-design-extraction         │                                                                             │
+│ ├───────────────────┼───────────────────┼────────────────────────────────────────────┤                                                                             │
+│ │ A03-art-direction │ SUPPRIME          │ Fusionne dans A02-design-extraction        │                                                                             │
+│ ├───────────────────┼───────────────────┼────────────────────────────────────────────┤                                                                             │
+│ │ A04-structure     │ A03-structure     │ Renumerote. Ajouter webhook-map Hostinger  │                                                                             │
+│ ├───────────────────┼───────────────────┼────────────────────────────────────────────┤                                                                             │
+│ │ A05-wireframes    │ A04-wireframes    │ Renumerote                                 │                                                                             │
+│ ├───────────────────┼───────────────────┼────────────────────────────────────────────┤                                                                             │
+│ │ A06-design-tokens │ A05-design-tokens │ Renumerote. Input = A02 extraction         │                                                                             │
+│ ├───────────────────┼───────────────────┼────────────────────────────────────────────┤                                                                             │
+│ │ B01-B06           │ B01-B06           │ Inchanges (numerotation B intacte)         │                                                                             │
+│ └───────────────────┴───────────────────┴────────────────────────────────────────────┘                                                                             │
+│                                                                                                                                                                    │
+│ A02-design-extraction (NOUVEAU)                                                                                                                                    │
+│                                                                                                                                                                    │
+│ Objectif : Extraire les elements design necessaires au dashboard depuis un design system existant (Neurolia ou autre).                                             │
+│                                                                                                                                                                    │
+│ Inputs :                                                                                                                                                           │
+│ - Design system source (Neurolia ou client)                                                                                                                        │
+│ - PRD (A01) — pour connaitre les composants necessaires                                                                                                            │
+│                                                                                                                                                                    │
+│ Process :                                                                                                                                                          │
+│ 1. Identifier les composants UI necessaires (boutons, inputs, tables, cards, badges, modales)                                                                      │
+│ 2. Extraire la palette couleurs (primary, secondary, semantic — success/warning/error/info)                                                                        │
+│ 3. Extraire les typographies (2-3 maximum : titres, body, mono)                                                                                                    │
+│ 4. Extraire le spacing system                                                                                                                                      │
+│ 5. Definir les regles de simplification dashboard :                                                                                                                │
+│   - Pas de decorations superflues                                                                                                                                  │
+│   - Densite information elevee                                                                                                                                     │
+│   - Contraste fonctionnel > esthetique                                                                                                                             │
+│   - Radius et shadows minimalistes                                                                                                                                 │
+│                                                                                                                                                                    │
+│ Output : pipeline/output/02-design-system/                                                                                                                         │
+│ - palette.md — couleurs extraites + mapping semantique                                                                                                             │
+│ - typography.md — familles + tailles + poids                                                                                                                       │
+│ - components.md — inventaire composants necessaires                                                                                                                │
+│ - constraints.md — ON FAIT / ON NE FAIT PAS (version dashboard simplifiee)                                                                                         │
+│                                                                                                                                                                    │
+│ ---                                                                                                                                                                │
+│ 8. Inventaire complet des skills potentiels                                                                                                                        │
+│                                                                                                                                                                    │
+│ ┌─────┬─────────────────────────────┬──────────────┬───────────────────────────────────────────────┬────────┐                                                      │
+│ │  #  │            Skill            │    Phase     │                   Objectif                    │ Effort │                                                      │
+│ ├─────┼─────────────────────────────┼──────────────┼───────────────────────────────────────────────┼────────┤                                                      │
+│ │ S1  │ init-dashboard              │ Pre-pipeline │ Bootstrapper un projet depuis le template     │ Medium │                                                      │
+│ ├─────┼─────────────────────────────┼──────────────┼───────────────────────────────────────────────┼────────┤                                                      │
+│ │ S2  │ load-dashboard-context      │ Transversal  │ Charger contexte + identifier prochaine etape │ Low    │                                                      │
+│ ├─────┼─────────────────────────────┼──────────────┼───────────────────────────────────────────────┼────────┤                                                      │
+│ │ S3  │ dashboard-brief-analyzer    │ A01          │ Transformer brief en PRD dashboard            │ Medium │                                                      │
+│ ├─────┼─────────────────────────────┼──────────────┼───────────────────────────────────────────────┼────────┤                                                      │
+│ │ S4  │ dashboard-design-extraction │ A02-NEW      │ Extraire elements d'un design system existant │ Medium │                                                      │
+│ ├─────┼─────────────────────────────┼──────────────┼───────────────────────────────────────────────┼────────┤                                                      │
+│ │ S5  │ dashboard-data-architect    │ A03          │ Data model + auth + routes + webhooks         │ High   │                                                      │
+│ ├─────┼─────────────────────────────┼──────────────┼───────────────────────────────────────────────┼────────┤                                                      │
+│ │ S6  │ dashboard-wireframes        │ A04          │ Patterns wireframe dashboard + templates      │ Medium │                                                      │
+│ ├─────┼─────────────────────────────┼──────────────┼───────────────────────────────────────────────┼────────┤                                                      │
+│ │ S7  │ dashboard-design-tokens     │ A05          │ Template globals.css + tokens OKLCH           │ Low    │                                                      │
+│ ├─────┼─────────────────────────────┼──────────────┼───────────────────────────────────────────────┼────────┤                                                      │
+│ │ S8  │ dashboard-auth-patterns     │ B01          │ Snippets Supabase auth + middleware + layouts │ High   │                                                      │
+│ ├─────┼─────────────────────────────┼──────────────┼───────────────────────────────────────────────┼────────┤                                                      │
+│ │ S9  │ dashboard-layout-patterns   │ B01          │ Snippets sidebar + header + mobile nav        │ Medium │                                                      │
+│ ├─────┼─────────────────────────────┼──────────────┼───────────────────────────────────────────────┼────────┤                                                      │
+│ │ S10 │ dashboard-crud-patterns     │ B02          │ Snippets CRUD complets (7 patterns)           │ High   │                                                      │
+│ ├─────┼─────────────────────────────┼──────────────┼───────────────────────────────────────────────┼────────┤                                                      │
+│ │ S11 │ dashboard-kpi-patterns      │ B03          │ Snippets KPIs + charts + alertes + calendrier │ Medium │                                                      │
+│ ├─────┼─────────────────────────────┼──────────────┼───────────────────────────────────────────────┼────────┤                                                      │
+│ │ S12 │ dashboard-n8n-hostinger     │ B04          │ Config Hostinger + patterns webhook + test    │ Medium │                                                      │
+│ ├─────┼─────────────────────────────┼──────────────┼───────────────────────────────────────────────┼────────┤                                                      │
+│ │ S13 │ dashboard-polish-patterns   │ B05          │ Responsive + PWA + micro-interactions + a11y  │ Medium │                                                      │
+│ ├─────┼─────────────────────────────┼──────────────┼───────────────────────────────────────────────┼────────┤                                                      │
+│ │ S14 │ dashboard-deploy-checklist  │ B06          │ Checklist pre-deploy + template doc client    │ Low    │                                                      │
+│ └─────┴─────────────────────────────┴──────────────┴───────────────────────────────────────────────┴────────┘                                                      │
+│                                                                                                                                                                    │
+│ Priorite de creation                                                                                                                                               │
+│                                                                                                                                                                    │
+│ P0 (essentiels) : S1, S2, S5, S8, S10                                                                                                                              │
+│ P1 (importants) : S3, S4, S7, S11, S12                                                                                                                             │
+│ P2 (nice-to-have) : S6, S9, S13, S14                                                                                                                               │
+│                                                                                                                                                                    │
+│ ---                                                                                                                                                                │
+│ 9. Inventaire des agents potentiels                                                                                                                                │
+│                                                                                                                                                                    │
+│ ┌─────┬──────────────────────┬────────────┬─────────────────────────────────────────────────────────┬─────────────┐                                                │
+│ │  #  │        Agent         │   Phase    │                        Objectif                         │   Modele    │                                                │
+│ ├─────┼──────────────────────┼────────────┼─────────────────────────────────────────────────────────┼─────────────┤                                                │
+│ │ A1  │ architecture-planner │ A01-A05    │ Executer les stages Phase A sequentiellement            │ sonnet      │                                                │
+│ ├─────┼──────────────────────┼────────────┼─────────────────────────────────────────────────────────┼─────────────┤                                                │
+│ │ A2  │ dashboard-ui-builder │ B01-B05    │ Pages UI, composants, formulaires, KPIs                 │ sonnet      │                                                │
+│ ├─────┼──────────────────────┼────────────┼─────────────────────────────────────────────────────────┼─────────────┤                                                │
+│ │ A3  │ backend-layer        │ B01, B02   │ Schema, RLS, types, seed, server actions                │ sonnet/opus │                                                │
+│ ├─────┼──────────────────────┼────────────┼─────────────────────────────────────────────────────────┼─────────────┤                                                │
+│ │ A4  │ integration-builder  │ B04        │ n8n, webhooks, auth middleware, emails                  │ sonnet/opus │                                                │
+│ ├─────┼──────────────────────s┼────────────┼─────────────────────────────────────────────────────────┼─────────────┤                                                │
+│ │ A5  │ qa-validator         │ Post-batch │ Valider build, responsive, securite, a11y               │ haiku       │                                                │
+│ ├─────┼──────────────────────┼────────────┼─────────────────────────────────────────────────────────┼─────────────┤                                                │
+│ │ A6  │ deploy-assistant     │ B06        │ Checks pre-deploy, config Vercel/Supabase/n8n           │ sonnet      │                                                │
+│ ├─────┼──────────────────────┼────────────┼─────────────────────────────────────────────────────────┼─────────────┤                                                │
+│ │ A7  │ n8n-workflow-builder │ B04        │ Generation doc + API routes n8n (skills n8n precharges) │ sonnet      │                                                │
+│ └─────┴──────────────────────┴────────────┴─────────────────────────────────────────────────────────┴─────────────┘                                                │
+│                                                                                                                                                                    │
+│ A2-A4 existent deja. A1, A5, A6, A7 sont des candidats a creer.                                                                                                    │
+│                                                                                                                                                                    │
+│ ---                                                                                                                                                                │
+│ 10. Inventaire des rules potentielles                                                                                                                              │
+│                                                                                                                                                                    │
+│ ┌─────┬──────────────────────────┬────────────────────────────────┬───────────────────────────────────────────┐                                                    │
+│ │  #  │           Rule           │             Paths              │                 Objectif                  │                                                    │
+│ ├─────┼──────────────────────────┼────────────────────────────────┼───────────────────────────────────────────┤                                                    │
+│ │ R1  │ plan-update.md           │ pipeline/*, PLAN.md, CLAUDE.md │ Forcer MAJ PLAN.md apres chaque etape     │                                                    │
+│ ├─────┼──────────────────────────┼────────────────────────────────┼───────────────────────────────────────────┤                                                    │
+│ │ R2  │ post-agent-checklist.md  │ src/*, components/*, app/*     │ Forcer checklist humaine post-agent       │                                                    │
+│ ├─────┼──────────────────────────┼────────────────────────────────┼───────────────────────────────────────────┤                                                    │
+│ │ R3  │ pipeline-immutability.md │ pipeline/output/*              │ Interdire modification outputs precedents │                                                    │
+│ ├─────┼──────────────────────────┼────────────────────────────────┼───────────────────────────────────────────┤                                                    │
+│ │ R4  │ security-checks.md       │ src/*, middleware.ts, .env*    │ Consolidation verifications securite      │                                                    │
+│ ├─────┼──────────────────────────┼────────────────────────────────┼───────────────────────────────────────────┤                                                    │
+│ │ R5  │ type-sync.md             │ src/types/*, supabase/*        │ Coherence types TS ↔ schema SQL           │                                                    │
+│ └─────┴──────────────────────────┴────────────────────────────────┴───────────────────────────────────────────┘                                                    │
+│                                                                                                                                                                    │
+│ R1-R2 sont prioritaires. R3-R5 sont importants.                                                                                                                    │
+│                                                                                                                                                                    │
+│ ---                                                                                                                                                                │
+│ 11. Mises a jour fichiers existants                                                                                                                                │
+│                                                                                                                                                                    │
+│ CLAUDE.md du template                                                                                                                                              │
+│                                                                                                                                                                    │
+│ - Ajouter section "Skills Disponibles" (tableau des 14 skills)                                                                                                     │
+│ - Ajouter section "Workflow d'execution" (init → load-context → stage → update plan)                                                                               │
+│ - Mettre a jour la Phase A (5 stages au lieu de 6)                                                                                                                 │
+│ - Ajouter reference infra Hostinger                                                                                                                                │
+│ - Ajouter architecture-planner aux agents                                                                                                                          │
+│                                                                                                                                                                    │
+│ PLAN-TEMPLATE.md                                                                                                                                                   │
+│                                                                                                                                                                    │
+│ - Ajouter colonne "Skill" dans chaque tableau de phase                                                                                                             │
+│ - Ajouter colonne "Agent" dans chaque tableau de batch                                                                                                             │
+│ - Mettre a jour Phase A (5 stages)                                                                                                                                 │
+│ - Ajouter section "Infrastructure" (Hostinger, Supabase, Vercel)                                                                                                   │
+│                                                                                                                                                                    │
+│ agent-models.md                                                                                                                                                    │
+│                                                                                                                                                                    │
+│ - Ajouter Phase A attribution (architecture-planner + model)                                                                                                       │
+│ - Ajouter skills precharges par agent                                                                                                                              │
+│ - Ajouter qa-validator et deploy-assistant si crees                                                                                                                │
+│                                                                                                                                                                    │
+│ Stages Phase A                                                                                                                                                     │
+│                                                                                                                                                                    │
+│ - Renumeroter A04→A03, A05→A04, A06→A05                                                                                                                            │
+│ - Creer A02-design-extraction.md                                                                                                                                   │
+│ - Supprimer A02-brand.md et A03-art-direction.md                                                                                                                   │
+│ - Mettre a jour inputs/outputs de chaque stage (nouveau flux de contexte)                                                                                          │
+│                                                                                                                                                                    │
+│ DEPENDENCIES.md                                                                                                                                                    │
+│                                                                                                                                                                    │
+│ - Mettre a jour le graphe avec 5 stages Phase A au lieu de 6                                                                                                       │
+│ - Ajouter les dependances vers infra Hostinger                                                                                                                     │
+│                                                                                                                                                                    │
+│ 3 agents existants                                                                                                                                                 │
+│                                                                                                                                                                    │
+│ - Ajouter skills: dans le frontmatter de chaque agent                                                                                                              │
+│ - Ajouter regle MAJ PLAN.md                                                                                                                                        │
+│ - Ajouter reference vers les skills techniques correspondants                                                                                                      │
+│                                                                                                                                                                    │
+│ ---                                                                                                                                                                │
+│ 12. Ordre d'execution recommande                                                                                                                                   │
+│                                                                                                                                                                    │
+│ Phase 1 — Restructuration (sans code)                                                                                                                              │
+│                                                                                                                                                                    │
+│ 1. Renumeroter stages A02→A05 (renommer fichiers)                                                                                                                  │
+│ 2. Creer A02-design-extraction.md                                                                                                                                  │
+│ 3. Supprimer A02-brand.md et A03-art-direction.md                                                                                                                  │
+│ 4. Mettre a jour DEPENDENCIES.md                                                                                                                                   │
+│ 5. Mettre a jour CLAUDE.md                                                                                                                                         │
+│ 6. Mettre a jour PLAN-TEMPLATE.md                                                                                                                                  │
+│                                                                                                                                                                    │
+│ Phase 2 — Rules (2 fichiers)                                                                                                                                       │
+│                                                                                                                                                                    │
+│ 7. Creer rule plan-update.md                                                                                                                                       │
+│ 8. Creer rule post-agent-checklist.md                                                                                                                              │
+│                                                                                                                                                                    │
+│ Phase 3 — Skills P0 (5 fichiers)                                                                                                                                   │
+│                                                                                                                                                                    │
+│ 9. Creer skill init-dashboard                                                                                                                                      │
+│ 10. Creer skill load-dashboard-context                                                                                                                             │
+│ 11. Creer skill dashboard-data-architect                                                                                                                           │
+│ 12. Creer skill dashboard-auth-patterns                                                                                                                            │
+│ 13. Creer skill dashboard-crud-patterns                                                                                                                            │
+│                                                                                                                                                                    │
+│ Phase 4 — Skills P1 (5 fichiers)                                                                                                                                   │
+│                                                                                                                                                                    │
+│ 14. Creer skill dashboard-brief-analyzer                                                                                                                           │
+│ 15. Creer skill dashboard-design-extraction                                                                                                                        │
+│ 16. Creer skill dashboard-design-tokens                                                                                                                            │
+│ 17. Creer skill dashboard-kpi-patterns                                                                                                                             │
+│ 18. Creer skill dashboard-n8n-hostinger                                                                                                                            │
+│                                                                                                                                                                    │
+│ Phase 5 — Skills P2 + agents (4-6 fichiers)                                                                                                                        │
+│                                                                                                                                                                    │
+│ 19. Creer skill dashboard-wireframes                                                                                                                               │
+│ 20. Creer skill dashboard-layout-patterns                                                                                                                          │
+│ 21. Creer skill dashboard-polish-patterns                                                                                                                          │
+│ 22. Creer skill dashboard-deploy-checklist                                                                                                                         │
+│ 23. Creer agent architecture-planner                                                                                                                               │
+│ 24. Modifier les 3 agents existants                                                                                                                                │
+│                                                                                                                                                                    │
+│ Phase 6 — Integration + test                                                                                                                                       │
+│                                                                                                                                                                    │
+│ 25. Mettre a jour agent-models.md                                                                                                                                  │
+│ 26. Test end-to-end : init → A01 → A02 → ... → B01                                                                                                                 │
+│                                                                                                                                                                    │
+│ ---                                                                                                                                                                │
+│ 13. Verification finale                                                                                                                                            │
+│                                                                                                                                                                    │
+│ - Chaque stage (A01-A05, B01-B06) a au moins 1 skill associe                                                                                                       │
+│ - Chaque batch Phase B a un agent clairement attribue                                                                                                              │
+│ - Le CLAUDE.md reference tous les skills et agents                                                                                                                 │
+│ - Le PLAN-TEMPLATE.md mappe chaque etape a son skill/agent/modele                                                                                                  │
+│ - Les stages Phase A sont renumerotes et coherents                                                                                                                 │
+│ - A02-design-extraction produit les inputs necessaires pour A05 (tokens)                                                                                           │
+│ - Les rules s'appliquent aux bons paths                                                                                                                            │
+│ - L'infra Hostinger est documentee                                                                                                                                 │
+│ - Le flux de contexte A01→A05→B01→B06 est coherent bout en bout

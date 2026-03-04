@@ -1,0 +1,10 @@
+{
+  "name": "neurolia",
+  "org": "neurolia-agency",
+  "type": "internal",
+  "status": "active",
+  "description": "Site vitrine, vidéos, social, démos, scripts, templates Neurolia",
+  "stack": ["Next.js 15", "React 19", "TypeScript", "Tailwind CSS 4", "Remotion"],
+  "access": "core-dev",
+  "contents": ["neurolia-site", "neurolia-videos", "neurolia-social", "demo", "scripts", "templates", "guide-github"]
+}

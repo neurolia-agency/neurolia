@@ -1,0 +1,268 @@
+{
+  "name": "Lead Capture - Chatbot Neurolia",
+  "nodes": [
+    {
+      "id": "a1b2c3d4-0001-4000-8000-000000000001",
+      "name": "Note - Overview",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [180, 100],
+      "parameters": {
+        "content": "## Lead Capture - Chatbot Neurolia\n\nReçoit les leads qualifiés du chatbot Next.js via webhook POST.\n\n**Flow:** Webhook → Validate → Transform → Respond 200 → Fan-out (Email + Sheets + Slack)\n\n**Auth:** Bearer token via header `Authorization`",
+        "width": 400,
+        "height": 180
+      }
+    },
+    {
+      "id": "a1b2c3d4-0001-4000-8000-000000000010",
+      "name": "Webhook - Lead Capture",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [250, 380],
+      "webhookId": "neurolia-lead-capture",
+      "parameters": {
+        "path": "chatbot-lead",
+        "httpMethod": "POST",
+        "responseMode": "responseNode",
+        "options": {}
+      }
+    },
+    {
+      "id": "a1b2c3d4-0001-4000-8000-000000000020",
+      "name": "Validate & Transform",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [500, 380],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const items = $input.all();\nconst results = [];\n\nfor (const item of items) {\n  const body = item.json.body || item.json;\n  const headers = item.json.headers || {};\n\n  // Auth check\n  const authHeader = headers.authorization || headers.Authorization || '';\n  const expectedToken = $env.N8N_WEBHOOK_SECRET || '';\n  if (expectedToken && authHeader !== `Bearer ${expectedToken}`) {\n    results.push({\n      json: {\n        valid: false,\n        error: 'Unauthorized',\n        statusCode: 401\n      }\n    });\n    continue;\n  }\n\n  // Required fields\n  const name = (body.name || '').trim();\n  const email = (body.email || '').trim().toLowerCase();\n  const conversationSummary = (body.conversationSummary || '').trim();\n\n  if (!conversationSummary) {\n    results.push({\n      json: {\n        valid: false,\n        error: 'Missing conversationSummary',\n        statusCode: 400\n      }\n    });\n    continue;\n  }\n\n  // Transform\n  const score = Number(body.qualificationScore) || 50;\n  let priority = 'Cold';\n  let priorityEmoji = '🔵';\n  if (score >= 70) { priority = 'Hot'; priorityEmoji = '🔥'; }\n  else if (score >= 40) { priority = 'Warm'; priorityEmoji = '🟡'; }\n\n  const now = new Date();\n  const leadId = `LEAD-${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}${String(now.getDate()).padStart(2,'0')}-${Math.random().toString(36).substring(2,6).toUpperCase()}`;\n\n  const company = (body.company || '').trim();\n  const projectType = (body.projectType || '').trim();\n  const budget = (body.budget || '').trim();\n  const timeline = (body.timeline || '').trim();\n  const timestamp = body.timestamp || now.toISOString();\n\n  results.push({\n    json: {\n      valid: true,\n      leadId,\n      name,\n      email,\n      company,\n      projectType,\n      budget,\n      timeline,\n      conversationSummary,\n      qualificationScore: score,\n      priority,\n      priorityEmoji,\n      timestamp\n    }\n  });\n}\n\nreturn results;"
+      }
+    },
+    {
+      "id": "a1b2c3d4-0001-4000-8000-000000000030",
+      "name": "IF - Valid",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [750, 380],
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "" },
+          "conditions": [
+            {
+              "id": "cond-valid",
+              "leftValue": "={{ $json.valid }}",
+              "rightValue": true,
+              "operator": { "type": "boolean", "operation": "true" }
+            }
+          ],
+          "combinator": "and"
+        }
+      }
+    },
+    {
+      "id": "a1b2c3d4-0001-4000-8000-000000000031",
+      "name": "Respond - Error",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1000, 560],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ success: false, error: $json.error }) }}",
+        "options": {
+          "responseCode": "={{ $json.statusCode || 400 }}"
+        }
+      }
+    },
+    {
+      "id": "a1b2c3d4-0001-4000-8000-000000000040",
+      "name": "Respond - Success",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1000, 380],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ success: true, leadId: $json.leadId, timestamp: $json.timestamp }) }}",
+        "options": {
+          "responseCode": 200
+        }
+      }
+    },
+    {
+      "id": "a1b2c3d4-0001-4000-8000-000000000041",
+      "name": "Note - Outputs",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [1180, 100],
+      "parameters": {
+        "content": "## Fan-out: 3 Parallel Outputs\n\nAprès la réponse 200 au chatbot, on envoie en parallèle :\n1. **Email** → team@neurolia.com\n2. **Google Sheets** → CRM Leads\n3. **Slack** → #leads",
+        "width": 350,
+        "height": 140
+      }
+    },
+    {
+      "id": "a1b2c3d4-0001-4000-8000-000000000050",
+      "name": "Send - Email Notification",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [1300, 240],
+      "parameters": {
+        "operation": "send",
+        "sendTo": "team@neurolia.com",
+        "subject": "={{ $json.priorityEmoji }} Nouveau lead {{ $json.priority }}: {{ $json.company || $json.name }} (Score: {{ $json.qualificationScore }}/100)",
+        "emailType": "html",
+        "message": "=<div style=\"font-family: 'Inter', Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #0A0F1A; color: #D4D4D4; padding: 32px; border-left: 4px solid #C45C3B;\">\n  <h1 style=\"color: #F5F5F5; font-size: 24px; margin: 0 0 8px;\">{{ $json.priorityEmoji }} Nouveau Lead {{ $json.priority }}</h1>\n  <p style=\"color: #737373; font-size: 12px; letter-spacing: 0.1em; text-transform: uppercase; margin: 0 0 32px;\">{{ $json.leadId }} &bull; {{ $json.timestamp }}</p>\n\n  <h2 style=\"color: #C45C3B; font-size: 14px; letter-spacing: 0.05em; text-transform: uppercase; margin: 0 0 16px;\">Contact</h2>\n  <table style=\"width: 100%; margin-bottom: 32px; font-size: 14px;\">\n    <tr><td style=\"color: #737373; padding: 6px 16px 6px 0;\">Nom</td><td style=\"color: #F5F5F5;\">{{ $json.name || '—' }}</td></tr>\n    <tr><td style=\"color: #737373; padding: 6px 16px 6px 0;\">Email</td><td style=\"color: #F5F5F5;\"><a href=\"mailto:{{ $json.email }}\" style=\"color: #C45C3B;\">{{ $json.email || '—' }}</a></td></tr>\n    <tr><td style=\"color: #737373; padding: 6px 16px 6px 0;\">Entreprise</td><td style=\"color: #F5F5F5;\">{{ $json.company || '—' }}</td></tr>\n  </table>\n\n  <h2 style=\"color: #C45C3B; font-size: 14px; letter-spacing: 0.05em; text-transform: uppercase; margin: 0 0 16px;\">Projet</h2>\n  <table style=\"width: 100%; margin-bottom: 32px; font-size: 14px;\">\n    <tr><td style=\"color: #737373; padding: 6px 16px 6px 0;\">Type</td><td style=\"color: #F5F5F5;\">{{ $json.projectType || '—' }}</td></tr>\n    <tr><td style=\"color: #737373; padding: 6px 16px 6px 0;\">Budget</td><td style=\"color: #F5F5F5;\">{{ $json.budget || '—' }}</td></tr>\n    <tr><td style=\"color: #737373; padding: 6px 16px 6px 0;\">Timeline</td><td style=\"color: #F5F5F5;\">{{ $json.timeline || '—' }}</td></tr>\n    <tr><td style=\"color: #737373; padding: 6px 16px 6px 0;\">Score</td><td style=\"color: #F5F5F5;\">{{ $json.qualificationScore }}/100</td></tr>\n  </table>\n\n  <h2 style=\"color: #C45C3B; font-size: 14px; letter-spacing: 0.05em; text-transform: uppercase; margin: 0 0 16px;\">Conversation</h2>\n  <p style=\"font-size: 14px; line-height: 1.7; color: #A3A3A3; background: #111827; padding: 16px; border-left: 2px solid #C45C3B;\">{{ $json.conversationSummary }}</p>\n\n  <div style=\"margin-top: 32px; text-align: center;\">\n    <a href=\"mailto:{{ $json.email }}\" style=\"display: inline-block; background: #C45C3B; color: #050810; padding: 12px 24px; text-decoration: none; font-weight: 600; font-size: 14px;\">Répondre au prospect</a>\n  </div>\n</div>",
+        "options": {}
+      },
+      "credentials": {
+        "gmailOAuth2": { "id": "CREDENTIAL_ID", "name": "Gmail Neurolia" }
+      }
+    },
+    {
+      "id": "a1b2c3d4-0001-4000-8000-000000000060",
+      "name": "Append - Google Sheets CRM",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [1300, 440],
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "SPREADSHEET_ID",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Leads",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Lead ID": "={{ $json.leadId }}",
+            "Timestamp": "={{ $json.timestamp }}",
+            "Priority": "={{ $json.priority }}",
+            "Name": "={{ $json.name }}",
+            "Email": "={{ $json.email }}",
+            "Company": "={{ $json.company }}",
+            "Project Type": "={{ $json.projectType }}",
+            "Budget": "={{ $json.budget }}",
+            "Timeline": "={{ $json.timeline }}",
+            "Score": "={{ $json.qualificationScore }}",
+            "Conversation": "={{ $json.conversationSummary }}",
+            "Status": "New"
+          }
+        },
+        "options": {}
+      },
+      "credentials": {
+        "googleSheetsOAuth2Api": { "id": "CREDENTIAL_ID", "name": "Google Sheets Neurolia" }
+      }
+    },
+    {
+      "id": "a1b2c3d4-0001-4000-8000-000000000070",
+      "name": "Send - Slack #leads",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.2,
+      "position": [1300, 640],
+      "parameters": {
+        "operation": "post",
+        "channel": {
+          "__rl": true,
+          "value": "leads",
+          "mode": "name"
+        },
+        "text": "={{ $json.priorityEmoji }} Nouveau lead {{ $json.priority }}",
+        "blocksUi": {
+          "blocksValues": [
+            {
+              "type": "header",
+              "text": {
+                "type": "plain_text",
+                "text": "={{ $json.priorityEmoji }} Nouveau Lead {{ $json.priority }}"
+              }
+            },
+            {
+              "type": "section",
+              "fields": [
+                { "type": "mrkdwn", "text": "*Lead ID:*\n={{ $json.leadId }}" },
+                { "type": "mrkdwn", "text": "*Score:*\n={{ $json.qualificationScore }}/100" }
+              ]
+            },
+            {
+              "type": "section",
+              "fields": [
+                { "type": "mrkdwn", "text": "*Nom:*\n={{ $json.name || '—' }}" },
+                { "type": "mrkdwn", "text": "*Email:*\n={{ $json.email || '—' }}" }
+              ]
+            },
+            {
+              "type": "section",
+              "fields": [
+                { "type": "mrkdwn", "text": "*Entreprise:*\n={{ $json.company || '—' }}" },
+                { "type": "mrkdwn", "text": "*Projet:*\n={{ $json.projectType || '—' }}" }
+              ]
+            },
+            {
+              "type": "section",
+              "text": {
+                "type": "mrkdwn",
+                "text": "*Budget:* ={{ $json.budget || '—' }} • *Timeline:* ={{ $json.timeline || '—' }}"
+              }
+            },
+            {
+              "type": "section",
+              "text": {
+                "type": "mrkdwn",
+                "text": "*Résumé conversation:*\n={{ ($json.conversationSummary || '').substring(0, 500) }}"
+              }
+            }
+          ]
+        },
+        "otherOptions": {}
+      },
+      "credentials": {
+        "slackOAuth2Api": { "id": "CREDENTIAL_ID", "name": "Slack Neurolia" }
+      }
+    }
+  ],
+  "connections": {
+    "Webhook - Lead Capture": {
+      "main": [
+        [{ "node": "Validate & Transform", "type": "main", "index": 0 }]
+      ]
+    },
+    "Validate & Transform": {
+      "main": [
+        [{ "node": "IF - Valid", "type": "main", "index": 0 }]
+      ]
+    },
+    "IF - Valid": {
+      "main": [
+        [{ "node": "Respond - Success", "type": "main", "index": 0 }],
+        [{ "node": "Respond - Error", "type": "main", "index": 0 }]
+      ]
+    },
+    "Respond - Success": {
+      "main": [
+        [
+          { "node": "Send - Email Notification", "type": "main", "index": 0 },
+          { "node": "Append - Google Sheets CRM", "type": "main", "index": 0 },
+          { "node": "Send - Slack #leads", "type": "main", "index": 0 }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "Europe/Paris",
+    "saveDataErrorExecution": "all",
+    "saveDataSuccessExecution": "all",
+    "errorWorkflow": "ERROR_WORKFLOW_ID"
+  },
+  "tags": [
+    { "name": "leads" },
+    { "name": "chatbot" },
+    { "name": "production" }
+  ]
+}

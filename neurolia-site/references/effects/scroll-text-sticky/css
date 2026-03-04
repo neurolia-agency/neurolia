@@ -1,0 +1,169 @@
+@import url("https://fonts.googleapis.com/css2?family=Geist:wght@100..900&display=swap");
+@import url("https://unpkg.com/normalize.css") layer(normalize);
+@layer normalize, base, components, utilities, text-effect, snap, responsive;
+
+@layer base {
+  html,
+  body {
+    min-height: 100vh;
+    margin: 0;
+    padding: 0;
+
+    scroll-snap-type: y proximity;
+    scroll-behavior: smooth; /* optional */
+  }
+
+  * {
+    box-sizing: border-box;
+  }
+
+  body {
+    margin: 0;
+    font-family: "Geist", system-ui, sans-serif;
+  }
+
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+
+    --dot-color: rgba(0, 0, 0, 0.15);
+    --spacing: 24px;
+    --dot-size: 1.5px;
+
+    background-image: radial-gradient(
+      var(--dot-color) var(--dot-size),
+      transparent var(--dot-size)
+    );
+    background-size: var(--spacing) var(--spacing);
+    background-position: top left;
+    background-repeat: repeat;
+
+    mask-image: radial-gradient(circle at top left, #000 0%, transparent 75%);
+    mask-size: 100% 100%;
+    mask-repeat: no-repeat;
+  }
+}
+
+@layer components {
+  .no-offset {
+    margin: 0;
+  }
+
+  .container {
+    width: 100%;
+    max-width: 1024px;
+    padding: 0 16px;
+    margin: 0 auto;
+  }
+
+  .hero {
+    height: 100vh;
+    display: flex;
+    align-items: center;
+  }
+
+  .hero-text {
+    font-size: clamp(4rem, 8vw, 8rem);
+    font-weight: 800;
+  }
+
+  .hero-description {
+    font-size: clamp(1rem, 3vw, 2rem);
+    font-weight: 400;
+    margin-top: 16px;
+  }
+
+  .list-text {
+    font-size: clamp(2.5rem, 6vw, 6rem);
+    font-weight: 600;
+    position: sticky;
+    top: calc(50% - 0.5lh);
+    align-self: flex-start; /* this is important to make sticky work in a flex container */
+    min-width: max-content;
+  }
+
+  .list {
+    font-size: clamp(2.5rem, 6vw, 6rem);
+    font-weight: 600;
+    list-style-type: none;
+    padding: 0;
+  }
+
+  .list li {
+    line-height: 1.25;
+  }
+
+  .list-container {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    column-gap: 48px;
+  }
+}
+
+@layer text-effect {
+  :root {
+    --count: 15;
+    --end: 360;
+    --step: calc(var(--end) / var(--count));
+  }
+
+  .list li:not(:last-of-type) {
+    color: oklch(65% 0.3 calc(var(--i) * var(--step)));
+  }
+
+  @supports (animation-timeline: scroll()) and (animation-range: 0% 100%) {
+    .list li:first-of-type {
+      --start-opacity: 1;
+    }
+
+    .list li:last-of-type {
+      --end-opacity: 1;
+    }
+
+    .list li {
+      opacity: 0.2;
+      animation-name: brighten;
+      animation-fill-mode: both;
+      animation-timing-function: linear;
+
+      animation-timeline: view();
+      animation-range: cover calc(50% - 1lh) calc(50% + 1lh);
+    }
+
+    @keyframes brighten {
+      0% {
+        opacity: var(--start-opacity, 0.2);
+      }
+
+      50% {
+        opacity: 1;
+      }
+
+      100% {
+        opacity: var(--end-opacity, 0.2);
+      }
+    }
+  }
+}
+
+@layer snap {
+  html,
+  body {
+    scroll-snap-type: y proximity;
+    scroll-behavior: smooth;
+  }
+
+  .list li {
+    scroll-snap-align: center;
+  }
+}
+
+@layer responsive {
+  @media (max-width: 600px) {
+    .list-container {
+      column-gap: 12px;
+    }
+  }
+}

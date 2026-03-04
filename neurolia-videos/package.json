@@ -1,0 +1,36 @@
+{
+  "name": "video_remotion_neurolia",
+  "version": "1.0.0",
+  "description": "Remotion video project for Neurolia - Social media & website videos",
+  "scripts": {
+    "dev": "remotion studio",
+    "build": "remotion bundle",
+    "render": "remotion render",
+    "render:reel": "remotion render src/index.ts Reel out/reel.mp4",
+    "render:post": "remotion render src/index.ts Post out/post.mp4",
+    "render:linkedin": "remotion render src/index.ts LinkedIn out/linkedin.mp4",
+    "render:hero": "remotion render src/index.ts HeroBackground out/hero.webm",
+    "render:all": "npm run render:reel && npm run render:post && npm run render:linkedin",
+    "upgrade": "remotion upgrade"
+  },
+  "keywords": [
+    "remotion",
+    "video",
+    "neurolia",
+    "react"
+  ],
+  "author": "Neurolia",
+  "license": "ISC",
+  "dependencies": {
+    "@remotion/bundler": "^4.0.414",
+    "@remotion/cli": "^4.0.414",
+    "@remotion/transitions": "4.0.414",
+    "@types/react": "^19.2.10",
+    "@types/react-dom": "^19.2.3",
+    "react": "^19.2.4",
+    "react-dom": "^19.2.4",
+    "remotion": "^4.0.414",
+    "typescript": "^5.9.3",
+    "zod": "^3.22.3"
+  }
+}

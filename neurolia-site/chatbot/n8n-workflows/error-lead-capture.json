@@ -1,0 +1,110 @@
+{
+  "name": "Error - Lead Capture",
+  "nodes": [
+    {
+      "id": "e1b2c3d4-0001-4000-8000-000000000001",
+      "name": "Note - Error Handler",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [180, 100],
+      "parameters": {
+        "content": "## Error Handler - Lead Capture\n\nWorkflow d'erreur centralisé pour le pipeline de lead capture.\nReçoit toutes les erreurs, extrait le contexte, et notifie via Slack #tech-alerts.",
+        "width": 400,
+        "height": 120
+      }
+    },
+    {
+      "id": "e1b2c3d4-0001-4000-8000-000000000010",
+      "name": "Error Trigger",
+      "type": "n8n-nodes-base.errorTrigger",
+      "typeVersion": 1,
+      "position": [250, 320],
+      "parameters": {}
+    },
+    {
+      "id": "e1b2c3d4-0001-4000-8000-000000000020",
+      "name": "Extract Error Context",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [500, 320],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const items = $input.all();\nconst results = [];\n\nfor (const item of items) {\n  const execution = item.json.execution || {};\n  const error = execution.error || {};\n  const lastNode = execution.lastNodeExecuted || 'Unknown';\n  const workflowName = item.json.workflow?.name || 'Unknown Workflow';\n  const executionId = execution.id || 'N/A';\n  const errorMessage = error.message || 'No error message';\n  const timestamp = new Date().toISOString();\n\n  // Classify severity\n  let severity = 'warning';\n  let severityEmoji = '⚠️';\n  if (lastNode.includes('Webhook') || errorMessage.includes('Unauthorized')) {\n    severity = 'critical';\n    severityEmoji = '🚨';\n  } else if (lastNode.includes('Sheets') || lastNode.includes('Email')) {\n    severity = 'important';\n    severityEmoji = '🔶';\n  }\n\n  results.push({\n    json: {\n      severity,\n      severityEmoji,\n      workflowName,\n      lastNode,\n      errorMessage,\n      executionId,\n      timestamp\n    }\n  });\n}\n\nreturn results;"
+      }
+    },
+    {
+      "id": "e1b2c3d4-0001-4000-8000-000000000030",
+      "name": "Notify - Slack #tech-alerts",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.2,
+      "position": [750, 320],
+      "parameters": {
+        "operation": "post",
+        "channel": {
+          "__rl": true,
+          "value": "tech-alerts",
+          "mode": "name"
+        },
+        "text": "={{ $json.severityEmoji }} Erreur n8n: {{ $json.workflowName }}",
+        "blocksUi": {
+          "blocksValues": [
+            {
+              "type": "header",
+              "text": {
+                "type": "plain_text",
+                "text": "={{ $json.severityEmoji }} Erreur - {{ $json.workflowName }}"
+              }
+            },
+            {
+              "type": "section",
+              "fields": [
+                { "type": "mrkdwn", "text": "*Sévérité:*\n={{ $json.severity }}" },
+                { "type": "mrkdwn", "text": "*Node:*\n={{ $json.lastNode }}" }
+              ]
+            },
+            {
+              "type": "section",
+              "text": {
+                "type": "mrkdwn",
+                "text": "*Erreur:*\n```={{ $json.errorMessage }}```"
+              }
+            },
+            {
+              "type": "context",
+              "elements": [
+                { "type": "mrkdwn", "text": "Execution ID: {{ $json.executionId }} | {{ $json.timestamp }}" }
+              ]
+            }
+          ]
+        },
+        "otherOptions": {}
+      },
+      "credentials": {
+        "slackOAuth2Api": { "id": "CREDENTIAL_ID", "name": "Slack Neurolia" }
+      }
+    }
+  ],
+  "connections": {
+    "Error Trigger": {
+      "main": [
+        [{ "node": "Extract Error Context", "type": "main", "index": 0 }]
+      ]
+    },
+    "Extract Error Context": {
+      "main": [
+        [{ "node": "Notify - Slack #tech-alerts", "type": "main", "index": 0 }]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "Europe/Paris",
+    "saveDataErrorExecution": "all",
+    "saveDataSuccessExecution": "all"
+  },
+  "tags": [
+    { "name": "error-handler" },
+    { "name": "leads" }
+  ]
+}

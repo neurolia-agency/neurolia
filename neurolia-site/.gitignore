@@ -1,0 +1,23 @@
+# Output généré par la pipeline
+output/
+
+# Fichiers système
+.DS_Store
+Thumbs.db
+
+# Éditeurs
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Node (si utilisé)
+node_modules/
+npm-debug.log
+
+# Build
+dist/
+build/
+.next/
+out/
+.vercel

@@ -1,0 +1,22 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SEARCH_DIR="$PROJECT_DIR"
+REPO_ROOT=""
+
+while true; do
+  if [ -x "$SEARCH_DIR/scripts/ai/run-gemini-design.sh" ]; then
+    REPO_ROOT="$SEARCH_DIR"
+    break
+  fi
+
+  if [ "$SEARCH_DIR" = "/" ]; then
+    echo "Unable to locate repository root containing scripts/ai/run-gemini-design.sh" >&2
+    exit 1
+  fi
+
+  SEARCH_DIR="$(dirname "$SEARCH_DIR")"
+done
+
+exec "$REPO_ROOT/scripts/ai/run-gemini-design.sh" --project "$PROJECT_DIR" "$@"

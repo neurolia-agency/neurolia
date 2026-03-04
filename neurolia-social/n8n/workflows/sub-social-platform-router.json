@@ -1,0 +1,497 @@
+{
+  "name": "Sub - Social - Platform Router",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "a1b2c3d4-e5f6-4a5b-8c9d-0e1f2a3b4c5d",
+      "name": "Execute Workflow Trigger",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1,
+      "position": [
+        250,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const item = $input.item.json;\n\nif (!item.caption || !item.platform || !item.visual_url) {\n  throw new Error('Missing required fields: caption, platform, or visual_url');\n}\n\nif (!['instagram', 'facebook', 'tiktok'].includes(item.platform)) {\n  throw new Error('Invalid platform. Must be instagram, facebook, or tiktok');\n}\n\nif (item.platform === 'instagram' && (!item.access_token || !item.account_id)) {\n  throw new Error('Instagram requires access_token and account_id');\n}\n\nif (item.platform === 'facebook' && (!item.access_token || !item.page_id)) {\n  throw new Error('Facebook requires access_token and page_id');\n}\n\nreturn item;"
+      },
+      "id": "b2c3d4e5-f6a7-4b5c-9d0e-1f2a3b4c5d6e",
+      "name": "Validate Input",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        500,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "outputKey": "instagram",
+              "conditions": {
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.platform }}",
+                    "rightValue": "instagram",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "outputKey": "facebook",
+              "conditions": {
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.platform }}",
+                    "rightValue": "facebook",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "outputKey": "tiktok",
+              "conditions": {
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.platform }}",
+                    "rightValue": "tiktok",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra"
+        }
+      },
+      "id": "c3d4e5f6-a7b8-4c5d-0e1f-2a3b4c5d6e7f",
+      "name": "Route By Platform",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3,
+      "position": [
+        750,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const item = $input.item.json;\nconst caption = item.caption;\nconst hashtags = item.hashtags || [];\nconst fullCaption = hashtags.length > 0 ? `${caption}\\n${hashtags.join(' ')}` : caption;\n\nreturn {\n  account_id: item.account_id,\n  image_url: item.visual_url,\n  caption: fullCaption,\n  access_token: item.access_token,\n  platform: item.platform\n};"
+      },
+      "id": "d4e5f6a7-b8c9-4d5e-1f2a-3b4c5d6e7f8a",
+      "name": "Build Instagram Request",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1000,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://graph.facebook.com/v21.0/{{ $json.account_id }}/media",
+        "sendBody": true,
+        "specifyBody": "form",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "image_url",
+              "value": "={{ $json.image_url }}"
+            },
+            {
+              "name": "caption",
+              "value": "={{ $json.caption }}"
+            },
+            {
+              "name": "access_token",
+              "value": "={{ $json.access_token }}"
+            }
+          ]
+        },
+        "options": {
+          "retry": {
+            "maxRetries": 3
+          }
+        }
+      },
+      "id": "e5f6a7b8-c9d0-4e5f-2a3b-4c5d6e7f8a9b",
+      "name": "Post To Instagram - Create",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1250,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://graph.facebook.com/v21.0/{{ $('Build Instagram Request').item.json.account_id }}/media_publish",
+        "sendBody": true,
+        "specifyBody": "form",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "creation_id",
+              "value": "={{ $json.id }}"
+            },
+            {
+              "name": "access_token",
+              "value": "={{ $('Build Instagram Request').item.json.access_token }}"
+            }
+          ]
+        },
+        "options": {
+          "retry": {
+            "maxRetries": 3
+          }
+        }
+      },
+      "id": "f6a7b8c9-d0e1-4f5a-3b4c-5d6e7f8a9b0c",
+      "name": "Post To Instagram - Publish",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1500,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const item = $input.item.json;\nconst caption = item.caption;\nconst hashtags = item.hashtags || [];\nconst fullCaption = hashtags.length > 0 ? `${caption}\\n${hashtags.join(' ')}` : caption;\n\nreturn {\n  page_id: item.page_id,\n  url: item.visual_url,\n  caption: fullCaption,\n  access_token: item.access_token,\n  platform: item.platform\n};"
+      },
+      "id": "a7b8c9d0-e1f2-4a5b-4c5d-6e7f8a9b0c1d",
+      "name": "Build Facebook Request",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1000,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://graph.facebook.com/v21.0/{{ $json.page_id }}/photos",
+        "sendBody": true,
+        "specifyBody": "form",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "url",
+              "value": "={{ $json.url }}"
+            },
+            {
+              "name": "caption",
+              "value": "={{ $json.caption }}"
+            },
+            {
+              "name": "access_token",
+              "value": "={{ $json.access_token }}"
+            }
+          ]
+        },
+        "options": {
+          "retry": {
+            "maxRetries": 3
+          }
+        }
+      },
+      "id": "b8c9d0e1-f2a3-4b5c-5d6e-7f8a9b0c1d2e",
+      "name": "Post To Facebook",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1250,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const item = $input.item.json;\nconst caption = item.caption;\nconst hashtags = item.hashtags || [];\nconst fullCaption = hashtags.length > 0 ? `${caption}\\n${hashtags.join(' ')}` : caption;\n\nreturn {\n  post: fullCaption,\n  platforms: ['tiktok'],\n  mediaUrls: [item.visual_url],\n  platform: item.platform\n};"
+      },
+      "id": "c9d0e1f2-a3b4-4c5d-6e7f-8a9b0c1d2e3f",
+      "name": "Build TikTok Request",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1000,
+        500
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://app.ayrshare.com/api/post",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "post",
+              "value": "={{ $json.post }}"
+            },
+            {
+              "name": "platforms",
+              "value": "={{ $json.platforms }}"
+            },
+            {
+              "name": "mediaUrls",
+              "value": "={{ $json.mediaUrls }}"
+            }
+          ]
+        },
+        "options": {
+          "retry": {
+            "maxRetries": 3
+          }
+        }
+      },
+      "id": "d0e1f2a3-b4c5-4d6e-7f8a-9b0c1d2e3f4a",
+      "name": "Post To TikTok",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1250,
+        500
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "CREDENTIAL_ID",
+          "name": "Ayrshare API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "append"
+      },
+      "id": "e1f2a3b4-c5d6-4e7f-8a9b-0c1d2e3f4a5b",
+      "name": "Merge Platform Responses",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3,
+      "position": [
+        1750,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const item = $input.item.json;\nlet external_id;\nlet platform;\n\nif (item.id && !item.post_id && !item.postIds) {\n  platform = 'instagram';\n  external_id = item.id;\n} else if (item.post_id) {\n  platform = 'facebook';\n  external_id = item.post_id;\n} else if (item.postIds && item.postIds.tiktok) {\n  platform = 'tiktok';\n  external_id = item.postIds.tiktok;\n} else {\n  throw new Error('Unable to extract external ID from response');\n}\n\nreturn {\n  external_id,\n  platform,\n  raw_response: item\n};"
+      },
+      "id": "f2a3b4c5-d6e7-4f8a-9b0c-1d2e3f4a5b6c",
+      "name": "Extract External ID",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2000,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const item = $input.item.json;\n\nreturn {\n  success: true,\n  platform: item.platform,\n  external_id: item.external_id,\n  published_at: new Date().toISOString()\n};"
+      },
+      "id": "a3b4c5d6-e7f8-4a9b-0c1d-2e3f4a5b6c7d",
+      "name": "Format Success Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2250,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "height": 280,
+        "width": 420,
+        "content": "## Platform Router\n\nRoutes publications to Instagram, Facebook, or TikTok APIs.\n\n**Instagram**: 2-step process (create media container → publish)\n**Facebook**: Direct photo post to Page\n**TikTok**: Via Ayrshare API\n\nReturns: { success, platform, external_id, published_at }"
+      },
+      "id": "b4c5d6e7-f8a9-4b0c-1d2e-3f4a5b6c7d8e",
+      "name": "Sticky Note",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        240,
+        460
+      ]
+    }
+  ],
+  "connections": {
+    "Execute Workflow Trigger": {
+      "main": [
+        [
+          {
+            "node": "Validate Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Input": {
+      "main": [
+        [
+          {
+            "node": "Route By Platform",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route By Platform": {
+      "main": [
+        [
+          {
+            "node": "Build Instagram Request",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Build Facebook Request",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Build TikTok Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Instagram Request": {
+      "main": [
+        [
+          {
+            "node": "Post To Instagram - Create",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Post To Instagram - Create": {
+      "main": [
+        [
+          {
+            "node": "Post To Instagram - Publish",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Post To Instagram - Publish": {
+      "main": [
+        [
+          {
+            "node": "Merge Platform Responses",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Facebook Request": {
+      "main": [
+        [
+          {
+            "node": "Post To Facebook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Post To Facebook": {
+      "main": [
+        [
+          {
+            "node": "Merge Platform Responses",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build TikTok Request": {
+      "main": [
+        [
+          {
+            "node": "Post To TikTok",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Post To TikTok": {
+      "main": [
+        [
+          {
+            "node": "Merge Platform Responses",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge Platform Responses": {
+      "main": [
+        [
+          {
+            "node": "Extract External ID",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract External ID": {
+      "main": [
+        [
+          {
+            "node": "Format Success Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "Europe/Paris",
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "staticData": null,
+  "tags": [],
+  "triggerCount": 0,
+  "updatedAt": "2026-02-11T00:00:00.000Z",
+  "versionId": "00000000-0000-0000-0000-000000000000",
+  "active": false
+}

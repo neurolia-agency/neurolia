@@ -1,0 +1,2054 @@
+@import url("https://api.fontshare.com/v2/css?f[]=satoshi@700,900&display=swap");
+@import url("https://api.fontshare.com/v2/css?f[]=cabinet-grotesk@800,900&display=swap");
+@import url('https://fonts.googleapis.com/css2?family=Lexend:wght@700;800;900&display=swap');
+
+@font-face {
+  font-family: 'Strong';
+  src: url('/fonts/Strong.otf') format('opentype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Hide header when portfolio section is pinned (fullscreen images) */
+html.portfolio-pinned header {
+  opacity: 0 !important;
+  pointer-events: none !important;
+  transition: opacity 0.4s ease;
+}
+
+/* ============================================
+   DESIGN TOKENS - Neurolia Dark Theme v2
+   Source: output/01.5-art-direction/visual-vocabulary.md
+   Tailwind v3.4.19 compatible (NO @theme inline)
+   ============================================ */
+
+:root {
+  /* ============================================
+     BACKGROUNDS - Dark Palette (4 couches)
+     ============================================ */
+  --background: oklch(0.03 0 0);         /* #050810 - Ultra-dark (noir pur) */
+  --foreground: oklch(0.97 0 0);         /* #F5F5F5 - Blanc primaire */
+
+  --muted: oklch(0.06 0 0);              /* #0A0F1A - Surface sombre */
+  --surface-card: oklch(0.09 0 0);       /* #111827 - Surface card */
+  --surface-contrast: oklch(0.11 0 0);   /* #1A1F2E - Contraste sections */
+
+  --card: oklch(0.09 0 0);               /* #111827 - Cartes */
+  --card-foreground: oklch(0.97 0 0);
+
+  --popover: oklch(0.09 0 0);
+  --popover-foreground: oklch(0.97 0 0);
+
+  /* ============================================
+     TEXT HIERARCHY (sans opacité, utiliser couleurs fixes)
+     ============================================ */
+  --text-primary: oklch(0.97 0 0);       /* #F5F5F5 - Headings, labels */
+  --text-secondary: oklch(0.86 0 0);     /* #D4D4D4 - Body text */
+  --text-muted: oklch(0.69 0 0);         /* #A3A3A3 - Secondary text */
+  --text-subtle: oklch(0.52 0 0);        /* #737373 - Tertiary, metadata */
+  --text-disabled: oklch(0.38 0 0);      /* #525252 - Disabled, placeholders */
+
+  /* ============================================
+     ACCENT - Terracotta Signature (3 variations)
+     ============================================ */
+  --primary: oklch(0.58 0.14 35);        /* #C45C3B - Terracotta base (5-10%) */
+  --primary-light: oklch(0.68 0.12 35);  /* #E07856 - Terracotta hover */
+  --primary-pale: oklch(0.75 0.10 35);   /* #F0A088 - Terracotta subtle bg */
+  --primary-foreground: oklch(0.03 0 0); /* Noir sur terracotta */
+
+  --accent: oklch(0.58 0.14 35);         /* Même que primary */
+  --accent-foreground: oklch(0.03 0 0);
+
+  /* Glow effects (box-shadow seulement, pas background) */
+  --glow-terracotta: rgba(196, 92, 59, 0.3);     /* Intense (60px blur) */
+  --glow-terracotta-subtle: rgba(196, 92, 59, 0.15); /* Subtil (border) */
+
+  /* ============================================
+     SEMANTIC (Feedback States - WCAG AA compliant)
+     ============================================ */
+  --secondary: oklch(0.06 0 0);
+  --secondary-foreground: oklch(0.97 0 0);
+
+  --destructive: oklch(0.70 0.19 25);    /* #F87171 - Erreur */
+  --destructive-foreground: oklch(0.03 0 0);
+
+  --success: oklch(0.76 0.15 165);       /* #34D399 - Succès */
+  --warning: oklch(0.82 0.14 85);        /* #FBBF24 - Attention */
+  --info: oklch(0.71 0.14 245);          /* #60A5FA - Info */
+
+  /* ============================================
+     BORDERS & INPUT (Transparent system)
+     ============================================ */
+  --border: rgba(136, 146, 176, 0.15);   /* Transparent subtil */
+  --input: oklch(0.11 0 0);              /* #1A1F2E - Input border */
+  --ring: oklch(0.68 0.12 35);           /* Terracotta light pour focus */
+
+  /* ============================================
+     RADIUS (Sharp Design - Neurolia DNA)
+     ============================================ */
+  --radius: 0;                           /* 0 PARTOUT sauf inputs */
+  --radius-input: 0.125rem;              /* 2px uniquement pour inputs */
+
+  /* ============================================
+     TYPOGRAPHY - Fonts & Sizes
+     ============================================ */
+  --font-inter: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-display: 'Satoshi', 'Inter', system-ui, sans-serif;
+  --font-hero: 'Lexend', sans-serif;
+
+  /* Font Sizes - Fluid avec clamp() pour responsive sans media queries */
+  --font-size-xs: 0.75rem;                      /* 12px - labels, tiny */
+  --font-size-sm: 0.875rem;                     /* 14px - small */
+  --font-size-base: 1rem;                       /* 16px - body (JAMAIS MOINS) */
+  --font-size-lg: 1.25rem;                      /* 20px - lead */
+
+  /* Heading sizes — pure rem, scale via proportional root on desktop */
+  --font-size-h5: 1.25rem;    /* 20px */
+  --font-size-h4: 2rem;       /* 32px ref @2560 */
+  --font-size-h3: 2.25rem;    /* 36px ref */
+  --font-size-h2: 2.75rem;    /* 44px ref — must stay < H1 (60px) */
+  --font-size-h1: 6rem;       /* 96px ref */
+
+  /* Font Weights */
+  --font-weight-light: 300;
+  --font-weight-normal: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+
+  /* Line Heights (optimisés dark mode) */
+  --line-height-tight: 0.95;             /* H1 - très compact */
+  --line-height-snug: 1.0;               /* H2 - compact */
+  --line-height-normal: 1.1;             /* H3, labels */
+  --line-height-relaxed: 1.6;            /* Body secondary */
+  --line-height-loose: 1.75;             /* Body, lead - lisibilité dark */
+  --line-height-lead: 1.7;               /* Lead paragraph */
+
+  /* Letter Spacing */
+  --letter-spacing-tighter: -0.03em;     /* H1 */
+  --letter-spacing-tight: -0.02em;       /* H2 */
+  --letter-spacing-normal: 0;
+  --letter-spacing-wide: 0.025em;        /* Labels */
+
+  /* ============================================
+     SPACING - Respiration (160px = 10rem)
+     ============================================ */
+  --spacing-section-desktop: 10rem;      /* 160px - Entre sections MAJEURES */
+  --spacing-section-mobile: 6rem;        /* 96px - Mobile respiration */
+  --spacing-section-min: 2.5rem;         /* 40px - Entre petits éléments */
+  --spacing-section-small: 3.75rem;      /* 60px - Entre composants */
+  --spacing-section-medium: 6rem;        /* 96px - Sections mineures */
+
+  --container-max-width: 90rem;  /* 1440/16 = 90rem — scale avec root */
+  --container-padding: clamp(1.5rem, 5vw, 5rem); /* 24-80px lateral */
+  --container-padding-mobile: 1.5rem;    /* 24px mobile minimum */
+
+  /* ============================================
+     TRANSITIONS - Neurolia "Respiration"
+     ============================================ */
+  --transition-duration: 300ms;
+  --transition-duration-slow: 400ms;
+  --transition-easing: ease-out;
+}
+
+/* Mobile heading tokens fallback (< 1024px) — root stays 16px */
+@media (max-width: 1023px) {
+  :root {
+    --font-size-h1: clamp(2.5rem, 8vw, 4rem);
+    --font-size-h2: clamp(1.75rem, 3.5vw, 2.75rem);
+    --font-size-h3: clamp(1.5rem, 4vw, 2rem);
+    --font-size-h4: clamp(1.25rem, 3vw, 1.75rem);
+  }
+}
+
+/* ============================================
+   BASE STYLES - Dark Theme Neurolia
+   ============================================ */
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  html {
+    color-scheme: dark;
+    scroll-behavior: smooth;
+  }
+
+  /* Proportional Root — desktop ≥1024px
+   * Référence : 1366px (laptop) = 16px
+   * Scaling linéaire vers 1920px (desktop) = 18px
+   * Cap à 20px (ultra-wide 2560px+)
+   * Formule : (18-16)/(1920-1366) = 0.361vw, intercept 11.07px
+   */
+  @media (min-width: 1024px) {
+    html {
+      font-size: clamp(16px, calc(11.07px + 0.361vw), 20px);
+    }
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+    background-color: var(--background);
+    color: var(--text-secondary);
+  }
+
+  /* ============================================
+     TEXT SELECTION - Terracotta Accent
+     ============================================ */
+  ::selection {
+    background-color: rgba(196, 92, 59, 0.4);
+    color: var(--text-primary);
+  }
+
+  ::-moz-selection {
+    background-color: rgba(196, 92, 59, 0.4);
+    color: var(--text-primary);
+  }
+
+  /* ============================================
+     TYPOGRAPHY - Fluid & Dark-Optimized
+     Respecte contraintes C1-C4 (massive, contraste)
+     ============================================ */
+
+  /* H1 - Hero/Massive (72-96px, impact max) */
+  h1 {
+    font-family: var(--font-display);
+    font-size: var(--font-size-h1);
+    font-weight: var(--font-weight-bold);
+    line-height: var(--line-height-tight);
+    letter-spacing: var(--letter-spacing-tighter);
+    color: var(--text-primary);
+    margin-bottom: 0;
+  }
+
+  /* H2 - Section Headers (48-64px, accent bar) */
+  h2 {
+    font-family: var(--font-display);
+    font-size: var(--font-size-h2);
+    font-weight: var(--font-weight-bold);
+    line-height: var(--line-height-snug);
+    letter-spacing: var(--letter-spacing-tight);
+    color: var(--text-primary);
+    margin-bottom: 0;
+  }
+
+  /* H3 - Subsections (28-36px) */
+  h3 {
+    font-size: var(--font-size-h3);
+    font-weight: var(--font-weight-semibold);
+    line-height: var(--line-height-normal);
+    letter-spacing: var(--letter-spacing-tight);
+    color: var(--text-primary);
+    margin-bottom: 0;
+  }
+
+  /* H4 - Component Headers (24-32px) */
+  h4 {
+    font-size: var(--font-size-h4);
+    font-weight: var(--font-weight-semibold);
+    line-height: var(--line-height-normal);
+    color: var(--text-primary);
+    margin-bottom: 0;
+  }
+
+  /* H5 - Small Headers (20px fixed) */
+  h5 {
+    font-size: var(--font-size-h5);
+    font-weight: var(--font-weight-semibold);
+    line-height: 1.3;
+    color: var(--text-primary);
+    margin-bottom: 0;
+  }
+
+  /* H6 - Tiny Headers */
+  h6 {
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-medium);
+    line-height: 1.5;
+    letter-spacing: var(--letter-spacing-wide);
+    text-transform: uppercase;
+    color: var(--text-muted);
+  }
+
+  /* Body text - Standard (16px, jamais moins) */
+  p {
+    font-size: var(--font-size-base);
+    font-weight: var(--font-weight-normal);
+    line-height: var(--line-height-loose);
+    color: var(--text-secondary);
+    margin-bottom: 1rem;
+  }
+
+  /* Lead paragraph (intro, 20px) */
+  .lead {
+    font-size: var(--font-size-lg);
+    font-weight: var(--font-weight-normal);
+    line-height: var(--line-height-lead);
+    color: var(--text-secondary);
+  }
+
+  /* Small text (14px, secondary) */
+  small,
+  .text-sm {
+    font-size: var(--font-size-sm);
+    line-height: var(--line-height-relaxed);
+    color: var(--text-muted);
+  }
+
+  /* Tiny labels (12px, uppercase) */
+  .text-xs {
+    font-size: var(--font-size-xs);
+    line-height: 1.5;
+    letter-spacing: var(--letter-spacing-wide);
+    color: var(--text-subtle);
+  }
+
+  /* Disabled/placeholder */
+  .text-disabled,
+  ::placeholder {
+    color: var(--text-disabled);
+  }
+
+  /* Links */
+  a {
+    color: var(--text-secondary);
+    text-decoration: none;
+    position: relative;
+    transition: color var(--transition-duration) var(--transition-easing);
+  }
+
+  a:hover {
+    color: var(--primary-light);
+  }
+
+  a.cta-pulse-btn:hover {
+    color: var(--primary-foreground);
+  }
+
+  a.cta-outline-btn:hover {
+    color: var(--primary);
+  }
+
+  a:focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 4px;
+    border-radius: 2px;
+  }
+
+  /* Code blocks */
+  code {
+    font-family: 'Courier New', monospace;
+    font-size: 0.9em;
+    background-color: var(--surface-card);
+    color: var(--text-secondary);
+    padding: 0.25em 0.5em;
+    border-radius: var(--radius-input);
+  }
+
+  /* Preformatted */
+  pre {
+    background-color: var(--surface-card);
+    border: 1px solid rgba(136, 146, 176, 0.15);
+    border-radius: var(--radius-input);
+    padding: 1rem;
+    overflow-x: auto;
+  }
+
+  pre code {
+    background-color: transparent;
+    padding: 0;
+  }
+
+  /* Lists */
+  ul, ol {
+    margin-left: 1.5rem;
+    margin-bottom: 1rem;
+  }
+
+  li {
+    margin-bottom: 0.5rem;
+    line-height: var(--line-height-loose);
+    color: var(--text-secondary);
+  }
+
+  /* Blockquote */
+  blockquote {
+    border-left: 4px solid var(--primary);
+    padding-left: 1.5rem;
+    margin-left: 0;
+    color: var(--text-muted);
+    font-style: italic;
+  }
+
+  /* Horizontal rule */
+  hr {
+    border: none;
+    border-top: 1px solid rgba(136, 146, 176, 0.15);
+    margin: 2rem 0;
+  }
+}
+
+/* ============================================
+   UTILITIES - Custom Neurolia Classes
+   ============================================ */
+@layer utilities {
+  /* ============================================
+     CONTAINERS - Respiration & Width Control
+     ============================================ */
+  .container-custom {
+    max-width: var(--container-max-width);
+    padding-left: var(--container-padding);
+    padding-right: var(--container-padding);
+    margin-left: auto;
+    margin-right: auto;
+    width: 100%;
+  }
+
+  /* Wrapper pour limiter la lisibilité (65 caractères) */
+  .text-container {
+    max-width: 65ch;
+  }
+
+  /* ============================================
+     SECTION SPACING - "Respiration" (C5)
+     160px desktop / 96px mobile
+     ============================================ */
+  .section-spacing {
+    padding-top: var(--spacing-section-mobile);
+    padding-bottom: var(--spacing-section-mobile);
+  }
+
+  @media (min-width: 768px) {
+    .section-spacing {
+      padding-top: var(--spacing-section-desktop);
+      padding-bottom: var(--spacing-section-desktop);
+    }
+  }
+
+  /* Alias commune */
+  .section-padding {
+    @apply section-spacing;
+  }
+
+  /* Verticals différentes */
+  .space-section-xs {
+    margin-bottom: var(--spacing-section-min);
+  }
+
+  .space-section-sm {
+    margin-bottom: var(--spacing-section-small);
+  }
+
+  .space-section-md {
+    margin-bottom: var(--spacing-section-medium);
+  }
+
+  .space-section-lg {
+    margin-bottom: var(--spacing-section-desktop);
+  }
+
+  /* ============================================
+     TYPOGRAPHY UTILITIES
+     ============================================ */
+
+  /* Text balance pour éviter orphelins */
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  /* Text pretty pour soft wraps */
+  .text-pretty {
+    text-wrap: pretty;
+  }
+
+  /* Texte primaire (headings) */
+  .text-primary-fg {
+    color: var(--text-primary);
+  }
+
+  /* Texte secondaire (body) */
+  .text-secondary-fg {
+    color: var(--text-secondary);
+  }
+
+  /* Texte muted (descriptions) */
+  .text-muted-fg {
+    color: var(--text-muted);
+  }
+
+  /* Texte subtle (metadata) */
+  .text-subtle-fg {
+    color: var(--text-subtle);
+  }
+
+  /* Lead (introduction) */
+  .lead-text {
+    font-size: var(--font-size-lg);
+    line-height: var(--line-height-lead);
+    color: var(--text-secondary);
+  }
+
+  /* ============================================
+     SIGNATURE ELEMENTS - Neurolia Brand (C10-C12)
+     ============================================ */
+
+  /* Barre verticale 4px terracotta (sur H2 notamment) */
+  .signature-bar,
+  .section-header {
+    position: relative;
+    padding-left: 1.5rem; /* 24px */
+  }
+
+  .signature-bar::before,
+  .section-header::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 4px;
+    height: 100%;
+    background-color: var(--primary);
+    border-radius: 0;
+  }
+
+  /* Element avec barre sur la gauche */
+  .with-bar {
+    position: relative;
+    padding-left: 1.5rem;
+  }
+
+  .with-bar::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 4px;
+    height: 100%;
+    background-color: var(--primary);
+  }
+
+  /* Signature bar right - for right-aligned headings */
+  .signature-bar-right {
+    position: relative;
+    padding-right: 1.5rem; /* 24px */
+  }
+
+  .signature-bar-right::after {
+    content: '';
+    position: absolute;
+    right: 0;
+    top: 0;
+    width: 4px;
+    height: 100%;
+    background-color: var(--primary);
+    border-radius: 0;
+  }
+
+  /* ============================================
+     CARD STYLING
+     ============================================ */
+
+  /* Card base (border subtle, pas shadow) */
+  .card-base {
+    background-color: var(--surface-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+  }
+
+  /* Card with terracotta accent border */
+  .card-accent {
+    @apply card-base;
+    border-color: var(--glow-terracotta-subtle);
+  }
+
+  /* ============================================
+     TRANSITIONS - Neurolia Pace (C19-C23)
+     300-400ms ease-out, translate only
+     ============================================ */
+
+  /* Standard smooth transition (translate + opacity) */
+  .transition-smooth {
+    transition: transform var(--transition-duration) var(--transition-easing),
+                opacity var(--transition-duration) var(--transition-easing);
+  }
+
+  /* Color transition (pour hovers) */
+  .transition-color {
+    transition: color var(--transition-duration) var(--transition-easing),
+                background-color var(--transition-duration) var(--transition-easing),
+                border-color var(--transition-duration) var(--transition-easing);
+  }
+
+  /* Shadow/glow transition */
+  .transition-glow {
+    transition: box-shadow var(--transition-duration-slow) var(--transition-easing);
+  }
+
+  /* All transitions */
+  .transition-all {
+    transition: all var(--transition-duration) var(--transition-easing);
+  }
+
+  /* ============================================
+     HOVER STATES - Translate Only (C21, C23)
+     ============================================ */
+
+  /* Hover translate Y (standard button/card) */
+  .hover-lift {
+    @apply transition-smooth;
+  }
+
+  .hover-lift:hover {
+    transform: translateY(-4px);
+  }
+
+  /* Hover lift with glow */
+  .hover-lift-glow {
+    @apply hover-lift transition-glow;
+  }
+
+  .hover-lift-glow:hover {
+    box-shadow: 0 0 80px var(--glow-terracotta);
+  }
+
+  /* Link hover (color only) */
+  .hover-color {
+    @apply transition-color;
+  }
+
+  .hover-color:hover {
+    color: var(--primary-light);
+  }
+
+  /* Border accent on hover */
+  .hover-border-accent {
+    @apply transition-color;
+    border-color: var(--border);
+  }
+
+  .hover-border-accent:hover {
+    border-color: var(--glow-terracotta-subtle);
+  }
+
+  /* ============================================
+     FOCUS STATES - Accessibility
+     ============================================ */
+
+  /* Standard focus ring (2px terracotta) */
+  .focus-ring {
+    @apply outline-none;
+  }
+
+  .focus-ring:focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
+
+  /* ============================================
+     BACKGROUND UTILITIES
+     ============================================ */
+
+  .bg-primary-card {
+    background-color: var(--surface-card);
+  }
+
+  .bg-secondary-card {
+    background-color: var(--surface-contrast);
+  }
+
+  /* Subtle terracotta background (pale) */
+  .bg-terracotta-subtle {
+    background-color: oklch(0.75 0.10 35 / 0.1); /* #F0A088 at 10% opacity */
+  }
+
+  /* ============================================
+     BORDER UTILITIES
+     ============================================ */
+
+  /* Transparent subtle border */
+  .border-subtle {
+    border-color: rgba(136, 146, 176, 0.15);
+  }
+
+  /* Terracotta border (accent) */
+  .border-primary {
+    border-color: var(--primary);
+  }
+
+  .border-primary-subtle {
+    border-color: var(--glow-terracotta-subtle);
+  }
+
+  /* ============================================
+     SHADOW/GLOW UTILITIES (Subtil)
+     Pas de shadow au repos (C26)
+     ============================================ */
+
+  /* Glow terracotta intense (60px blur) */
+  .glow-primary {
+    box-shadow: 0 0 60px var(--glow-terracotta);
+  }
+
+  /* Glow terracotta subtil (40px blur) */
+  .glow-subtle {
+    box-shadow: 0 0 40px var(--glow-terracotta-subtle);
+  }
+
+  /* Aucune shadow au repos (contrainte C26) */
+  .shadow-none {
+    box-shadow: none;
+  }
+
+  /* ============================================
+     ASYMMETRY & LAYOUT (C15-C18)
+     ============================================ */
+
+  /* Décalage vertical (stagger cards) */
+  .stagger-1 {
+    transform: translateY(40px);
+  }
+
+  .stagger-2 {
+    transform: translateY(60px);
+  }
+
+  .stagger-3 {
+    transform: translateY(80px);
+  }
+
+  /* Débordement image (asymétrie) */
+  .overflow-visible {
+    overflow: visible;
+  }
+
+  /* Offset horizontal (décalage asymétrique) */
+  .offset-x-left-40 {
+    margin-left: -40px;
+  }
+
+  .offset-x-right-40 {
+    margin-right: -40px;
+  }
+
+  /* ============================================
+     SIGNATURE ELEMENTS - Enhanced Identity
+     ============================================ */
+
+  /* Horizontal terracotta bar (for centered headings) */
+  .signature-bar-top {
+    position: relative;
+  }
+
+  .signature-bar-top::before {
+    content: '';
+    position: absolute;
+    top: -1.5rem;
+    left: 0;
+    width: 64px;
+    height: 4px;
+    background-color: var(--primary);
+  }
+
+  /* Quote bar - enhanced blockquote accent */
+  .quote-bar {
+    position: relative;
+    padding-left: 2rem;
+  }
+
+  .quote-bar::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0.5rem;
+    bottom: 0.5rem;
+    width: 4px;
+    background: linear-gradient(to bottom, var(--primary), transparent);
+  }
+
+  /* Subtle corner accent */
+  .corner-accent {
+    position: relative;
+  }
+
+  .corner-accent::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 24px;
+    height: 4px;
+    background-color: var(--primary);
+  }
+
+  .corner-accent::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 4px;
+    height: 24px;
+    background-color: var(--primary);
+  }
+
+  /* Glow line - subtle decorative element */
+  .glow-line {
+    height: 1px;
+    background: linear-gradient(
+      to right,
+      transparent,
+      var(--primary),
+      transparent
+    );
+    opacity: 0.5;
+  }
+
+  /* Text highlight - subtle terracotta underline */
+  .text-highlight {
+    position: relative;
+    display: inline;
+  }
+
+  .text-highlight::after {
+    content: '';
+    position: absolute;
+    bottom: -2px;
+    left: 0;
+    width: 100%;
+    height: 2px;
+    background-color: var(--primary);
+    opacity: 0.5;
+  }
+
+  /* Number accent - for stats or numbered sections */
+  .number-accent {
+    font-size: var(--font-size-h2);
+    font-weight: var(--font-weight-bold);
+    line-height: 1;
+    background: linear-gradient(180deg, var(--primary) 0%, var(--primary-pale) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+}
+
+/* ============================================
+   COMPONENTS - Buttons, Cards, Forms
+   ============================================ */
+@layer components {
+  /* ============================================
+     BUTTONS (Sharp design, translate hover)
+     ============================================ */
+
+  /* Button base styles */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: var(--font-weight-medium);
+    font-size: var(--font-size-base);
+    padding: 0.75rem 1.5rem;
+    min-height: 44px; /* Touch target */
+    border-radius: var(--radius-input);
+    cursor: pointer;
+    transition: all var(--transition-duration) var(--transition-easing);
+    border: 1px solid transparent;
+    white-space: nowrap;
+  }
+
+  /* Primary CTA Button (Terracotta solid, translate hover + glow) */
+  .btn-primary {
+    background-color: var(--primary);
+    color: var(--primary-foreground);
+    border-color: var(--primary);
+  }
+
+  .btn-primary:hover {
+    background-color: var(--primary-light);
+    border-color: var(--primary-light);
+    transform: translateY(-4px);
+    box-shadow: 0 0 40px var(--glow-terracotta-subtle);
+  }
+
+  .btn-primary:focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
+
+  .btn-primary:disabled {
+    background-color: var(--text-subtle);
+    color: var(--text-disabled);
+    cursor: not-allowed;
+    transform: none;
+  }
+
+  /* Secondary Button (Border terracotta, fill on hover) */
+  .btn-secondary {
+    background-color: transparent;
+    color: var(--text-primary);
+    border: 1px solid var(--primary);
+  }
+
+  .btn-secondary:hover {
+    background-color: var(--primary);
+    color: var(--primary-foreground);
+    transform: translateY(-4px);
+    box-shadow: 0 0 40px var(--glow-terracotta-subtle);
+  }
+
+  .btn-secondary:focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
+
+  .btn-secondary:disabled {
+    border-color: var(--text-subtle);
+    color: var(--text-disabled);
+    cursor: not-allowed;
+  }
+
+  /* Ghost Button (No border, text only) */
+  .btn-ghost {
+    background-color: transparent;
+    color: var(--text-secondary);
+    border: none;
+  }
+
+  .btn-ghost:hover {
+    color: var(--primary-light);
+    transform: translateY(-2px);
+  }
+
+  .btn-ghost:focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
+
+  .btn-ghost:disabled {
+    color: var(--text-disabled);
+    cursor: not-allowed;
+  }
+
+  /* Outline Button (Subtle border) */
+  .btn-outline {
+    background-color: transparent;
+    color: var(--text-primary);
+    border: 1px solid rgba(136, 146, 176, 0.3);
+  }
+
+  .btn-outline:hover {
+    border-color: var(--primary);
+    color: var(--primary-light);
+    transform: translateY(-4px);
+  }
+
+  /* ============================================
+     CARDS (Pas de shadow au repos C26)
+     ============================================ */
+
+  /* Card base */
+  .card {
+    background-color: var(--surface-card);
+    color: var(--card-foreground);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 0;
+  }
+
+  /* Card with padding */
+  .card-padded {
+    @apply card;
+    padding: 2.5rem; /* 40px */
+  }
+
+  /* Card with hover effect (lift + subtle glow) */
+  .card-hover {
+    @apply card-padded transition-smooth transition-glow;
+  }
+
+  .card-hover:hover {
+    background-color: var(--surface-contrast);
+    border-color: var(--glow-terracotta-subtle);
+    transform: translateY(-4px);
+    box-shadow: 0 0 40px var(--glow-terracotta-subtle);
+  }
+
+  /* Card with accent (terracotta border) */
+  .card-accent {
+    @apply card;
+    border-color: var(--glow-terracotta-subtle);
+  }
+
+  /* ============================================
+     FORM ELEMENTS
+     ============================================ */
+
+  /* Input base */
+  .input,
+  input[type="text"],
+  input[type="email"],
+  input[type="password"],
+  input[type="number"],
+  input[type="tel"],
+  input[type="url"],
+  textarea,
+  select {
+    background-color: var(--background);
+    border: 1px solid var(--input);
+    color: var(--text-primary);
+    padding: 0.75rem 1rem;
+    border-radius: var(--radius-input);
+    font-size: var(--font-size-base);
+    font-family: inherit;
+    transition: border-color var(--transition-duration) var(--transition-easing),
+                box-shadow var(--transition-duration) var(--transition-easing);
+  }
+
+  .input::placeholder,
+  input::placeholder,
+  textarea::placeholder {
+    color: var(--text-disabled);
+  }
+
+  .input:focus,
+  .input:focus-visible,
+  input:focus,
+  input:focus-visible,
+  textarea:focus,
+  textarea:focus-visible,
+  select:focus,
+  select:focus-visible {
+    outline: none;
+    border-color: var(--ring);
+    box-shadow: 0 0 0 2px var(--background), 0 0 0 4px var(--ring);
+  }
+
+  .input:disabled,
+  input:disabled,
+  textarea:disabled,
+  select:disabled {
+    background-color: var(--muted);
+    color: var(--text-disabled);
+    cursor: not-allowed;
+  }
+
+  /* Label styling */
+  label {
+    font-weight: var(--font-weight-medium);
+    font-size: var(--font-size-sm);
+    color: var(--text-primary);
+    display: block;
+    margin-bottom: 0.5rem;
+  }
+
+  /* Form group */
+  .form-group {
+    margin-bottom: 1.5rem;
+  }
+
+  .form-group:last-child {
+    margin-bottom: 0;
+  }
+
+  /* Checkbox & Radio */
+  input[type="checkbox"],
+  input[type="radio"] {
+    width: 1.25rem;
+    height: 1.25rem;
+    border: 1px solid var(--input);
+    border-radius: var(--radius-input);
+    cursor: pointer;
+    accent-color: var(--primary);
+  }
+
+  /* ============================================
+     TABLES (Dark theme optimized)
+     ============================================ */
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: var(--font-size-sm);
+  }
+
+  th {
+    background-color: var(--surface-contrast);
+    color: var(--text-primary);
+    font-weight: var(--font-weight-semibold);
+    padding: 1rem;
+    text-align: left;
+    border-bottom: 1px solid rgba(136, 146, 176, 0.15);
+  }
+
+  td {
+    padding: 1rem;
+    border-bottom: 1px solid rgba(136, 146, 176, 0.1);
+    color: var(--text-secondary);
+  }
+
+  tr:hover {
+    background-color: var(--muted);
+  }
+
+  /* ============================================
+     BADGES & TAGS
+     ============================================ */
+
+  .badge {
+    display: inline-block;
+    padding: 0.35rem 0.75rem;
+    border-radius: var(--radius-input);
+    font-size: var(--font-size-xs);
+    font-weight: var(--font-weight-medium);
+    letter-spacing: var(--letter-spacing-wide);
+  }
+
+  .badge-primary {
+    @apply badge;
+    background-color: var(--primary);
+    color: var(--primary-foreground);
+  }
+
+  .badge-secondary {
+    @apply badge;
+    background-color: var(--surface-contrast);
+    color: var(--text-secondary);
+    border: 1px solid var(--border);
+  }
+
+  .badge-success {
+    @apply badge;
+    background-color: var(--success);
+    color: var(--background);
+  }
+
+  .badge-warning {
+    @apply badge;
+    background-color: var(--warning);
+    color: var(--background);
+  }
+
+  .badge-error {
+    @apply badge;
+    background-color: var(--destructive);
+    color: var(--destructive-foreground);
+  }
+}
+
+/* ============================================
+   LIQUID GLASS HEADER - Apple-style Effect
+   ============================================ */
+
+.header-glass-top {
+  /* Initial state - transparent, no effects */
+}
+
+.header-glass-scrolled {
+  /* Scrolled state - glass effect active */
+}
+
+/* Fallback for browsers without backdrop-filter */
+@supports not (backdrop-filter: blur(16px)) {
+  .header-glass-scrolled {
+    background-color: rgba(8, 8, 12, 0.95) !important;
+  }
+}
+
+/* Safari-specific backdrop-filter optimization */
+@supports (-webkit-backdrop-filter: blur(16px)) {
+  .header-glass-scrolled {
+    -webkit-backdrop-filter: blur(16px) saturate(180%);
+  }
+}
+
+/* ============================================
+   ACCESSIBILITY & INCLUSIVE DESIGN
+   ============================================ */
+
+/* High contrast mode support */
+@media (prefers-contrast: more) {
+  body {
+    --text-muted: oklch(0.75 0 0);
+    --border: rgba(136, 146, 176, 0.3);
+  }
+}
+
+/* Respect user's motion preferences (reduces all transitions) */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  /* Remove all translate transforms */
+  .hover-lift:hover,
+  .hover-lift-glow:hover,
+  .btn-primary:hover,
+  .btn-secondary:hover,
+  .btn-ghost:hover,
+  .btn-outline:hover,
+  .card-hover:hover {
+    transform: none;
+  }
+
+  /* Header glass effect - instant transition */
+  .header-glass-scrolled {
+    transition: none !important;
+  }
+}
+
+/* Reduced transparency mode */
+@media (prefers-reduced-transparency: reduce) {
+  body {
+    --border: rgba(136, 146, 176, 0.25);
+    --glow-terracotta: rgba(196, 92, 59, 0.5);
+    --glow-terracotta-subtle: rgba(196, 92, 59, 0.25);
+  }
+}
+
+/* ============================================
+   MICRO-INTERACTIONS - Enhanced Focus & Accessibility
+   ============================================ */
+
+/* Focus styles for keyboard navigation */
+:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 4px;
+  border-radius: 2px;
+}
+
+/* Skip to main content link */
+.skip-to-main {
+  position: absolute;
+  top: -40px;
+  left: 0;
+  background-color: var(--primary);
+  color: var(--primary-foreground);
+  padding: 0.5rem 1rem;
+  text-decoration: none;
+  z-index: 100;
+}
+
+.skip-to-main:focus {
+  top: 0;
+}
+
+/* ============================================
+   CUSTOM SCROLLBAR - Dark Theme Styling
+   ============================================ */
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--background);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--muted);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--primary);
+}
+
+/* Firefox scrollbar */
+* {
+  scrollbar-color: var(--muted) var(--background);
+  scrollbar-width: thin;
+}
+
+/* ============================================
+   RESPONSIVE DESIGN (Mobile First)
+   ============================================ */
+
+/* Mobile (< 640px) - Tailwind sm breakpoint */
+@media (max-width: 639px) {
+  :root {
+    --container-padding: 1.5rem; /* 24px */
+  }
+
+  h1 {
+    font-size: clamp(2rem, 7vw, 3rem); /* 32-48px on small screens */
+  }
+
+  h2 {
+    font-size: clamp(1.5rem, 3.5vw, 2.25rem); /* 24-36px small mobile */
+  }
+
+  h3 {
+    font-size: clamp(1.25rem, 4vw, 1.75rem); /* 20-28px */
+  }
+}
+
+/* Tablet (640px - 1023px) - Tailwind md/lg breakpoints */
+@media (min-width: 640px) and (max-width: 1023px) {
+  :root {
+    --container-padding: 2.5rem; /* 40px */
+  }
+}
+
+/* Desktop (1024px+) - Tailwind xl+ */
+@media (min-width: 1024px) {
+  :root {
+    --container-padding: 5rem; /* Scale via root, pas besoin de vw */
+  }
+}
+
+/* ============================================
+   HERO CSS ANIMATIONS (GPU-accelerated)
+   Replaces Framer Motion infinite loops to prevent jank.
+   Only transform + opacity = composited on GPU thread.
+   ============================================ */
+
+@keyframes hero-breathe {
+  0%, 100% { transform: scale(1); opacity: 0.3; }
+  50% { transform: scale(1.08); opacity: 0.5; }
+}
+
+@keyframes hero-breathe-glow {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.15); }
+}
+
+@keyframes hero-breathe-line {
+  0%, 100% { transform: scaleX(0.3); opacity: 0.3; }
+  50% { transform: scaleX(1); opacity: 0.7; }
+}
+
+@keyframes hero-bar-glow {
+  0%, 100% { box-shadow: 0 0 20px rgba(196,92,59,0.3); }
+  50% { box-shadow: 0 0 40px rgba(196,92,59,0.6); }
+}
+
+
+@keyframes hero-scroll-line {
+  0% { transform: translateY(-100%); }
+  100% { transform: translateY(200%); }
+}
+
+@keyframes hero-defiler-pulse {
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 0.8; }
+}
+
+@keyframes hero-cta-pulse {
+  0%, 100% { transform: scale(1); opacity: 0.5; }
+  50% { transform: scale(1.08); opacity: 0; }
+}
+
+@keyframes hero-arrow-bounce {
+  0%, 100% { transform: translateX(0); }
+  50% { transform: translateX(4px); }
+}
+
+.hero-breathe {
+  animation: hero-breathe 6s ease-in-out infinite;
+  will-change: transform, opacity;
+}
+
+.hero-breathe-glow {
+  animation: hero-breathe-glow 6s ease-in-out infinite;
+  will-change: transform;
+}
+
+.hero-breathe-line {
+  animation: hero-breathe-line 8s ease-in-out infinite;
+  will-change: transform, opacity;
+}
+
+.hero-bar-glow {
+  animation: hero-bar-glow 4s ease-in-out infinite;
+}
+
+.hero-respire-glow-loop {
+  animation: hero-respire-glow-loop 5s ease-in-out infinite 1.8s;
+  will-change: auto;
+}
+
+.hero-scroll-line {
+  animation: hero-scroll-line 2s ease-in-out infinite;
+  will-change: transform;
+}
+
+.hero-defiler-pulse {
+  animation: hero-defiler-pulse 4s ease-in-out infinite;
+}
+
+.hero-cta-pulse {
+  animation: hero-cta-pulse 3s ease-in-out infinite;
+  will-change: transform, opacity;
+}
+
+.hero-arrow-bounce {
+  animation: hero-arrow-bounce 2s ease-in-out infinite;
+  will-change: transform;
+}
+
+/* Hero "respire" — breathing glow loop
+   Subtle terracotta text-shadow that pulses like breathing.
+   Applied after the word reveal completes. */
+
+@keyframes hero-respire-glow-loop {
+  0%, 100% {
+    text-shadow:
+      0 0 0px rgba(196, 92, 59, 0),
+      0 4px 20px rgba(196, 92, 59, 0);
+  }
+  50% {
+    text-shadow:
+      0 0 24px rgba(196, 92, 59, 0.35),
+      0 4px 40px rgba(196, 92, 59, 0.15);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-breathe,
+  .hero-breathe-glow,
+  .hero-breathe-line,
+  .hero-bar-glow,
+  .hero-respire-glow-loop,
+  .hero-scroll-line,
+  .hero-defiler-pulse,
+  .hero-cta-pulse,
+  .hero-arrow-bounce {
+    animation: none;
+  }
+}
+
+/* ============================================
+   BRAIN GLOW — Cinematic light system
+   5 layers: core pulse, wide aura, light rays,
+   rising particles, heat distortion
+   ============================================ */
+
+@keyframes brain-core-pulse {
+  0%, 100% {
+    opacity: 0.5;
+    transform: translate(-50%, -50%) scale(1);
+  }
+  50% {
+    opacity: 0.8;
+    transform: translate(-50%, -50%) scale(1.15);
+  }
+}
+
+@keyframes brain-aura-breathe {
+  0%, 100% {
+    opacity: 0.2;
+    transform: translate(-50%, -50%) scale(1);
+  }
+  35% {
+    opacity: 0.4;
+    transform: translate(-50%, -50%) scale(1.25);
+  }
+  70% {
+    opacity: 0.15;
+    transform: translate(-50%, -50%) scale(1.1);
+  }
+}
+
+@keyframes brain-ray-rotate {
+  0% {
+    transform: translate(-50%, -50%) rotate(0deg);
+    opacity: 0.15;
+  }
+  50% {
+    opacity: 0.3;
+  }
+  100% {
+    transform: translate(-50%, -50%) rotate(360deg);
+    opacity: 0.15;
+  }
+}
+
+@keyframes brain-particle-rise {
+  0% {
+    transform: translateY(0) scale(1);
+    opacity: 0;
+  }
+  15% {
+    opacity: 1;
+  }
+  85% {
+    opacity: 0.6;
+  }
+  100% {
+    transform: translateY(-80px) scale(0.3);
+    opacity: 0;
+  }
+}
+
+@keyframes brain-flare-pulse {
+  0%, 100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scaleX(1);
+  }
+  20% {
+    opacity: 0.5;
+  }
+  50% {
+    opacity: 0.25;
+    transform: translate(-50%, -50%) scaleX(1.4);
+  }
+  80% {
+    opacity: 0;
+  }
+}
+
+.brain-core-pulse {
+  animation: brain-core-pulse 4s ease-in-out infinite;
+  will-change: transform, opacity;
+}
+
+.brain-aura-breathe {
+  animation: brain-aura-breathe 6s ease-in-out infinite;
+  will-change: transform, opacity;
+}
+
+.brain-ray-rotate {
+  animation: brain-ray-rotate 20s linear infinite;
+  will-change: transform, opacity;
+}
+
+.brain-flare-pulse {
+  animation: brain-flare-pulse 5s ease-in-out infinite;
+  will-change: transform, opacity;
+}
+
+.brain-particle {
+  animation: brain-particle-rise 3s ease-out infinite;
+  will-change: transform, opacity;
+}
+
+.brain-particle-1 { animation-delay: 0s; left: 42%; }
+.brain-particle-2 { animation-delay: 0.6s; left: 48%; }
+.brain-particle-3 { animation-delay: 1.2s; left: 55%; }
+.brain-particle-4 { animation-delay: 1.8s; left: 45%; }
+.brain-particle-5 { animation-delay: 2.4s; left: 52%; }
+.brain-particle-6 { animation-delay: 0.3s; left: 58%; }
+.brain-particle-7 { animation-delay: 0.9s; left: 40%; }
+.brain-particle-8 { animation-delay: 1.5s; left: 50%; }
+
+@media (prefers-reduced-motion: reduce) {
+  .brain-core-pulse,
+  .brain-aura-breathe,
+  .brain-ray-rotate,
+  .brain-flare-pulse,
+  .brain-particle {
+    animation: none;
+  }
+}
+
+/* ============================================
+   MARQUEE SCROLL (GPU-accelerated)
+   ============================================ */
+
+@keyframes marquee-scroll {
+  from { transform: translateX(-50%); }
+  to   { transform: translateX(0); }
+}
+
+/* ============================================
+   CTA FINAL BUTTON PULSE
+   ============================================ */
+
+@keyframes cta-pulse-ring {
+  0% {
+    box-shadow: 0 0 0 0 rgba(196, 92, 59, 0);
+  }
+  15% {
+    box-shadow: 0 0 0 3px rgba(196, 92, 59, 0.3);
+  }
+  100% {
+    box-shadow: 0 0 0 10px rgba(196, 92, 59, 0);
+  }
+}
+
+/* --- Primary CTA (terracotta filled) --- */
+.cta-pulse-btn {
+  animation: cta-pulse-ring 2.4s ease-out infinite;
+  will-change: box-shadow, transform;
+  transition: transform 300ms ease-out, box-shadow 300ms ease-out, background-color 300ms ease-out;
+}
+
+.cta-pulse-btn:hover {
+  transform: translateY(-2px) scale(1.03);
+  box-shadow: 0 0 40px rgba(196, 92, 59, 0.5), 0 0 80px rgba(196, 92, 59, 0.2);
+  background-color: #D4683F;
+  animation: none;
+}
+
+/* --- Outline CTA (border terracotta, ghost) --- */
+.cta-outline-btn {
+  transition: transform 300ms ease-out, box-shadow 300ms ease-out, border-color 300ms ease-out, background-color 300ms ease-out;
+}
+
+.cta-outline-btn:hover {
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: 0 0 30px rgba(196, 92, 59, 0.3), 0 0 60px rgba(196, 92, 59, 0.1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cta-pulse-btn,
+  .cta-outline-btn {
+    animation: none;
+  }
+  .cta-pulse-btn:hover,
+  .cta-outline-btn:hover {
+    transform: none;
+  }
+}
+
+/* ============================================
+   PROCESS SECTION CSS ANIMATIONS (GPU-accelerated)
+   Same pattern as Hero: @keyframes → class → will-change → reduced-motion
+   ============================================ */
+
+/* --- Card 01: Scan continu (7s cycle) ---
+   Timeline:
+     0→3%   line opens at top (scaleX 0→1)       0.21s
+     3→55%  scan descends                         3.64s
+     55→60% line closes at bottom (scaleX 1→0)    0.35s
+     60→88% all items visible together (pause)     1.96s  ← ~2s de respiration
+     88→95% items fade out                         0.49s
+     95→100% pause before restart                  0.35s
+   ------------------------------------------------------- */
+
+@keyframes process-scan {
+  0%   { transform: translateY(0) scaleX(0); opacity: 0; }
+  3%   { transform: translateY(0) scaleX(1); opacity: 1; }
+  55%  { transform: translateY(calc(100% - 3px)) scaleX(1); opacity: 1; }
+  60%  { transform: translateY(calc(100% - 3px)) scaleX(0); opacity: 0; }
+  61%  { transform: translateY(0) scaleX(0); opacity: 0; }
+  100% { transform: translateY(0) scaleX(0); opacity: 0; }
+}
+
+/* Each item reveals when the scan reaches its position (linear descent 3→55%).
+   All stay visible until 88%, then fade together before the next cycle. */
+
+@keyframes process-check-reveal-0 {
+  0%, 7%    { opacity: 0.05; }
+  10%       { opacity: 1; }
+  88%       { opacity: 1; }
+  95%, 100% { opacity: 0.05; }
+}
+
+@keyframes process-check-reveal-1 {
+  0%, 20%   { opacity: 0.05; }
+  24%       { opacity: 1; }
+  88%       { opacity: 1; }
+  95%, 100% { opacity: 0.05; }
+}
+
+@keyframes process-check-reveal-2 {
+  0%, 33%   { opacity: 0.05; }
+  37%       { opacity: 1; }
+  88%       { opacity: 1; }
+  95%, 100% { opacity: 0.05; }
+}
+
+@keyframes process-check-reveal-3 {
+  0%, 47%   { opacity: 0.05; }
+  51%       { opacity: 1; }
+  88%       { opacity: 1; }
+  95%, 100% { opacity: 0.05; }
+}
+
+.process-scan {
+  animation: process-scan 7s linear infinite;
+  will-change: transform, opacity;
+}
+
+.process-check-reveal-0 {
+  animation: process-check-reveal-0 7s linear infinite;
+  will-change: opacity;
+}
+.process-check-reveal-1 {
+  animation: process-check-reveal-1 7s linear infinite;
+  will-change: opacity;
+}
+.process-check-reveal-2 {
+  animation: process-check-reveal-2 7s linear infinite;
+  will-change: opacity;
+}
+.process-check-reveal-3 {
+  animation: process-check-reveal-3 7s linear infinite;
+  will-change: opacity;
+}
+
+/* --- Card 02: Module pulse + Context fill --- */
+
+@keyframes process-module-pulse {
+  0%, 100% { opacity: 0.3; box-shadow: none; }
+  20%, 40% { opacity: 1; box-shadow: 0 0 12px rgba(196,92,59,0.3); }
+}
+
+.process-module-pulse {
+  animation: process-module-pulse 4s ease-in-out infinite;
+  will-change: opacity;
+}
+
+@keyframes process-context-fill {
+  0%, 10% { width: 0; opacity: 0; }
+  30% { opacity: 1; }
+  60%, 100% { width: var(--fill-to, 80%); opacity: 0.7; }
+}
+
+.process-context-fill {
+  animation: process-context-fill 4s ease-out infinite;
+  will-change: width, opacity;
+}
+
+/* --- Card 03: Écosystème vivant --- */
+
+@keyframes process-shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(200%); }
+}
+
+@keyframes process-data-flow {
+  0% { transform: translateX(0); opacity: 0; }
+  10% { opacity: 1; }
+  90% { opacity: 1; }
+  100% { transform: translateX(var(--flow-distance, 100px)); opacity: 0; }
+}
+
+@keyframes process-status-pulse {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 1; }
+}
+
+@keyframes process-metric-pulse {
+  0%, 100% { opacity: 0.8; }
+  50% { opacity: 1; }
+}
+
+@keyframes process-online-pulse {
+  0%, 100% { opacity: 0.6; }
+  50% { opacity: 1; }
+}
+
+.process-shimmer {
+  animation: process-shimmer 3s ease-in-out infinite;
+  will-change: transform;
+}
+
+.process-data-flow {
+  animation: process-data-flow 2.5s ease-in-out infinite;
+  will-change: transform, opacity;
+}
+
+.process-status-pulse {
+  animation: process-status-pulse 2s ease-in-out infinite;
+  will-change: opacity;
+}
+
+.process-metric-pulse {
+  animation: process-metric-pulse 4s ease-in-out infinite;
+  will-change: opacity;
+}
+
+.process-online-pulse {
+  animation: process-online-pulse 3s ease-in-out infinite;
+  will-change: opacity;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .process-scan,
+  .process-check-reveal-0,
+  .process-check-reveal-1,
+  .process-check-reveal-2,
+  .process-check-reveal-3,
+  .process-module-pulse,
+  .process-context-fill,
+  .process-shimmer,
+  .process-data-flow,
+  .process-status-pulse,
+  .process-metric-pulse,
+  .process-online-pulse {
+    animation: none;
+  }
+}
+
+/* --- Automation Card: Task connection flow (8s cycle) ---
+   Timeline:
+     0→3%   scan line appears at top
+     3→55%  scan descends through task rows
+     55→60% scan fades at bottom
+     60→85% all connected — reading pause
+     85→92% fade out
+     92→100% reset
+   ------------------------------------------------------- */
+
+@keyframes auto-scan {
+  0%   { transform: translateY(0) scaleX(0); opacity: 0; }
+  3%   { transform: translateY(0) scaleX(1); opacity: 1; }
+  55%  { transform: translateY(calc(100% - 2px)) scaleX(1); opacity: 1; }
+  60%  { transform: translateY(calc(100% - 2px)) scaleX(0); opacity: 0; }
+  61%  { transform: translateY(0) scaleX(0); opacity: 0; }
+  100% { transform: translateY(0) scaleX(0); opacity: 0; }
+}
+
+@keyframes auto-task-reveal-0 {
+  0%, 8%    { opacity: 0.05; }
+  12%       { opacity: 1; }
+  85%       { opacity: 1; }
+  92%, 100% { opacity: 0.05; }
+}
+
+@keyframes auto-task-reveal-1 {
+  0%, 20%   { opacity: 0.05; }
+  25%       { opacity: 1; }
+  85%       { opacity: 1; }
+  92%, 100% { opacity: 0.05; }
+}
+
+@keyframes auto-task-reveal-2 {
+  0%, 33%   { opacity: 0.05; }
+  38%       { opacity: 1; }
+  85%       { opacity: 1; }
+  92%, 100% { opacity: 0.05; }
+}
+
+@keyframes auto-task-reveal-3 {
+  0%, 46%   { opacity: 0.05; }
+  51%       { opacity: 1; }
+  85%       { opacity: 1; }
+  92%, 100% { opacity: 0.05; }
+}
+
+@keyframes auto-hours-reveal {
+  0%, 54%   { opacity: 0.05; }
+  60%       { opacity: 1; }
+  85%       { opacity: 1; }
+  92%, 100% { opacity: 0.05; }
+}
+
+.auto-scan {
+  animation: auto-scan 8s linear infinite;
+  will-change: transform, opacity;
+}
+
+.auto-task-reveal-0 { animation: auto-task-reveal-0 8s linear infinite; will-change: opacity; }
+.auto-task-reveal-1 { animation: auto-task-reveal-1 8s linear infinite; will-change: opacity; }
+.auto-task-reveal-2 { animation: auto-task-reveal-2 8s linear infinite; will-change: opacity; }
+.auto-task-reveal-3 { animation: auto-task-reveal-3 8s linear infinite; will-change: opacity; }
+.auto-hours-reveal { animation: auto-hours-reveal 8s linear infinite; will-change: opacity; }
+
+@media (prefers-reduced-motion: reduce) {
+  .auto-scan,
+  .auto-task-reveal-0,
+  .auto-task-reveal-1,
+  .auto-task-reveal-2,
+  .auto-task-reveal-3,
+  .auto-hours-reveal {
+    animation: none;
+  }
+}
+
+/* ============================================
+   NEUROLIA EMPHASIS — "L'Éclat"
+   Text emphasis through warmth and light, not weight.
+   Philosophy: "Un business qui respire."
+
+   3 variants:
+   - éclat  : terracotta text with gleam passing through (default)
+   - trace  : éclat + Lexend font shift
+   - marque : inline signature vertical bar (brand DNA)
+   ============================================ */
+
+/* ============================================
+   SERVICE CARDS — Mobile ambient effects
+   Rotating border, diagonal sweep, ambient glow
+   ============================================ */
+
+@property --border-angle {
+  syntax: '<angle>';
+  initial-value: 0deg;
+  inherits: false;
+}
+
+@keyframes svc-border-rotate {
+  to { --border-angle: 360deg; }
+}
+
+.svc-card-shine {
+  --border-angle: 0deg;
+}
+
+/* Animated conic border — terracotta ember trace */
+.svc-card-shine::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  padding: 1px;
+  background: conic-gradient(
+    from var(--border-angle),
+    transparent 25%,
+    rgba(196, 92, 59, 0.5) 37%,
+    rgba(240, 220, 200, 0.7) 40%,
+    rgba(196, 92, 59, 0.5) 43%,
+    transparent 55%
+  );
+  -webkit-mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  animation: svc-border-rotate 5s linear infinite;
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* Reduced motion: static border, no rotation */
+@media (prefers-reduced-motion: reduce) {
+  .svc-card-shine::before {
+    animation: none;
+    background: conic-gradient(
+      from 135deg,
+      transparent 25%,
+      rgba(196, 92, 59, 0.4) 37%,
+      rgba(240, 220, 200, 0.5) 40%,
+      rgba(196, 92, 59, 0.4) 43%,
+      transparent 55%
+    );
+  }
+}
+
+/* Hide on desktop — interactive gleam takes over */
+@media (min-width: 1024px) {
+  .svc-card-shine::before {
+    display: none;
+  }
+}
+
+/* --- Gleam: bright warm light passes left→right through text --- */
+@keyframes nr-eclat-gleam {
+  0%   { background-position: 100% center; }
+  35%  { background-position: 0% center; }
+  100% { background-position: 0% center; }
+}
+
+/* --- Breathing marque bar --- */
+@keyframes nr-marque-breathe {
+  0%, 100% { opacity: 0.45; }
+  50%      { opacity: 1; box-shadow: 0 0 10px rgba(196, 92, 59, 0.35); }
+}
+
+/* --- Shared base: override <em> defaults, set terracotta --- */
+.nr-eclat,
+.nr-trace,
+.nr-marque {
+  font-style: normal;
+  font-weight: inherit;
+  color: #C45C3B;
+}
+
+/* --- Éclat: terracotta text with gleam passing through --- */
+.nr-eclat {
+  display: inline;
+  letter-spacing: 0.02em;
+  background-image: linear-gradient(
+    90deg,
+    #C45C3B 0%,
+    #C45C3B 42%,
+    #E0956E 47%,
+    #F5DED2 50%,
+    #E0956E 53%,
+    #C45C3B 58%,
+    #C45C3B 100%
+  );
+  background-size: 300% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: nr-eclat-gleam 5s linear infinite;
+}
+
+/* --- Trace: gleam + Lexend font shift --- */
+.nr-trace {
+  display: inline;
+  font-family: var(--font-hero);
+  letter-spacing: 0.015em;
+  background-image: linear-gradient(
+    90deg,
+    #C45C3B 0%,
+    #C45C3B 42%,
+    #E0956E 47%,
+    #F5DED2 50%,
+    #E0956E 53%,
+    #C45C3B 58%,
+    #C45C3B 100%
+  );
+  background-size: 300% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: nr-eclat-gleam 5s linear infinite;
+}
+
+/* --- Marque: inline signature vertical bar (brand DNA) --- */
+.nr-marque {
+  position: relative;
+  padding-left: 0.7em;
+}
+
+.nr-marque::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0.05em;
+  bottom: 0.05em;
+  width: 3px;
+  background-color: #C45C3B;
+  animation: nr-marque-breathe 4s ease-in-out infinite;
+}
+
+/* --- Reduced motion: static terracotta, no gleam --- */
+@media (prefers-reduced-motion: reduce) {
+  .nr-eclat,
+  .nr-trace {
+    animation: none;
+    background-image: none;
+    -webkit-text-fill-color: #C45C3B;
+  }
+  .nr-marque::before {
+    animation: none;
+    opacity: 0.7;
+  }
+}
+
+/* Print styles */
+@media print {
+  body {
+    background-color: white;
+    color: black;
+  }
+
+  a {
+    color: blue;
+    text-decoration: underline;
+  }
+
+  .no-print {
+    display: none;
+  }
+}

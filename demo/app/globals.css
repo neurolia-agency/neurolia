@@ -1,0 +1,55 @@
+@import url("https://api.fontshare.com/v2/css?f[]=satoshi@700,900&display=swap");
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* Backgrounds */
+  --bg: #050810;
+  --surface: #0A0F1A;
+  --surface-card: #111827;
+
+  /* Accent */
+  --primary: #C45C3B;
+  --primary-light: #E07856;
+  --primary-glow: rgba(196, 92, 59, 0.3);
+
+  /* Text */
+  --text: #F5F5F5;
+  --text-muted: #A3A3A3;
+  --text-subtle: #737373;
+
+  /* Border */
+  --border: rgba(136, 146, 176, 0.15);
+
+  /* Fonts */
+  --font-inter: "Inter", system-ui, -apple-system, sans-serif;
+  --font-display: "Satoshi", "Inter", system-ui, sans-serif;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html,
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-inter);
+  height: 100%;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+::selection {
+  background: var(--primary);
+  color: var(--text);
+}
+
+/* Scrollbar hidden */
+::-webkit-scrollbar {
+  display: none;
+}

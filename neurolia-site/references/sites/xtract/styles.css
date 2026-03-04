@@ -1,0 +1,117 @@
+/*
+ * Xtract — Tokens CSS extraits
+ * Source : https://xtract.framer.ai/
+ * Extrait le : 2026-02-09
+ *
+ * Usage : référence uniquement, pas d'import direct.
+ * Nos contraintes Neurolia s'appliquent (voir constraints.md).
+ */
+
+/* ========== PALETTE ========== */
+
+:root {
+  /* Fonds */
+  --xtract-bg:          #000000;
+  --xtract-bg-card:     rgba(13, 13, 13, 0.8);
+  --xtract-border:      #222222;
+
+  /* Accents (on ne reprend pas ces couleurs, juste la structure) */
+  --xtract-accent-1:    #8150C8;
+  --xtract-accent-2:    #df7afe;
+
+  /* Texte */
+  --xtract-text:        #ffffff;
+  --xtract-text-muted:  #CCCCCC;
+}
+
+/* ========== TYPOGRAPHIE ========== */
+
+/* Font : Figtree (Google Fonts) — nous on reste sur Inter */
+
+.xtract-heading {
+  font-family: 'Figtree', sans-serif;
+  font-weight: 900;
+  font-size: 70px;           /* desktop */
+  /* font-size: 56px;        /* tablet */
+  /* font-size: 45px;        /* mobile */
+  letter-spacing: -0.04em;
+  line-height: 0.95;
+}
+
+.xtract-body {
+  font-family: 'Figtree', sans-serif;
+  font-weight: 400;
+  font-size: 16px;
+  line-height: 1.6;
+}
+
+/* ========== CARDS ========== */
+
+.xtract-card {
+  background: rgba(13, 13, 13, 0.8);
+  border: 1px solid #222222;
+  border-radius: 8px;        /* nous : 0 (C24) */
+  will-change: transform;    /* hover animation */
+}
+
+/* ========== BUTTONS ========== */
+
+.xtract-btn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 14px;
+  border-radius: 8px;        /* nous : 0 (C24) */
+}
+
+/* ========== LAYOUT ========== */
+
+.xtract-container {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.xtract-section {
+  padding: 40px 40px;        /* mobile */
+  /* padding: 80px 40px;     /* tablet */
+  /* padding: 100px 80px;    /* desktop */
+}
+
+.xtract-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);  /* desktop: jusqu'à 4 */
+  gap: 20px;
+}
+
+/* ========== EFFETS ========== */
+/* Note : blur et orbes interdits chez nous (X18/X20) */
+
+.xtract-orb {
+  filter: blur(10px);
+  opacity: 0.6;
+}
+
+.xtract-gradient-text {
+  background: linear-gradient(to right, #8150C8, #df7afe);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* ========== STICKY CTA ========== */
+
+.xtract-sticky-cta {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  z-index: 3;
+  /* caché en mobile */
+}
+
+/* ========== BREAKPOINTS ========== */
+/*
+ * Desktop : 1200px+
+ * Tablet  : 810px - 1199px
+ * Mobile  : < 809px
+ *
+ * Nous : desktop/mobile uniquement (pas de tablet)
+ */
