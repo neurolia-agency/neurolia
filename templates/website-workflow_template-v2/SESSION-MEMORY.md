@@ -1,7 +1,7 @@
 # Mémoire de Session — website-workflow template-v2
 
 > Fichier de continuité entre sessions Claude. Lire ce fichier en début de nouvelle session pour reprendre le travail sans perte de contexte.
-> Dernière mise à jour : 2026-03-04
+> Dernière mise à jour : 2026-03-04 (session Cowork)
 
 ---
 
@@ -136,15 +136,15 @@ Tous les fichiers `.claude/agents/*.md` et `.claude/skills/*/SKILL.md` du templa
 
 ## 5. Ce qui reste à faire
 
-### Action manuelle requise (pas faisable par Claude en Cowork)
-
-- [ ] **Supprimer `pipeline/agents/`** dans le template — contient 3 fichiers orphelins obsolètes (remplacés par `.claude/agents/`). Le système de montage Cowork empêche la suppression.
-
 ### Améliorations futures possibles
 
-- [ ] **Automatisation tests B05** (P3) : un agent qui lance Lighthouse, parse les scores, et produit le rapport. Utile mais moins critique que les P0-P1 déjà implémentés.
 - [ ] **Tester le pipeline sur un vrai projet** pour valider que les subagents fonctionnent bien avec le Task tool et que le section-builder orchestre correctement.
 - [ ] **Valider que `subagent_type: "context-assembler"` etc.** fonctionne dans Claude Code CLI (c'est la syntaxe documentée pour les custom subagents, mais un test réel confirmera).
+
+### Résolu
+
+- [x] ~~Supprimer `pipeline/agents/`~~ — Fait. Les 3 fichiers orphelins ont été supprimés.
+- [x] ~~Automatisation tests B05 (Lighthouse)~~ — Abandonné. Les tests performance se feront manuellement (décision Joris, 2026-03-04).
 
 ---
 
@@ -166,9 +166,9 @@ Tous les fichiers `.claude/agents/*.md` et `.claude/skills/*/SKILL.md` du templa
 - Les agents Phase B sont appelés par `section-builder` (skill)
 - Les agents Phase A (wireframe-validator, token-auditor) sont appelés directement par Claude dans les stages
 
-### Le pipeline/agents/ (OBSOLÈTE)
+### Le pipeline/agents/ (SUPPRIMÉ)
 
-Le dossier `pipeline/agents/` contient encore 3 fichiers au format ancien (pas de frontmatter YAML, modèle "Opus" au lieu de Sonnet, format documentaire). Ces fichiers ne sont **référencés nulle part** et doivent être supprimés. Ils ont été remplacés par `.claude/agents/`.
+Le dossier `pipeline/agents/` contenait 3 fichiers orphelins au format ancien. Il a été supprimé le 2026-03-04. Tous les agents sont dans `.claude/agents/`.
 
 ---
 
