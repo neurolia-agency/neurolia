@@ -11,6 +11,7 @@ Matrice des inputs/outputs par étape du pipeline.
 ═══════════════════════════════════════════════════════════════════════════════
 
 pipeline/input/brief-client.md
+pipeline/input/forms/*.csv (optionnel)
         │
         ▼
 ┌──────────────────┐
@@ -19,7 +20,7 @@ pipeline/input/brief-client.md
         │
         ▼
 ┌──────────────────┐
-│   A02: Brand     │ → pipeline/output/01-brand/ (7+ fichiers)
+│   A02: Brand     │ → pipeline/output/01-brand/ (8 fichiers)
 └──────────────────┘
         │
         ├──────────────────────────────────────┐
@@ -29,7 +30,7 @@ pipeline/input/brief-client.md
 └──────────────────┘                  └──────────────────┘
         │                                      │
         │  pipeline/output/02-art-direction/   │  pipeline/output/03-sitemap.md
-        │  (9 fichiers incl. project-dials,    │
+        │  (7 fichiers incl. project-dials,    │
         │   ui-kit, constraints, emotion-map)  │
         └──────────────┬───────────────────────┘
                        ▼
@@ -81,7 +82,7 @@ pipeline/input/brief-client.md
 Chaque composant/section en Phase B passe par ce circuit :
 
 ```
-Context Assembler (haiku) ──→ Aesthetic Director (sonnet) ──→ Claude + frontend-design2 ──→ Constraint Validator (haiku)
+Context Assembler (haiku) ──→ Aesthetic Director (opus-4.6) ──→ Claude + frontend-design2 ──→ Constraint Validator (haiku)
     [résout le contexte]      [direction créative]           [code le composant]          [vérifie les règles]
     _preflight/*-context.md   _preflight/*-direction.md      components/*.tsx              pass/fail + corrections
 ```
@@ -94,9 +95,9 @@ Context Assembler (haiku) ──→ Aesthetic Director (sonnet) ──→ Claude
 
 | Étape | Stage | Inputs Requis | Outputs | Dépend de |
 |-------|-------|---------------|---------|-----------|
-| **A01** | `A01-init.md` | `pipeline/input/brief-client.md` | `pipeline/output/00-brief.md` | - |
-| **A02** | `A02-brand/` | `00-brief.md` | `pipeline/output/01-brand/` (7+ fichiers) | A01 |
-| **A03** | `A03-art-direction.md` | `01-brand/` (tous) | `pipeline/output/02-art-direction/` (9 fichiers) | A02 |
+| **A01** | `A01-init.md` | `pipeline/input/brief-client.md`, `pipeline/input/forms/*` (optionnel) | `pipeline/output/00-brief.md` | - |
+| **A02** | `A02-brand/` | `00-brief.md`, `pipeline/input/forms/*` (si référencé dans Sources Externes) | `pipeline/output/01-brand/` (8 fichiers) | A01 |
+| **A03** | `A03-art-direction.md` | `01-brand/` (tous) | `pipeline/output/02-art-direction/` (7 fichiers) | A02 |
 | **A04** | `A04-structure.md` | `00-brief.md`, `01-brand/`, `02-art-direction/emotion-map.md` | `pipeline/output/03-sitemap.md` | A02, A03 |
 | **A05** | `A05-wireframes.md` | `01-brand/`, `02-art-direction/`, `03-sitemap.md` | `pipeline/output/03.5-wireframes/` | A03, A04 |
 | **A06** | `A06-design-tokens.md` | `02-art-direction/`, `03.5-wireframes/` | `app/globals.css` | A03, A05 |
@@ -162,7 +163,7 @@ Ces fichiers peuvent être lus à **toute étape** :
 | Agent | Spec | Modèle | Usage |
 |-------|------|--------|-------|
 | Context Assembler | `agents/context-assembler.md` | Haiku | Résolution contexte |
-| Aesthetic Director | `agents/aesthetic-director.md` | Sonnet | Direction créative |
+| Aesthetic Director | `agents/aesthetic-director.md` | Opus 4.6 | Direction créative |
 | Constraint Validator | `agents/constraint-validator.md` | Haiku | Vérification règles |
 
 ---

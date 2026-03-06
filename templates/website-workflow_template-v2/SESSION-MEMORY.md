@@ -1,7 +1,7 @@
 # Mémoire de Session — website-workflow template-v2
 
 > Fichier de continuité entre sessions Claude. Lire ce fichier en début de nouvelle session pour reprendre le travail sans perte de contexte.
-> Dernière mise à jour : 2026-03-04 (session Cowork)
+> Dernière mise à jour : 2026-03-04 (session Optimisation finale)
 
 ---
 
@@ -30,7 +30,7 @@ B01-Layout → B02-Homepage → B03-Pages → B04-Polish → B05-Validate → B0
 
 ```
 Étape 1 → context-assembler (haiku)     : résout les pointeurs wireframe → context block
-Étape 2 → aesthetic-director (sonnet)    : traduit le context en direction créative
+Étape 2 → aesthetic-director (opus-4.6)    : traduit le context en direction créative
 Étape 3 → Claude direct + frontend-design2 : code le composant .tsx
 Étape 4 → constraint-validator (haiku)   : vérifie contre les règles projet
 ```
@@ -46,21 +46,27 @@ A06 → token-auditor (haiku)       : audite couverture visual-vocabulary → gl
 
 ```
 .claude/
-├── agents/                         # 5 custom subagents
-│   ├── context-assembler.md        # Haiku — Phase B étape 1
-│   ├── aesthetic-director.md       # Sonnet — Phase B étape 2
-│   ├── constraint-validator.md     # Haiku — Phase B étape 4 (skills: [frontend-design2])
-│   ├── wireframe-validator.md      # Haiku — fin A05
-│   └── token-auditor.md            # Haiku — fin A06
+├── settings.json                   # Hooks PostToolUse (rappel constraint-validator)
+├── rules/
+│   ├── phase-b-circuit.md          # Flux circuit d'agents Phase B
+│   └── pipeline-structure.md       # Arborescence complète du projet
+├── agents/
+│   ├── context-assembler.md        # Haiku — Phase B étape 1 (permissionMode: acceptEdits)
+│   ├── aesthetic-director.md       # Opus 4.6 — Phase B étape 2 (permissionMode: acceptEdits)
+│   ├── constraint-validator.md     # Haiku — Phase B étape 4 (permissionMode: dontAsk, skills: [frontend-design2])
+│   ├── wireframe-validator.md      # Haiku — fin A05 (permissionMode: dontAsk)
+│   ├── token-auditor.md            # Haiku — fin A06 (permissionMode: dontAsk)
+│   └── references/                 # Checklists détaillées (extraites des agents)
+│       ├── token-audit-checklist.md
+│       └── wireframe-checklist.md
 └── skills/
-    ├── section-builder/SKILL.md    # Orchestrateur Phase B (skill, pas subagent)
+    ├── section-builder/SKILL.md    # Orchestrateur Phase B + Protocole FAIL
     └── frontend-design2/SKILL.md   # Règles anti-slop, dials, arsenal créatif
 ```
 
 ### Skills globaux utilisés (installés dans ~/.claude/skills/)
 
 - `/brand-expression` — A02 phase 3a (expression verbale)
-- `/canvas-design` — A03 phase 3 (art direction board)
 - `/workflow-apex` — exécution des stages
 
 ---
@@ -100,7 +106,7 @@ A06 → token-auditor (haiku)       : audite couverture visual-vocabulary → gl
 | Fichier | Contenu |
 |---------|---------|
 | `.claude/agents/context-assembler.md` | Subagent haiku, résout contexte, 7 fichiers sources, format output strict |
-| `.claude/agents/aesthetic-director.md` | Subagent sonnet, direction créative, calibrage par dials |
+| `.claude/agents/aesthetic-director.md` | Subagent opus-4.6, direction créative, calibrage par dials |
 | `.claude/agents/constraint-validator.md` | Subagent haiku, `skills: [frontend-design2]`, checklist 8 points |
 | `.claude/agents/wireframe-validator.md` | Subagent haiku, 4 catégories de validation (couverture, complétude, refs, qualité) |
 | `.claude/agents/token-auditor.md` | Subagent haiku, audit 8 catégories + qualité + cohérence |
@@ -143,8 +149,24 @@ Tous les fichiers `.claude/agents/*.md` et `.claude/skills/*/SKILL.md` du templa
 
 ### Résolu
 
+- [x] ~~Axe 1 — CLAUDE.md trop long (218 lignes)~~ — Sections flux et structure extraites vers `.claude/rules/`. CLAUDE.md réduit à 90 lignes.
+- [x] ~~Axe 2 — Agents sans permissionMode~~ — `permissionMode` ajouté aux 5 agents (acceptEdits ou dontAsk).
+- [x] ~~Axe 4 — Pas de hooks de validation~~ — `.claude/settings.json` créé avec hook PostToolUse pour rappel constraint-validator.
+- [x] ~~Axe 5 — Pas de boucle FAIL documentée~~ — Protocole FAIL ajouté dans section-builder (max 2 itérations).
+- [x] ~~Axe 6 — Agents trop longs (token-auditor 205L, wireframe-validator 152L)~~ — Checklists extraites dans `.claude/agents/references/`. Agents réduits à ~60-80 lignes.
+- [x] ~~Axe 7 — A03 trop long (843 lignes)~~ — 7 templates extraits dans `pipeline/stages/A03-templates/`. A03 réduit à 266 lignes.
 - [x] ~~Supprimer `pipeline/agents/`~~ — Fait. Les 3 fichiers orphelins ont été supprimés.
 - [x] ~~Automatisation tests B05 (Lighthouse)~~ — Abandonné. Les tests performance se feront manuellement (décision Joris, 2026-03-04).
+- [x] ~~Nommage outputs décalé dans CLAUDE.md/README.md~~ — Corrigé : `01-brief.md` → `00-brief.md`, `02-brand/` → `01-brand/`, aligné sur les stages et DEPENDENCIES.md.
+- [x] ~~Nombre fichiers A02 incorrect~~ — Corrigé : "7 fichiers" → "8 fichiers" partout (inclut `00-platform.md`).
+- [x] ~~Suppression `/canvas-design`~~ — Phase 3 (art direction board) retirée de A03. Output passe de 9 à 7 fichiers. Propagé dans CLAUDE.md, README.md, DEPENDENCIES.md, CHANGELOG.md.
+- [x] ~~Terminologie Task vs Agent~~ — Corrigé : `Task()` → `Agent()` dans section-builder SKILL.md, A05-wireframes.md, A06-design-tokens.md.
+- [x] ~~Dossier fantôme `04-design-tokens/`~~ — Supprimé de l'arborescence documentée (CLAUDE.md, README.md).
+- [x] ~~Titre A04 incohérent~~ — Corrigé : "A4" → "A04" dans A04-structure.md.
+
+### Note
+
+- [ ] **GUIDE-UTILISATION.pdf** à régénérer — référence encore `pipeline/agents/` (supprimé) et "3 agents" au lieu de 5.
 
 ---
 

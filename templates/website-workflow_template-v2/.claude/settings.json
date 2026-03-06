@@ -1,0 +1,15 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "filepath=\"$CLAUDE_FILE_PATH\"; if echo \"$filepath\" | grep -qE '^components/|^app/' && ! echo \"$filepath\" | grep -q 'globals.css'; then echo '⚠️ Composant modifié — penser à lancer constraint-validator'; fi"
+          }
+        ]
+      }
+    ]
+  }
+}

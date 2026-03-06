@@ -16,7 +16,7 @@ Workflow en **2 phases** avec circuit d'agents automatisé :
 Pour chaque section, le skill `section-builder` orchestre automatiquement :
 
 ```
-Context Assembler (haiku) → Aesthetic Director (sonnet) → Code + frontend-design2 → Constraint Validator (haiku)
+Context Assembler (haiku) → Aesthetic Director (opus-4.6) → Code + frontend-design2 → Constraint Validator (haiku)
 ```
 
 Les agents sont des **custom subagents** définis dans `.claude/agents/` (context-assembler, aesthetic-director, constraint-validator pour Phase B + wireframe-validator pour A05 et token-auditor pour A06).
@@ -34,6 +34,7 @@ cd mon-projet/
 
 - Éditer `CLAUDE.md` (remplacer les `[PLACEHOLDERS]`)
 - Remplir `pipeline/input/brief-client.md`
+- Déposer les formulaires externes dans `pipeline/input/forms/` avec leur manifest (si disponibles)
 - Ajouter les références visuelles dans `pipeline/input/references/` (URLs + screenshots)
 
 ### 3. Initialiser Next.js
@@ -71,15 +72,15 @@ template/
 │   │   │   ├── sites.md           # Sites d'inspiration annotés
 │   │   │   └── screenshots/       # Captures visuelles (prioritaires)
 │   │   ├── content/               # Textes fournis par le client
-│   │   └── typographies/          # Polices si identité existante
+│   │   ├── typographies/          # Polices si identité existante
+│   │   └── forms/                 # Formulaires externes (CSV + manifests) — optionnel
 │   │
 │   ├── output/                    # Artifacts générés (immutables)
-│   │   ├── 01-brief.md            # A01
-│   │   ├── 02-brand/              # A02 (7 fichiers)
-│   │   ├── 02-art-direction/      # A03 (9 fichiers)
+│   │   ├── 00-brief.md            # A01
+│   │   ├── 01-brand/              # A02 (8 fichiers)
+│   │   ├── 02-art-direction/      # A03 (7 fichiers)
 │   │   ├── 03-sitemap.md          # A04
 │   │   ├── 03.5-wireframes/       # A05 (wireframes auto-suffisants)
-│   │   ├── 04-design-tokens/      # A06
 │   │   ├── 07-validation.md       # B05
 │   │   └── 08-deploy.md           # B06
 │   │
@@ -121,7 +122,7 @@ template/
 └── .claude/
     ├── agents/                    # Custom subagents
     │   ├── context-assembler.md   # Haiku — résout le contexte (Phase B)
-    │   ├── aesthetic-director.md  # Sonnet — direction créative (Phase B)
+    │   ├── aesthetic-director.md  # Opus 4.6 — direction créative (Phase B)
     │   ├── constraint-validator.md # Haiku — vérifie les règles (Phase B, skills: [frontend-design2])
     │   ├── wireframe-validator.md # Haiku — valide les wireframes (A05)
     │   └── token-auditor.md       # Haiku — audite les tokens CSS (A06)
@@ -138,14 +139,14 @@ template/
 
 | Étape | Stage | Output |
 |-------|-------|--------|
-| A01 | Init | `01-brief.md` |
-| A02 | Brand | `02-brand/` (7 fichiers) |
-| A03 | Art Direction | `02-art-direction/` (9 fichiers dont project-dials, ui-kit, emotion-map) |
+| A01 | Init | `00-brief.md` |
+| A02 | Brand | `01-brand/` (8 fichiers) |
+| A03 | Art Direction | `02-art-direction/` (7 fichiers dont project-dials, ui-kit, emotion-map) |
 | A04 | Structure | `03-sitemap.md` |
 | A05 | Wireframes | `03.5-wireframes/` (wireframes auto-suffisants, 7 dimensions) |
 | A06 | Design Tokens | `app/globals.css` |
 
-**A03 produit 9 fichiers** : constraints.md, visual-vocabulary.md, typography-system.md, color-system.md, motion-system.md, project-dials.md, ui-kit.md, emotion-map.md, README.md
+**A03 produit 7 fichiers** : moodboard.md, visual-vocabulary.md, constraints.md, emotion-map.md, project-dials.md, ui-kit.md, README.md
 
 **A05 wireframes auto-suffisants** : chaque wireframe porte contenu, layout, émotion, dials, technique, contraintes et transitions — le circuit d'agents peut les consommer sans aller chercher ailleurs.
 
@@ -174,7 +175,7 @@ template/
 | Agent | Modèle | Rôle |
 |-------|--------|------|
 | Context Assembler | haiku | Résout les pointeurs du wireframe en contexte auto-suffisant |
-| Aesthetic Director | sonnet | Transforme le contexte technique en direction créative sensorielle |
+| Aesthetic Director | opus-4.6 | Transforme le contexte technique en direction créative sensorielle |
 | Constraint Validator | haiku | Vérifie systématiquement le code contre toutes les règles du projet |
 
 Le **coding** est fait par Claude directement, avec le skill `frontend-design2` chargé en contexte.
@@ -207,7 +208,7 @@ Le **coding** est fait par Claude directement, avec le skill `frontend-design2` 
 - **Forms** : react-hook-form + zod
 - **UI** : shadcn/ui (inputs uniquement)
 - **Couleurs** : OKLCH
-- **Agents** : Claude (haiku + sonnet) via circuit automatisé
+- **Agents** : Claude (haiku + opus-4.6) via circuit automatisé
 
 ---
 

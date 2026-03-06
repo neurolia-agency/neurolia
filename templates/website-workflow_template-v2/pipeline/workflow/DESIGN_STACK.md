@@ -37,7 +37,7 @@
 |-------|--------|-------|-------|
 | frontend-design2 | — | B | Skill comportemental Claude (SKILL.md) — active les règles anti-slop, dials, arsenal créatif |
 | Context Assembler | Haiku | B | Agent résolveur de contexte (déterministe) |
-| Aesthetic Director | Sonnet | B | Agent direction créative (sensoriel) |
+| Aesthetic Director | Opus 4.6 | B | Agent direction créative (sensoriel) |
 | Constraint Validator | Haiku | B | Agent vérificateur de règles (systématique, skills: [frontend-design2]) |
 | Wireframe Validator | Haiku | A05 | Agent validateur structurel des wireframes |
 | Token Auditor | Haiku | A06 | Agent auditeur de couverture tokens CSS |
