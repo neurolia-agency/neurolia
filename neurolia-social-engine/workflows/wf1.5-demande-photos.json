@@ -1,0 +1,236 @@
+{
+  "id": "F47NAnabEESZd4cf",
+  "name": "SE-WF1.5 — Demande Photos",
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "Europe/Paris",
+    "saveDataErrorExecution": "all",
+    "saveDataSuccessExecution": "all"
+  },
+  "nodes": [
+    {
+      "id": "sch01",
+      "name": "Declencheur Planifie",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [0, 512],
+      "parameters": {
+        "rule": {
+          "interval": [{"field": "cronExpression", "expression": "0 7 * * *"}]
+        }
+      }
+    },
+    {
+      "id": "sb02",
+      "name": "Charger Clients Actifs",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [224, 512],
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "clients",
+        "returnAll": true,
+        "matchType": "allFilters",
+        "filters": {
+          "conditions": [{"keyName": "is_active", "condition": "eq", "keyValue": "true"}]
+        }
+      },
+      "credentials": {
+        "supabaseApi": {"id": "PLACEHOLDER", "name": "Supabase Social Engine"}
+      }
+    },
+    {
+      "id": "cd03",
+      "name": "Filtrer Clients avec Drive",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [448, 512],
+      "parameters": {
+        "jsCode": "const items = $input.all();\nconst filtered = items.filter(item => item.json.drive_folder_id);\nif (filtered.length === 0) return [];\nreturn filtered;"
+      }
+    },
+    {
+      "id": "sp04",
+      "name": "Boucle Clients",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [672, 512],
+      "parameters": {"options": {}}
+    },
+    {
+      "id": "cd05",
+      "name": "Charger Slots a Couvrir",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [896, 704],
+      "parameters": {
+        "jsCode": "const httpRequest = globalThis.helpers.httpRequest;\nconst SUPABASE_URL = 'PLACEHOLDER_SUPABASE_URL';\nconst SUPABASE_KEY = 'PLACEHOLDER_SUPABASE_KEY';\nconst client = $('Boucle Clients').first().json;\nconst headers = { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` };\n\nconst today = new Date();\nconst todayStr = today.toISOString().split('T')[0];\nconst limit = new Date(today);\nlimit.setDate(today.getDate() + 2);\nconst limitStr = limit.toISOString().split('T')[0];\n\n// Slots des prochaines 48h sans dossier Drive cree\nlet slots = [];\ntry {\n  slots = await httpRequest({\n    method: 'GET',\n    url: `${SUPABASE_URL}/rest/v1/editorial_slots?client_id=eq.${client.id}&scheduled_date=gte.${todayStr}&scheduled_date=lte.${limitStr}&drive_subfolder_id=is.null&order=scheduled_date.asc,scheduled_time.asc&select=id,scheduled_date,scheduled_time,content_type,category,theme,angle,tone,visual_direction,sublimation_mode,caption_style,objective`,\n    headers\n  });\n} catch(e) {}\n\nif (!slots || slots.length === 0) return [{ json: { _noSlots: true } }];\n\n// Exclure les slots deja en production\nlet covered = [];\ntry {\n  const ids = slots.map(s => s.id).join(',');\n  covered = await httpRequest({\n    method: 'GET',\n    url: `${SUPABASE_URL}/rest/v1/content_queue?slot_id=in.(${ids})&select=slot_id`,\n    headers\n  });\n} catch(e) {}\nconst coveredIds = new Set((covered || []).map(c => c.slot_id));\nconst need = slots.filter(s => !coveredIds.has(s.id));\n\nif (need.length === 0) return [{ json: { _noSlots: true } }];\n\nreturn [{ json: {\n  _noSlots: false,\n  client_id: client.id,\n  client_name: client.name,\n  client_slug: client.slug,\n  drive_folder_id: client.drive_folder_id,\n  slots: need\n}}];"
+      }
+    },
+    {
+      "id": "if06",
+      "name": "SI \u2014 Slots a Traiter",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [1120, 704],
+      "parameters": {
+        "conditions": {
+          "options": {"version": 2, "leftValue": "", "caseSensitive": true, "typeValidation": "strict"},
+          "conditions": [{"id": "cond1", "leftValue": "={{ $json._noSlots }}", "rightValue": "", "operator": {"type": "boolean", "operation": "false", "singleValue": true}}],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "cd07",
+      "name": "Preparer Slots",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1344, 544],
+      "parameters": {
+        "jsCode": "const data = $input.first().json;\nconst slots = data.slots;\nreturn slots.map(s => ({\n  json: {\n    ...s,\n    client_id: data.client_id,\n    client_name: data.client_name,\n    client_slug: data.client_slug,\n    drive_folder_id: data.drive_folder_id,\n    subfolder_name: s.scheduled_date + '_' + (s.theme || 'sans-theme').toLowerCase().replace(/[^a-z0-9\\u00e0\\u00e2\\u00e4\\u00e9\\u00e8\\u00ea\\u00eb\\u00ef\\u00ee\\u00f4\\u00f9\\u00fb\\u00fc\\u00ff\\u00e7]+/g, '-').replace(/(^-|-$)/g, '').substring(0, 50)\n  }\n}));"
+      }
+    },
+    {
+      "id": "sp08",
+      "name": "Boucle Slots",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [1568, 544],
+      "parameters": {"options": {}}
+    },
+    {
+      "id": "hr09",
+      "name": "Creer Sous-Dossier Drive",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1792, 320],
+      "parameters": {
+        "method": "POST",
+        "url": "https://www.googleapis.com/drive/v3/files",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleOAuth2Api",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ name: $json.subfolder_name, mimeType: 'application/vnd.google-apps.folder', parents: [$json.drive_folder_id] }) }}",
+        "options": {}
+      },
+      "credentials": {
+        "googleOAuth2Api": {"id": "PLACEHOLDER", "name": "Google OAuth2"}
+      }
+    },
+    {
+      "id": "cd10",
+      "name": "MAJ Slot Notifie",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2016, 320],
+      "parameters": {
+        "jsCode": "const httpRequest = globalThis.helpers.httpRequest;\nconst SUPABASE_URL = 'PLACEHOLDER_SUPABASE_URL';\nconst SUPABASE_KEY = 'PLACEHOLDER_SUPABASE_KEY';\nconst headers = {\n  apikey: SUPABASE_KEY,\n  Authorization: `Bearer ${SUPABASE_KEY}`,\n  'Content-Type': 'application/json',\n  Prefer: 'return=minimal'\n};\n\nconst slot = $('Boucle Slots').first().json;\nconst driveResponse = $input.first().json;\nconst folderId = driveResponse.id;\n\nawait httpRequest({\n  method: 'PATCH',\n  url: `${SUPABASE_URL}/rest/v1/editorial_slots?id=eq.${slot.id}`,\n  headers,\n  body: JSON.stringify({\n    drive_subfolder_id: folderId,\n    photo_requested_at: new Date().toISOString()\n  })\n});\n\nreturn [{\n  json: {\n    slot_id: slot.id,\n    scheduled_date: slot.scheduled_date,\n    scheduled_time: slot.scheduled_time,\n    theme: slot.theme,\n    category: slot.category,\n    content_type: slot.content_type,\n    visual_direction: slot.visual_direction,\n    subfolder_name: slot.subfolder_name,\n    drive_folder_id: folderId,\n    drive_folder_url: `https://drive.google.com/drive/folders/${folderId}`\n  }\n}];"
+      }
+    },
+    {
+      "id": "cd11",
+      "name": "Construire Email Demande",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1792, 768],
+      "parameters": {
+        "jsCode": "const processed = $('MAJ Slot Notifie').all();\nconst clientName = $('Charger Slots a Couvrir').first().json.client_name;\n\nif (!processed || processed.length === 0) return [{ json: { _skip: true } }];\n\nconst jours = ['Dimanche','Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi'];\nconst catLabels = {\n  produit: 'Produit',\n  coulisses: 'Coulisses',\n  equipe: 'Equipe',\n  engagement: 'Engagement',\n  saisonnier: 'Saisonnier',\n  educatif: 'Educatif',\n  temoignage: 'Temoignage',\n  ambiance: 'Ambiance'\n};\n\nconst rows = processed.map(p => {\n  const s = p.json;\n  const d = new Date(s.scheduled_date + 'T12:00:00');\n  const jour = jours[d.getDay()];\n  const heure = (s.scheduled_time || '').substring(0, 5);\n  const cat = catLabels[s.category] || s.category;\n  const dir = s.visual_direction || '\\u2014';\n  return `<tr>\\n    <td style=\\\"padding:12px 8px;border-bottom:1px solid #e5e7eb;\\\">${jour} ${s.scheduled_date} a ${heure}</td>\\n    <td style=\\\"padding:12px 8px;border-bottom:1px solid #e5e7eb;\\\"><strong>${s.theme}</strong></td>\\n    <td style=\\\"padding:12px 8px;border-bottom:1px solid #e5e7eb;\\\">${cat}</td>\\n    <td style=\\\"padding:12px 8px;border-bottom:1px solid #e5e7eb;font-size:13px;color:#6b7280;\\\">${dir}</td>\\n    <td style=\\\"padding:12px 8px;border-bottom:1px solid #e5e7eb;text-align:center;\\\"><a href=\\\"${s.drive_folder_url}\\\" style=\\\"display:inline-block;background:#0d9488;color:white;padding:6px 14px;border-radius:6px;text-decoration:none;font-size:13px;font-weight:600;\\\">Deposer</a></td>\\n  </tr>`;\n}).join('');\n\nconst html = `<div style=\\\"font-family:'Plus Jakarta Sans',Helvetica,Arial,sans-serif;max-width:720px;margin:0 auto;\\\">\\n  <div style=\\\"background:#0d9488;padding:24px 28px;border-radius:12px 12px 0 0;\\\">\\n    <h1 style=\\\"color:white;margin:0;font-size:20px;font-weight:700;\\\">Photos requises \\u2014 ${clientName}</h1>\\n    <p style=\\\"color:rgba(255,255,255,0.85);margin:8px 0 0;font-size:14px;\\\">${processed.length} creneau(x) dans les prochaines 48h</p>\\n  </div>\\n  <div style=\\\"background:#ffffff;padding:24px 28px;border:1px solid #e5e7eb;border-top:none;border-radius:0 0 12px 12px;\\\">\\n    <p style=\\\"color:#374151;margin:0 0 20px;font-size:15px;\\\">Bonjour, voici les creneaux editoriaux qui necessitent une photo. Cliquez sur <strong>Deposer</strong> pour ouvrir le sous-dossier Drive correspondant.</p>\\n    <table style=\\\"width:100%;border-collapse:collapse;font-size:14px;\\\">\\n      <thead><tr style=\\\"background:#f9fafb;\\\">\\n        <th style=\\\"padding:10px 8px;text-align:left;border-bottom:2px solid #e5e7eb;font-weight:600;\\\">Publication</th>\\n        <th style=\\\"padding:10px 8px;text-align:left;border-bottom:2px solid #e5e7eb;font-weight:600;\\\">Theme</th>\\n        <th style=\\\"padding:10px 8px;text-align:left;border-bottom:2px solid #e5e7eb;font-weight:600;\\\">Categorie</th>\\n        <th style=\\\"padding:10px 8px;text-align:left;border-bottom:2px solid #e5e7eb;font-weight:600;\\\">Direction visuelle</th>\\n        <th style=\\\"padding:10px 8px;text-align:center;border-bottom:2px solid #e5e7eb;font-weight:600;\\\">Action</th>\\n      </tr></thead>\\n      <tbody>${rows}</tbody>\\n    </table>\\n    <p style=\\\"color:#9ca3af;font-size:12px;margin:24px 0 0;text-align:center;\\\">Neurolia Social Engine \\u2014 notification automatique</p>\\n  </div>\\n</div>`;\n\nreturn [{ json: {\n  to: 'PLACEHOLDER_NOTIFICATION_EMAIL',\n  subject: `Photos requises \\u2014 ${clientName} (${processed.length} creneaux)`,\n  html\n}}];"
+      }
+    },
+    {
+      "id": "em12",
+      "name": "Envoyer Email Demande",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [2016, 768],
+      "parameters": {
+        "sendTo": "={{ $json.to }}",
+        "subject": "={{ $json.subject }}",
+        "emailType": "html",
+        "message": "={{ $json.html }}",
+        "options": {}
+      },
+      "credentials": {
+        "smtp": {"id": "z1Bus01typcwYd7C", "name": "SMTP Neurolia"}
+      }
+    },
+    {
+      "id": "sb13",
+      "name": "Journal Execution",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [896, 432],
+      "parameters": {
+        "tableId": "workflow_logs",
+        "fieldsUi": {
+          "fieldValues": [
+            {"fieldId": "workflow_name", "fieldValue": "wf1.5-demande-photos"},
+            {"fieldId": "status", "fieldValue": "success"},
+            {"fieldId": "message", "fieldValue": "Photo request batch complete"}
+          ]
+        }
+      },
+      "credentials": {
+        "supabaseApi": {"id": "PLACEHOLDER", "name": "Supabase Social Engine"}
+      }
+    },
+    {
+      "id": "sn01",
+      "name": "Sticky Note sn01",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [-80, 320],
+      "parameters": {"content": "## 1. CHARGEMENT CLIENTS\nDeclencheur quotidien 07h00.\nCharge les clients actifs avec un dossier Google Drive configure.", "height": 120, "width": 780}
+    },
+    {
+      "id": "sn02",
+      "name": "Sticky Note sn02",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [816, 500],
+      "parameters": {"content": "## 2. ANALYSE PLANNING\nCharge les slots editoriaux des prochaines 48h sans dossier Drive.\nFiltre ceux deja couverts par un contenu en queue.", "height": 120, "width": 560}
+    },
+    {
+      "id": "sn03",
+      "name": "Sticky Note sn03",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [1264, 120],
+      "parameters": {"content": "## 3. CREATION DOSSIERS DRIVE\nPrepare un item par slot. Cree un sous-dossier Drive par creneau\n(format YYYY-MM-DD_theme-slug). MAJ editorial_slot avec l'ID dossier.", "height": 130, "width": 1000}
+    },
+    {
+      "id": "sn04",
+      "name": "Sticky Note sn04",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [1712, 568],
+      "parameters": {"content": "## 4. NOTIFICATION EMAIL\nConstruit un email recapitulatif avec tableau des creneaux\net liens directs vers chaque sous-dossier Drive.", "height": 120, "width": 560}
+    },
+    {
+      "id": "sn05",
+      "name": "Sticky Note sn05",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [816, 240],
+      "parameters": {"content": "## 5. FINALISATION\nLog d'execution en base de donnees.", "height": 100, "width": 300}
+    }
+  ],
+  "connections": {
+    "Declencheur Planifie": {"main": [[{"node": "Charger Clients Actifs", "type": "main", "index": 0}]]},
+    "Charger Clients Actifs": {"main": [[{"node": "Filtrer Clients avec Drive", "type": "main", "index": 0}]]},
+    "Filtrer Clients avec Drive": {"main": [[{"node": "Boucle Clients", "type": "main", "index": 0}]]},
+    "Boucle Clients": {"main": [[{"node": "Journal Execution", "type": "main", "index": 0}], [{"node": "Charger Slots a Couvrir", "type": "main", "index": 0}]]},
+    "Charger Slots a Couvrir": {"main": [[{"node": "SI \u2014 Slots a Traiter", "type": "main", "index": 0}]]},
+    "SI \u2014 Slots a Traiter": {"main": [[{"node": "Preparer Slots", "type": "main", "index": 0}], [{"node": "Boucle Clients", "type": "main", "index": 0}]]},
+    "Preparer Slots": {"main": [[{"node": "Boucle Slots", "type": "main", "index": 0}]]},
+    "Boucle Slots": {"main": [[{"node": "Construire Email Demande", "type": "main", "index": 0}], [{"node": "Creer Sous-Dossier Drive", "type": "main", "index": 0}]]},
+    "Creer Sous-Dossier Drive": {"main": [[{"node": "MAJ Slot Notifie", "type": "main", "index": 0}]]},
+    "MAJ Slot Notifie": {"main": [[{"node": "Boucle Slots", "type": "main", "index": 0}]]},
+    "Construire Email Demande": {"main": [[{"node": "Envoyer Email Demande", "type": "main", "index": 0}]]},
+    "Envoyer Email Demande": {"main": [[{"node": "Boucle Clients", "type": "main", "index": 0}]]}
+  }
+}

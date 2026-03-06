@@ -1,0 +1,453 @@
+{
+  "name": "WF04 — Cleaning Tasks Creator",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "wf04-cleaning-task",
+        "authentication": "headerAuth",
+        "responseMode": "onReceived",
+        "responseCode": 200,
+        "options": {}
+      },
+      "id": "e4c5d6f7-0401-4000-8000-000000000001",
+      "name": "Webhook Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [250, 300],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "CRED-04",
+          "name": "CRED-04 — Header Auth - API Key Dashboard"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "manual",
+        "assignments": {
+          "assignments": [
+            {
+              "id": "cfg-04-01",
+              "name": "DASHBOARD_URL",
+              "value": "={{ $env.DASHBOARD_URL }}",
+              "type": "string"
+            },
+            {
+              "id": "cfg-04-02",
+              "name": "SUPABASE_URL",
+              "value": "={{ $env.SUPABASE_URL }}",
+              "type": "string"
+            },
+            {
+              "id": "cfg-04-03",
+              "name": "SUPABASE_SERVICE_KEY",
+              "value": "={{ $env.SUPABASE_SERVICE_KEY }}",
+              "type": "string"
+            },
+            {
+              "id": "cfg-04-04",
+              "name": "SMTP_FROM_EMAIL",
+              "value": "={{ $env.SMTP_FROM_EMAIL }}",
+              "type": "string"
+            },
+            {
+              "id": "cfg-04-05",
+              "name": "N8N_WEBHOOK_API_KEY",
+              "value": "={{ $env.N8N_WEBHOOK_API_KEY }}",
+              "type": "string"
+            }
+          ]
+        }
+      },
+      "id": "e4c5d6f7-0401-4000-8000-000000000002",
+      "name": "Config",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [500, 300]
+    },
+    {
+      "parameters": {
+        "language": "javaScript",
+        "jsCode": "// ============================================================\n// WF04 — Validate incoming reservation payload\n// ============================================================\n\nconst body = $('Webhook Trigger').item.json.body;\n\nconst required = ['property_id', 'check_in', 'check_out'];\nconst missing = required.filter(field => !body[field]);\n\nif (missing.length > 0) {\n  throw new Error(`Champs requis manquants: ${missing.join(', ')}`);\n}\n\n// Validation format dates\nconst dateRegex = /^\\d{4}-\\d{2}-\\d{2}$/;\nif (!dateRegex.test(body.check_in)) {\n  throw new Error(`Format check_in invalide: ${body.check_in} (attendu: YYYY-MM-DD)`);\n}\nif (!dateRegex.test(body.check_out)) {\n  throw new Error(`Format check_out invalide: ${body.check_out} (attendu: YYYY-MM-DD)`);\n}\n\n// Validation check_out > check_in\nif (new Date(body.check_out) <= new Date(body.check_in)) {\n  throw new Error(`check_out (${body.check_out}) doit etre apres check_in (${body.check_in})`);\n}\n\nreturn [{\n  json: {\n    reservation_id: body.id || null,\n    property_id: body.property_id,\n    check_in: body.check_in,\n    check_out: body.check_out,\n    nb_guests: body.nb_guests || 1,\n    guest_name: body.guest_name || 'Voyageur',\n    check_in_time: body.check_in_time || null,\n    check_out_time: body.check_out_time || null\n  }\n}];"
+      },
+      "id": "e4c5d6f7-0401-4000-8000-000000000003",
+      "name": "Code: Validate",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [750, 300]
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "properties",
+        "returnAll": false,
+        "limit": 1,
+        "filterType": "string",
+        "filterString": "=id=eq.{{ $json.property_id }}&select=id,name,address,owner_id,check_in_time,check_out_time,check_in_mode",
+        "options": {}
+      },
+      "id": "e4c5d6f7-0401-4000-8000-000000000004",
+      "name": "Supabase: Get Property",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [1000, 300],
+      "credentials": {
+        "supabaseApi": {
+          "id": "CRED-03-NATIVE",
+          "name": "Supabase Neurolia Immo"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "cleaning_tasks",
+        "returnAll": true,
+        "filterType": "string",
+        "filterString": "=reservation_id=eq.{{ $('Webhook Trigger').item.json.body.id }}&type=eq.checkout_clean",
+        "options": {}
+      },
+      "id": "e4c5d6f7-0401-4000-8000-000000000005",
+      "name": "Supabase: Get Existing Task",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [1250, 300],
+      "credentials": {
+        "supabaseApi": {
+          "id": "CRED-03-NATIVE",
+          "name": "Supabase Neurolia Immo"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "if-04-01",
+              "leftValue": "={{ $('Supabase: Get Existing Task').all().length }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "e4c5d6f7-0401-4000-8000-000000000006",
+      "name": "IF: Task Exists?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [1500, 300]
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "property_checklists",
+        "returnAll": true,
+        "filterType": "string",
+        "filterString": "=property_id=eq.{{ $('Supabase: Get Property').item.json.id }}",
+        "options": {}
+      },
+      "id": "e4c5d6f7-0401-4000-8000-000000000010",
+      "name": "Supabase: Get Property Checklists",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [1625, 200],
+      "credentials": {
+        "supabaseApi": {
+          "id": "CRED-03-NATIVE",
+          "name": "Supabase Neurolia Immo"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "language": "javaScript",
+        "jsCode": "// ============================================================\n// WF04 — Create cleaning tasks (checkout_clean + checkin_prep + check_in_greeting)\n// + checklist items from property templates or defaults\n// ============================================================\n\nconst config = $('Config').item.json;\nconst reservation = $('Code: Validate').item.json;\nconst propertyArr = $('Supabase: Get Property').all().map(i => i.json);\nconst property = Array.isArray(propertyArr[0]) ? propertyArr[0][0] : propertyArr[0];\n\nconst supabaseUrl = config.SUPABASE_URL;\nconst supabaseKey = config.SUPABASE_SERVICE_KEY;\n\nconst headers = {\n  'apikey': supabaseKey,\n  'Authorization': `Bearer ${supabaseKey}`,\n  'Content-Type': 'application/json',\n  'Prefer': 'return=representation'\n};\n\n// --- Default checklists ---\nconst defaultCheckoutChecklist = [\n  'Vider les poubelles',\n  'Faire la vaisselle',\n  'Changer les draps',\n  'Nettoyer la salle de bain',\n  'Passer l\\'aspirateur',\n  'Laver les sols',\n  'Sortir les poubelles',\n  'Nettoyer les surfaces',\n  'Reapprovisionner (savon, papier toilette)',\n  'Verifier objets oublies'\n];\n\nconst defaultCheckinChecklist = [\n  'Verifier que le menage checkout a ete effectue',\n  'Verifier l\\'etat general du logement',\n  'Verifier les fournitures (draps, serviettes)',\n  'Regler chauffage/climatisation',\n  'Verifier cles/digicode',\n  'Tester WiFi'\n];\n\nconst defaultGreetingChecklist = [\n  { label: 'Accueillir le voyageur a l\\'heure prevue', position: 1 },\n  { label: 'Faire la visite guidee du logement', position: 2 },\n  { label: 'Remettre les cles / expliquer le digicode', position: 3 },\n  { label: 'Montrer les equipements (chauffage, WiFi, electromenager)', position: 4 },\n  { label: 'Donner le livret d\\'accueil (papier ou QR code)', position: 5 }\n];\n\n// --- Get property checklists from Supabase node ---\nlet checkoutItems = defaultCheckoutChecklist;\nlet checkinItems = defaultCheckinChecklist;\nconst checklists = $('Supabase: Get Property Checklists').all().map(i => i.json);\n\nconst checkoutTemplate = checklists.find(c => c.type === 'checkout_clean');\nconst checkinTemplate = checklists.find(c => c.type === 'checkin_prep');\n\nif (checkoutTemplate && checkoutTemplate.items && checkoutTemplate.items.length > 0) {\n  checkoutItems = checkoutTemplate.items;\n}\nif (checkinTemplate && checkinTemplate.items && checkinTemplate.items.length > 0) {\n  checkinItems = checkinTemplate.items;\n}\n\n// --- Calculate scheduled times ---\nconst checkOutTime = reservation.check_out_time || '11:00';\nconst checkInTime = reservation.check_in_time || '16:00';\n\n// checkin_prep = check_in_time - 2h (minimum 10:00)\nlet prepHour = parseInt(checkInTime.split(':')[0]) - 2;\nif (prepHour < 10) prepHour = 10;\nconst checkinPrepTime = String(prepHour).padStart(2, '0') + ':00';\n\nconst tasksCreated = [];\n\n// --- 1. Create checkout_clean task ---\nconst checkoutTask = {\n  property_id: reservation.property_id,\n  reservation_id: reservation.reservation_id,\n  type: 'checkout_clean',\n  status: 'pending',\n  scheduled_date: reservation.check_out,\n  scheduled_time: checkOutTime,\n  notes: `Depart de ${reservation.guest_name} (${reservation.nb_guests} pers.)`\n};\n\nconst checkoutRes = await fetch(\n  `${supabaseUrl}/rest/v1/cleaning_tasks`,\n  {\n    method: 'POST',\n    headers,\n    body: JSON.stringify(checkoutTask)\n  }\n);\nconst checkoutCreated = await checkoutRes.json();\nconst checkoutId = Array.isArray(checkoutCreated) ? checkoutCreated[0].id : checkoutCreated.id;\ntasksCreated.push({ id: checkoutId, type: 'checkout_clean', date: reservation.check_out });\n\n// Create checkout checklist items\nconst checkoutChecklistItems = checkoutItems.map((label, idx) => ({\n  task_id: checkoutId,\n  label: label,\n  position: idx + 1,\n  is_completed: false\n}));\n\nawait fetch(\n  `${supabaseUrl}/rest/v1/task_checklist_items`,\n  {\n    method: 'POST',\n    headers,\n    body: JSON.stringify(checkoutChecklistItems)\n  }\n);\n\n// --- 2. Create check_in_greeting task (if property has staff_checkin) ---\nif (property.check_in_mode === 'staff_checkin') {\n  const greetingTime = reservation.check_in_time || '16:00';\n\n  let greetingItems = defaultGreetingChecklist;\n  try {\n    const greetingTemplate = checklists.find(c => c.type === 'check_in_greeting');\n    if (greetingTemplate && greetingTemplate.items && greetingTemplate.items.length > 0) {\n      greetingItems = greetingTemplate.items;\n    }\n  } catch (err) {\n    // Use defaults\n  }\n\n  const greetingTask = {\n    property_id: reservation.property_id,\n    reservation_id: reservation.reservation_id,\n    type: 'check_in_greeting',\n    status: 'pending',\n    scheduled_date: reservation.check_in,\n    scheduled_time: greetingTime,\n    notes: `Accueil de ${reservation.guest_name} (${reservation.nb_guests} pers.) prevu a ${greetingTime}`\n  };\n\n  const greetingRes = await fetch(\n    `${supabaseUrl}/rest/v1/cleaning_tasks`,\n    {\n      method: 'POST',\n      headers,\n      body: JSON.stringify(greetingTask)\n    }\n  );\n  const greetingCreated = await greetingRes.json();\n  const greetingId = Array.isArray(greetingCreated) ? greetingCreated[0].id : greetingCreated.id;\n  tasksCreated.push({ id: greetingId, type: 'check_in_greeting', date: reservation.check_in });\n\n  const greetingChecklistItems = greetingItems.map((item, idx) => ({\n    task_id: greetingId,\n    label: typeof item === 'string' ? item : item.label,\n    position: typeof item === 'string' ? idx + 1 : item.position,\n    is_completed: false\n  }));\n\n  await fetch(\n    `${supabaseUrl}/rest/v1/task_checklist_items`,\n    {\n      method: 'POST',\n      headers,\n      body: JSON.stringify(greetingChecklistItems)\n    }\n  );\n}\n\n// --- 3. Create checkin_prep task (if check_in != check_out) ---\nif (reservation.check_in !== reservation.check_out) {\n  const checkinTask = {\n    property_id: reservation.property_id,\n    reservation_id: reservation.reservation_id,\n    type: 'checkin_prep',\n    status: 'pending',\n    scheduled_date: reservation.check_in,\n    scheduled_time: checkinPrepTime,\n    notes: `Arrivee de ${reservation.guest_name} (${reservation.nb_guests} pers.) prevue a ${checkInTime}`\n  };\n\n  const checkinRes = await fetch(\n    `${supabaseUrl}/rest/v1/cleaning_tasks`,\n    {\n      method: 'POST',\n      headers,\n      body: JSON.stringify(checkinTask)\n    }\n  );\n  const checkinCreated = await checkinRes.json();\n  const checkinId = Array.isArray(checkinCreated) ? checkinCreated[0].id : checkinCreated.id;\n  tasksCreated.push({ id: checkinId, type: 'checkin_prep', date: reservation.check_in });\n\n  // Create checkin checklist items\n  const checkinChecklistItems = checkinItems.map((label, idx) => ({\n    task_id: checkinId,\n    label: label,\n    position: idx + 1,\n    is_completed: false\n  }));\n\n  await fetch(\n    `${supabaseUrl}/rest/v1/task_checklist_items`,\n    {\n      method: 'POST',\n      headers,\n      body: JSON.stringify(checkinChecklistItems)\n    }\n  );\n}\n\nreturn [{\n  json: {\n    reservation_id: reservation.reservation_id,\n    property_id: reservation.property_id,\n    property_name: property.name,\n    property_address: property.address,\n    owner_id: property.owner_id,\n    guest_name: reservation.guest_name,\n    nb_guests: reservation.nb_guests,\n    check_in: reservation.check_in,\n    check_out: reservation.check_out,\n    tasks_created: tasksCreated,\n    tasks_count: tasksCreated.length\n  }\n}];"
+      },
+      "id": "e4c5d6f7-0401-4000-8000-000000000007",
+      "name": "Code: Create Tasks",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1750, 200]
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "profiles",
+        "returnAll": true,
+        "filterType": "string",
+        "filterString": "=role=eq.cleaning_staff&is_active=eq.true&owner_id=eq.{{ $('Supabase: Get Property').item.json.owner_id }}",
+        "options": {}
+      },
+      "id": "e4c5d6f7-0401-4000-8000-000000000008",
+      "name": "Supabase: Get Available Staff",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [2000, 200],
+      "credentials": {
+        "supabaseApi": {
+          "id": "CRED-03-NATIVE",
+          "name": "Supabase Neurolia Immo"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "language": "javaScript",
+        "jsCode": "// ============================================================\n// WF04 — Round-robin staff assignment\n// Assigner au staff avec le moins de taches cette semaine\n// ============================================================\n\nconst config = $('Config').item.json;\nconst taskData = $('Code: Create Tasks').item.json;\nconst staffArr = $('Supabase: Get Available Staff').all().map(i => i.json);\nconst staffList = Array.isArray(staffArr[0]) ? staffArr[0] : staffArr;\n\nif (!staffList || staffList.length === 0) {\n  // Pas de staff disponible — taches creees mais non assignees\n  return [{\n    json: {\n      ...taskData,\n      assignments: [],\n      no_staff_available: true\n    }\n  }];\n}\n\nconst supabaseUrl = config.SUPABASE_URL;\nconst supabaseKey = config.SUPABASE_SERVICE_KEY;\nconst headers = {\n  'apikey': supabaseKey,\n  'Authorization': `Bearer ${supabaseKey}`,\n  'Content-Type': 'application/json'\n};\n\n// --- Compter les taches par staff cette semaine ---\nconst now = new Date();\nconst monday = new Date(now);\nmonday.setDate(now.getDate() - now.getDay() + 1);\nconst sunday = new Date(monday);\nsunday.setDate(monday.getDate() + 6);\n\nconst mondayStr = monday.toISOString().slice(0, 10);\nconst sundayStr = sunday.toISOString().slice(0, 10);\n\nconst staffIds = staffList.map(s => s.id);\nconst staffIdsFilter = staffIds.map(id => `\"${id}\"`).join(',');\n\nlet taskCounts = {};\ntry {\n  const countRes = await fetch(\n    `${supabaseUrl}/rest/v1/cleaning_tasks?assigned_to=in.(${staffIdsFilter})&scheduled_date=gte.${mondayStr}&scheduled_date=lte.${sundayStr}&select=assigned_to`,\n    { headers }\n  );\n  const weekTasks = await countRes.json();\n\n  for (const t of weekTasks) {\n    taskCounts[t.assigned_to] = (taskCounts[t.assigned_to] || 0) + 1;\n  }\n} catch (err) {\n  // If count fails, use empty counts (all staff equal)\n}\n\n// --- Assigner chaque tache au staff avec le moins de taches ---\nconst assignments = [];\n\nfor (const task of taskData.tasks_created) {\n  // Trouver le staff avec le moins de taches\n  let minCount = Infinity;\n  let candidates = [];\n\n  for (const staff of staffList) {\n    const count = taskCounts[staff.id] || 0;\n    if (count < minCount) {\n      minCount = count;\n      candidates = [staff];\n    } else if (count === minCount) {\n      candidates.push(staff);\n    }\n  }\n\n  // Si egalite, choix aleatoire\n  const chosen = candidates[Math.floor(Math.random() * candidates.length)];\n\n  // Update la tache en base\n  try {\n    await fetch(\n      `${supabaseUrl}/rest/v1/cleaning_tasks?id=eq.${task.id}`,\n      {\n        method: 'PATCH',\n        headers: { ...headers, 'Prefer': 'return=representation' },\n        body: JSON.stringify({ assigned_to: chosen.id })\n      }\n    );\n  } catch (err) {\n    // Assignment failed — task remains unassigned\n  }\n\n  // Incrementer le compteur pour le prochain tour\n  taskCounts[chosen.id] = (taskCounts[chosen.id] || 0) + 1;\n\n  assignments.push({\n    task_id: task.id,\n    task_type: task.type,\n    task_date: task.date,\n    staff_id: chosen.id,\n    staff_name: chosen.display_name,\n    staff_email: chosen.email\n  });\n}\n\nreturn [{\n  json: {\n    ...taskData,\n    assignments: assignments,\n    no_staff_available: false\n  }\n}];"
+      },
+      "id": "e4c5d6f7-0401-4000-8000-000000000009",
+      "name": "Code: Assign Round-Robin",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2250, 200]
+    },
+    {
+      "parameters": {
+        "language": "javaScript",
+        "jsCode": "// ============================================================\n// WF04 — Build notification emails for assigned staff\n// ============================================================\n\nconst config = $('Config').item.json;\nconst data = $input.item.json;\n\nif (data.no_staff_available || !data.assignments || data.assignments.length === 0) {\n  return [{ json: { emails: [], warning: 'Pas de staff assigne — pas d\\'email a envoyer' } }];\n}\n\nconst typeLabels = {\n  'checkout_clean': 'Menage depart',\n  'checkin_prep': 'Preparation arrivee',\n  'check_in_greeting': 'Accueil voyageur',\n  'ad_hoc': 'Tache ponctuelle'\n};\n\nconst emails = [];\n\n// Regrouper par staff (un staff peut avoir 2 taches pour la meme reservation)\nconst staffEmails = {};\n\nfor (const assignment of data.assignments) {\n  if (!assignment.staff_email) continue;\n\n  if (!staffEmails[assignment.staff_email]) {\n    staffEmails[assignment.staff_email] = {\n      to: assignment.staff_email,\n      staffName: assignment.staff_name,\n      tasks: []\n    };\n  }\n\n  staffEmails[assignment.staff_email].tasks.push(assignment);\n}\n\nfor (const [email, staffData] of Object.entries(staffEmails)) {\n  const firstName = staffData.staffName.split(' ')[0];\n  const taskCount = staffData.tasks.length;\n\n  let html = '<div style=\"font-family:-apple-system,sans-serif;max-width:600px;margin:0 auto;\">';\n  html += '<div style=\"background:#1a1a2e;color:#fff;padding:16px;border-radius:8px 8px 0 0;\">';\n  html += `<h2 style=\"margin:0;\">Nouvelle tache assignee</h2>`;\n  html += '</div>';\n  html += '<div style=\"padding:16px;background:#f9fafb;border:1px solid #e5e7eb;border-top:none;border-radius:0 0 8px 8px;\">';\n  html += `<p>Bonjour ${firstName},</p>`;\n  html += `<p>Vous avez ${taskCount} nouvelle(s) tache(s) pour le bien <strong>${data.property_name}</strong>.</p>`;\n\n  let dateFR = '';\n  for (const task of staffData.tasks) {\n    const typeLabel = typeLabels[task.task_type] || task.task_type;\n    const dateObj = new Date(task.task_date + 'T12:00:00');\n    dateFR = dateObj.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' });\n\n    html += '<div style=\"margin:12px 0;padding:12px;background:#fff;border-radius:6px;border-left:4px solid #6366f1;\">';\n    html += `<h3 style=\"margin:0 0 8px 0;color:#1a1a2e;\">${typeLabel}</h3>`;\n    html += `<p style=\"margin:4px 0;\"><strong>Date :</strong> ${dateFR}</p>`;\n    html += `<p style=\"margin:4px 0;\"><strong>Bien :</strong> ${data.property_name}</p>`;\n    html += `<p style=\"margin:4px 0;\"><strong>Adresse :</strong> <a href=\"https://maps.google.com/?q=${encodeURIComponent(data.property_address)}\">${data.property_address}</a></p>`;\n    html += `<p style=\"margin:4px 0;\"><strong>Voyageur :</strong> ${data.guest_name} (${data.nb_guests} pers.)</p>`;\n    html += '</div>';\n  }\n\n  html += `<p style=\"margin-top:16px;\"><a href=\"${config.DASHBOARD_URL}/planning\" style=\"display:inline-block;background:#6366f1;color:#fff;padding:10px 20px;border-radius:6px;text-decoration:none;\">Voir mon planning</a></p>`;\n  html += '</div></div>';\n\n  emails.push({\n    json: {\n      to: email,\n      subject: `[Neurolia-Immo] Nouvelle tache \\u2014 ${data.property_name} (${dateFR})`,\n      html: html,\n      staffName: staffData.staffName\n    }\n  });\n}\n\nreturn emails.length > 0 ? emails : [{ json: { emails: [], warning: 'Aucun email a envoyer' } }];"
+      },
+      "id": "e4c5d6f7-0401-4000-8000-00000000000a",
+      "name": "Code: Build Notification Emails",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2500, 200]
+    },
+    {
+      "parameters": {
+        "batchSize": 1,
+        "options": {}
+      },
+      "id": "e4c5d6f7-0401-4000-8000-00000000000b",
+      "name": "Split In Batches: Emails",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [2750, 200]
+    },
+    {
+      "parameters": {
+        "fromEmail": "={{ $('Config').item.json.SMTP_FROM_EMAIL }}",
+        "toEmail": "={{ $json.to }}",
+        "subject": "={{ $json.subject }}",
+        "emailType": "html",
+        "html": "={{ $json.html }}",
+        "options": {
+          "replyTo": "={{ $('Config').item.json.SMTP_FROM_EMAIL }}"
+        }
+      },
+      "id": "e4c5d6f7-0401-4000-8000-00000000000c",
+      "name": "Send Email",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.2,
+      "position": [3000, 200],
+      "credentials": {
+        "smtp": {
+          "id": "CRED-02",
+          "name": "CRED-02 — SMTP - Loc Immo"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Config').item.json.DASHBOARD_URL }}/api/webhooks/n8n/task-created",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-api-key",
+              "value": "={{ $('Config').item.json.N8N_WEBHOOK_API_KEY }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyContentType": "json",
+        "jsonBody": "={{ JSON.stringify({ reservation_id: $('Code: Create Tasks').item.json.reservation_id, tasks_created: $('Code: Create Tasks').item.json.tasks_created, assignments: $('Code: Assign Round-Robin').item.json.assignments }) }}",
+        "options": {
+          "retry": {
+            "maxTries": 2
+          }
+        }
+      },
+      "id": "e4c5d6f7-0401-4000-8000-00000000000d",
+      "name": "HTTP: Confirm Task Created",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [3250, 300]
+    }
+  ],
+  "connections": {
+    "Webhook Trigger": {
+      "main": [
+        [
+          {
+            "node": "Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Config": {
+      "main": [
+        [
+          {
+            "node": "Code: Validate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code: Validate": {
+      "main": [
+        [
+          {
+            "node": "Supabase: Get Property",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Supabase: Get Property": {
+      "main": [
+        [
+          {
+            "node": "Supabase: Get Existing Task",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Supabase: Get Existing Task": {
+      "main": [
+        [
+          {
+            "node": "IF: Task Exists?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF: Task Exists?": {
+      "main": [
+        [
+          {
+            "node": "Supabase: Get Property Checklists",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Supabase: Get Property Checklists": {
+      "main": [
+        [
+          {
+            "node": "Code: Create Tasks",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code: Create Tasks": {
+      "main": [
+        [
+          {
+            "node": "Supabase: Get Available Staff",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Supabase: Get Available Staff": {
+      "main": [
+        [
+          {
+            "node": "Code: Assign Round-Robin",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code: Assign Round-Robin": {
+      "main": [
+        [
+          {
+            "node": "Code: Build Notification Emails",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code: Build Notification Emails": {
+      "main": [
+        [
+          {
+            "node": "Split In Batches: Emails",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split In Batches: Emails": {
+      "main": [
+        [
+          {
+            "node": "Send Email",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "HTTP: Confirm Task Created",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Email": {
+      "main": [
+        [
+          {
+            "node": "Split In Batches: Emails",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "meta": {
+    "templateCredsSetupCompleted": false
+  },
+  "tags": []
+}

@@ -1,0 +1,11 @@
+{
+  "name": "neurolia-immo",
+  "org": "neurolia-agency",
+  "client": "Ilyes",
+  "type": "client",
+  "status": "init",
+  "description": "Dashboard locations Airbnb/Booking - zéro réservation manquée",
+  "stack": ["Next.js", "React", "TypeScript", "Tailwind CSS"],
+  "access": "core-dev",
+  "kpi": "Zéro réservation manquée"
+}

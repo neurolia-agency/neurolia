@@ -1,0 +1,539 @@
+{
+  "name": "WF03 — Daily Notifications",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 7 * * *"
+            }
+          ]
+        },
+        "options": {
+          "timezone": "Europe/Paris"
+        }
+      },
+      "id": "d3b4c5e6-0301-4000-8000-000000000001",
+      "name": "Schedule Trigger Staff (07:00)",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 8 * * *"
+            }
+          ]
+        },
+        "options": {
+          "timezone": "Europe/Paris"
+        }
+      },
+      "id": "d3b4c5e6-0301-4000-8000-000000000002",
+      "name": "Schedule Trigger Owner (08:00)",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [250, 800]
+    },
+    {
+      "parameters": {
+        "mode": "manual",
+        "assignments": {
+          "assignments": [
+            {
+              "id": "cfg-03-01",
+              "name": "DASHBOARD_URL",
+              "value": "={{ $env.DASHBOARD_URL }}",
+              "type": "string"
+            },
+            {
+              "id": "cfg-03-02",
+              "name": "SMTP_FROM_EMAIL",
+              "value": "={{ $env.SMTP_FROM_EMAIL }}",
+              "type": "string"
+            },
+            {
+              "id": "cfg-03-03",
+              "name": "SMTP_FROM_NAME",
+              "value": "={{ $env.SMTP_FROM_NAME }}",
+              "type": "string"
+            },
+            {
+              "id": "cfg-03-04",
+              "name": "SUPABASE_URL",
+              "value": "={{ $env.SUPABASE_URL }}",
+              "type": "string"
+            },
+            {
+              "id": "cfg-03-05",
+              "name": "SUPABASE_SERVICE_KEY",
+              "value": "={{ $env.SUPABASE_SERVICE_KEY }}",
+              "type": "string"
+            }
+          ]
+        }
+      },
+      "id": "d3b4c5e6-0301-4000-8000-000000000003",
+      "name": "Config",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [500, 550]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $('Config').item.json.SUPABASE_URL }}/rest/v1/cleaning_tasks?scheduled_date=eq.{{ $now.toFormat('yyyy-MM-dd') }}&status=in.(pending,in_progress)&select=*,properties(name,address,city,access_code,wifi_ssid,wifi_password,instructions),reservations(guest_name,nb_guests,arrival_time,special_requests)",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $('Config').item.json.SUPABASE_SERVICE_KEY }}"
+            },
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $('Config').item.json.SUPABASE_SERVICE_KEY }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "d3b4c5e6-0301-4000-8000-000000000004",
+      "name": "HTTP: Get Cleaning Tasks Today",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [750, 300]
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "profiles",
+        "returnAll": true,
+        "filterType": "string",
+        "filterString": "=role=eq.cleaning_staff&is_active=eq.true",
+        "options": {}
+      },
+      "id": "d3b4c5e6-0301-4000-8000-000000000005",
+      "name": "Supabase: Get Staff Profiles",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [1000, 300],
+      "credentials": {
+        "supabaseApi": {
+          "id": "CRED-03-NATIVE",
+          "name": "Supabase Neurolia Immo"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "language": "javaScript",
+        "jsCode": "// ============================================================\n// WF03 — Build staff planning emails\n// Regrouper les taches par staff assigne\n// Adapte de v1 wf03-construire-emails-staff.js\n// ============================================================\n\nconst config = $('Config').first().json;\nconst tasksRaw = $('HTTP: Get Cleaning Tasks Today').all().map(i => i.json);\nconst tasks = Array.isArray(tasksRaw[0]) ? tasksRaw[0] : tasksRaw;\nconst staffRaw = $('Supabase: Get Staff Profiles').all().map(i => i.json);\nconst staffList = Array.isArray(staffRaw[0]) ? staffRaw[0] : staffRaw;\n\n// Build staff lookup\nconst staffMap = {};\nfor (const s of staffList) {\n  staffMap[s.id] = s;\n}\n\n// Group tasks by assigned staff\nconst staffTasks = new Map();\n\nfor (const task of tasks) {\n  if (task.status === 'completed') continue;\n  if (!task.assigned_to) continue;\n\n  const staffId = task.assigned_to;\n  const staff = staffMap[staffId];\n\n  if (!staffTasks.has(staffId)) {\n    staffTasks.set(staffId, {\n      staffId,\n      staffName: staff ? staff.display_name : 'Inconnu',\n      staffEmail: staff ? staff.email : null,\n      tasks: []\n    });\n  }\n\n  const prop = task.properties || {};\n  const resv = task.reservations || {};\n\n  staffTasks.get(staffId).tasks.push({\n    propertyName: prop.name || '-',\n    propertyAddress: prop.address || '-',\n    propertyCity: prop.city || '-',\n    accessCode: prop.access_code || '-',\n    wifiSsid: prop.wifi_ssid || '-',\n    wifiPassword: prop.wifi_password || '-',\n    instructions: prop.instructions || null,\n    type: task.type,\n    scheduledDate: task.scheduled_date,\n    scheduledTime: task.scheduled_time || '-',\n    nbGuests: resv.nb_guests || '-',\n    arrivalTime: resv.arrival_time || 'non renseignee',\n    guestName: resv.guest_name || '-',\n    specialRequests: resv.special_requests || null,\n    notes: task.notes || null,\n    isAdHoc: task.type === 'ad_hoc'\n  });\n}\n\n// Build one email per staff\nconst emails = [];\nconst todayStr = new Date().toLocaleDateString('fr-FR', {\n  weekday: 'long', day: 'numeric', month: 'long'\n});\n\nfor (const [, staff] of staffTasks) {\n  if (!staff.staffEmail) continue;\n\n  const firstName = staff.staffName.split(' ')[0];\n\n  let html = '<div style=\"font-family:-apple-system,sans-serif;max-width:600px;margin:0 auto;\">';\n  html += '<div style=\"background:#1a1a2e;color:#fff;padding:16px;border-radius:8px 8px 0 0;\">';\n  html += `<h2 style=\"margin:0;\">Bonjour ${firstName},</h2>`;\n  html += `<p style=\"margin:4px 0 0 0;opacity:0.8;\">Votre planning du ${todayStr}</p>`;\n  html += '</div>';\n  html += '<div style=\"padding:16px;\">';\n\n  if (staff.tasks.length === 0) {\n    html += '<p>Aucune tache prevue pour aujourd\\'hui.</p>';\n  }\n\n  for (const task of staff.tasks) {\n    const typeLabels = {\n      'checkout_clean': 'Menage depart',\n      'checkin_prep': 'Preparation arrivee',\n      'ad_hoc': 'Tache ponctuelle'\n    };\n    const typeLabel = typeLabels[task.type] || 'Tache';\n    const borderColor = task.type === 'checkout_clean' ? '#dc2626' : task.type === 'checkin_prep' ? '#3b82f6' : '#f59e0b';\n\n    html += `<div style=\"margin:12px 0;padding:16px;background:#f9fafb;border-radius:8px;border-left:4px solid ${borderColor};\">`;\n    html += `<h3 style=\"margin:0 0 8px 0;\">${typeLabel}`;\n    if (task.isAdHoc) {\n      html += ' <span style=\"background:#f59e0b;color:#fff;padding:2px 8px;border-radius:12px;font-size:12px;\">Ponctuel</span>';\n    }\n    html += ` \\u2014 ${task.scheduledTime}</h3>`;\n    html += `<p style=\"margin:4px 0;\"><strong>Logement :</strong> ${task.propertyName}</p>`;\n    html += `<p style=\"margin:4px 0;\"><strong>Adresse :</strong> <a href=\"https://maps.google.com/?q=${encodeURIComponent(task.propertyAddress + ', ' + task.propertyCity)}\">${task.propertyAddress}, ${task.propertyCity}</a></p>`;\n    html += `<p style=\"margin:4px 0;\"><strong>Code acces :</strong> <span style=\"font-size:18px;font-weight:bold;letter-spacing:2px;\">${task.accessCode}</span></p>`;\n    html += `<p style=\"margin:4px 0;\"><strong>WiFi :</strong> ${task.wifiSsid} / ${task.wifiPassword}</p>`;\n\n    if (!task.isAdHoc) {\n      html += `<p style=\"margin:4px 0;\"><strong>Voyageur :</strong> ${task.guestName} (${task.nbGuests} pers.)</p>`;\n      html += `<p style=\"margin:4px 0;\"><strong>Heure arrivee :</strong> ${task.arrivalTime}</p>`;\n    }\n\n    if (task.specialRequests) {\n      html += `<div style=\"margin-top:8px;padding:8px;background:#fef3c7;border-radius:4px;\">`;\n      html += `<strong>Demande speciale :</strong> ${task.specialRequests}</div>`;\n    }\n\n    if (task.notes) {\n      html += `<p style=\"margin:8px 0 0 0;color:#6b7280;\"><em>Notes : ${task.notes}</em></p>`;\n    }\n\n    if (task.instructions) {\n      html += `<p style=\"margin:4px 0;color:#6b7280;\"><em>Consignes : ${task.instructions}</em></p>`;\n    }\n\n    html += '</div>';\n  }\n\n  html += `<p style=\"margin-top:16px;\"><a href=\"${config.DASHBOARD_URL}/planning\" style=\"display:inline-block;background:#6366f1;color:#fff;padding:10px 20px;border-radius:6px;text-decoration:none;\">Voir mon planning</a></p>`;\n  html += '</div></div>';\n\n  emails.push({\n    json: {\n      to: staff.staffEmail,\n      subject: `[Neurolia-Immo] Ton planning \\u2014 ${todayStr} (${staff.tasks.length} tache(s))`,\n      html: html,\n      staffName: staff.staffName\n    }\n  });\n}\n\nif (emails.length === 0) {\n  return [{ json: { warning: 'Aucun email staff a envoyer', to: null } }];\n}\n\nreturn emails;"
+      },
+      "id": "d3b4c5e6-0301-4000-8000-000000000006",
+      "name": "Code: Build Staff Emails",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1250, 300]
+    },
+    {
+      "parameters": {
+        "batchSize": 1,
+        "options": {}
+      },
+      "id": "d3b4c5e6-0301-4000-8000-000000000007",
+      "name": "Split In Batches: Staff Emails",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [1500, 300]
+    },
+    {
+      "parameters": {
+        "fromEmail": "={{ $('Config').item.json.SMTP_FROM_EMAIL }}",
+        "toEmail": "={{ $json.to }}",
+        "subject": "={{ $json.subject }}",
+        "emailType": "html",
+        "html": "={{ $json.html }}",
+        "options": {
+          "replyTo": "={{ $('Config').item.json.SMTP_FROM_EMAIL }}"
+        }
+      },
+      "id": "d3b4c5e6-0301-4000-8000-000000000008",
+      "name": "Send Email Staff",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.2,
+      "position": [1750, 300],
+      "credentials": {
+        "smtp": {
+          "id": "CRED-02",
+          "name": "CRED-02 — SMTP - Loc Immo"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $('Config').item.json.SUPABASE_URL }}/rest/v1/reservations?check_in=eq.{{ $now.toFormat('yyyy-MM-dd') }}&status=eq.confirmed&select=*,properties(name)",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $('Config').item.json.SUPABASE_SERVICE_KEY }}"
+            },
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $('Config').item.json.SUPABASE_SERVICE_KEY }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "d3b4c5e6-0301-4000-8000-000000000009",
+      "name": "HTTP: Get Check-ins Today",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [750, 700]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $('Config').item.json.SUPABASE_URL }}/rest/v1/reservations?check_out=eq.{{ $now.toFormat('yyyy-MM-dd') }}&status=eq.confirmed&select=*,properties(name)",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $('Config').item.json.SUPABASE_SERVICE_KEY }}"
+            },
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $('Config').item.json.SUPABASE_SERVICE_KEY }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "d3b4c5e6-0301-4000-8000-00000000000a",
+      "name": "HTTP: Get Check-outs Today",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [750, 900]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $('Config').item.json.SUPABASE_URL }}/rest/v1/reservations?check_in=eq.{{ $now.plus(1, 'days').toFormat('yyyy-MM-dd') }}&status=eq.confirmed&select=*,properties(name)",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $('Config').item.json.SUPABASE_SERVICE_KEY }}"
+            },
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $('Config').item.json.SUPABASE_SERVICE_KEY }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "d3b4c5e6-0301-4000-8000-00000000000b",
+      "name": "HTTP: Get Check-ins Tomorrow",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [750, 1100]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $('Config').item.json.SUPABASE_URL }}/rest/v1/cleaning_tasks?status=eq.pending&select=*,properties(name),profiles!cleaning_tasks_assigned_to_fkey(display_name)",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $('Config').item.json.SUPABASE_SERVICE_KEY }}"
+            },
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $('Config').item.json.SUPABASE_SERVICE_KEY }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "d3b4c5e6-0301-4000-8000-00000000000c",
+      "name": "HTTP: Get Pending Tasks",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [750, 1300]
+    },
+    {
+      "parameters": {
+        "mode": "append",
+        "numberInputs": 4
+      },
+      "id": "d3b4c5e6-0301-4000-8000-00000000000d",
+      "name": "Merge",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3,
+      "position": [1000, 900]
+    },
+    {
+      "parameters": {
+        "language": "javaScript",
+        "jsCode": "// ============================================================\n// WF03 — Build owner daily digest HTML\n// Sections: Arrivees aujourd'hui, Departs, Arrivees demain, Taches menage, KPIs\n// ============================================================\n\nconst config = $('Config').first().json;\n\n// Recuperer les donnees des 4 queries\nconst checkinsToday = $('HTTP: Get Check-ins Today').all().map(i => i.json);\nconst checkinsArr = Array.isArray(checkinsToday[0]) ? checkinsToday[0] : checkinsToday;\n\nconst checkoutsToday = $('HTTP: Get Check-outs Today').all().map(i => i.json);\nconst checkoutsArr = Array.isArray(checkoutsToday[0]) ? checkoutsToday[0] : checkoutsToday;\n\nconst checkinsTomorrow = $('HTTP: Get Check-ins Tomorrow').all().map(i => i.json);\nconst checkinsTomorrowArr = Array.isArray(checkinsTomorrow[0]) ? checkinsTomorrow[0] : checkinsTomorrow;\n\nconst pendingTasks = $('HTTP: Get Pending Tasks').all().map(i => i.json);\nconst pendingArr = Array.isArray(pendingTasks[0]) ? pendingTasks[0] : pendingTasks;\n\nconst todayStr = new Date().toLocaleDateString('fr-FR', {\n  weekday: 'long', day: 'numeric', month: 'long', year: 'numeric'\n});\n\n// --- Build HTML ---\nlet html = '<div style=\"font-family:-apple-system,sans-serif;max-width:600px;margin:0 auto;\">';\nhtml += '<div style=\"background:#1a1a2e;color:#fff;padding:20px;border-radius:8px 8px 0 0;\">';\nhtml += `<h1 style=\"margin:0;font-size:20px;\">Votre resume quotidien</h1>`;\nhtml += `<p style=\"margin:4px 0 0 0;opacity:0.8;font-size:14px;\">${todayStr}</p>`;\nhtml += '</div>';\nhtml += '<div style=\"padding:16px;\">';\n\n// --- Section : Arrivees aujourd'hui ---\nhtml += '<h2 style=\"color:#1a1a2e;border-bottom:2px solid #6366f1;padding-bottom:8px;\">Arrivees aujourd\\'hui</h2>';\nif (checkinsArr.length === 0 || (checkinsArr.length === 1 && !checkinsArr[0].id)) {\n  html += '<p style=\"color:#6b7280;\">Aucune arrivee prevue.</p>';\n} else {\n  for (const r of checkinsArr) {\n    if (!r.id) continue;\n    const propName = r.properties ? r.properties.name : '-';\n    html += '<div style=\"margin:8px 0;padding:12px;background:#f0fdf4;border-radius:6px;border-left:4px solid #22c55e;\">';\n    html += `<strong>${r.guest_name}</strong> \\u2014 ${propName}`;\n    html += `<br><span style=\"color:#6b7280;\">${r.nb_guests} pers. | Arrivee : ${r.arrival_time || 'non renseignee'}</span>`;\n    if (r.special_requests) {\n      html += `<br><span style=\"background:#fef3c7;padding:2px 6px;border-radius:4px;font-size:12px;\">Demande speciale : ${r.special_requests}</span>`;\n    }\n    html += '</div>';\n  }\n}\n\n// --- Section : Departs aujourd'hui ---\nhtml += '<h2 style=\"color:#1a1a2e;border-bottom:2px solid #ef4444;padding-bottom:8px;\">Departs aujourd\\'hui</h2>';\nif (checkoutsArr.length === 0 || (checkoutsArr.length === 1 && !checkoutsArr[0].id)) {\n  html += '<p style=\"color:#6b7280;\">Aucun depart prevu.</p>';\n} else {\n  for (const r of checkoutsArr) {\n    if (!r.id) continue;\n    const propName = r.properties ? r.properties.name : '-';\n    html += '<div style=\"margin:8px 0;padding:12px;background:#fef2f2;border-radius:6px;border-left:4px solid #ef4444;\">';\n    html += `<strong>${r.guest_name}</strong> \\u2014 ${propName}`;\n    html += '</div>';\n  }\n}\n\n// --- Section : Arrivees demain (preview) ---\nhtml += '<h2 style=\"color:#1a1a2e;border-bottom:2px solid #3b82f6;padding-bottom:8px;\">Arrivees demain</h2>';\nif (checkinsTomorrowArr.length === 0 || (checkinsTomorrowArr.length === 1 && !checkinsTomorrowArr[0].id)) {\n  html += '<p style=\"color:#6b7280;\">Aucune arrivee prevue demain.</p>';\n} else {\n  for (const r of checkinsTomorrowArr) {\n    if (!r.id) continue;\n    const propName = r.properties ? r.properties.name : '-';\n    html += '<div style=\"margin:8px 0;padding:12px;background:#eff6ff;border-radius:6px;border-left:4px solid #3b82f6;\">';\n    html += `<strong>${r.guest_name}</strong> \\u2014 ${propName} (${r.nb_guests} pers.)`;\n    html += '</div>';\n  }\n}\n\n// --- Section : Taches menage en attente ---\nhtml += '<h2 style=\"color:#1a1a2e;border-bottom:2px solid #f59e0b;padding-bottom:8px;\">Taches menage en attente</h2>';\nif (pendingArr.length === 0 || (pendingArr.length === 1 && !pendingArr[0].id)) {\n  html += '<p style=\"color:#6b7280;\">Aucune tache en attente.</p>';\n} else {\n  html += '<table style=\"width:100%;border-collapse:collapse;font-size:14px;\">';\n  html += '<tr style=\"background:#fef3c7;\"><th style=\"padding:8px;text-align:left;\">Bien</th><th style=\"padding:8px;text-align:left;\">Agent</th><th style=\"padding:8px;text-align:left;\">Date</th><th style=\"padding:8px;text-align:left;\">Type</th></tr>';\n  for (const t of pendingArr) {\n    if (!t.id) continue;\n    const propName = t.properties ? t.properties.name : '-';\n    const staffName = t.profiles ? t.profiles.display_name : 'Non assigne';\n    const typeLabels = { 'checkout_clean': 'Menage', 'checkin_prep': 'Preparation', 'ad_hoc': 'Ponctuel' };\n    html += `<tr style=\"border-bottom:1px solid #e5e7eb;\"><td style=\"padding:8px;\">${propName}</td><td style=\"padding:8px;\">${staffName}</td><td style=\"padding:8px;\">${t.scheduled_date}</td><td style=\"padding:8px;\">${typeLabels[t.type] || t.type}</td></tr>`;\n  }\n  html += '</table>';\n}\n\n// --- KPIs rapides ---\nconst totalCheckins = checkinsArr.filter(r => r.id).length;\nconst totalCheckouts = checkoutsArr.filter(r => r.id).length;\nconst totalPending = pendingArr.filter(t => t.id).length;\n\nhtml += '<div style=\"margin-top:20px;padding:16px;background:#f3f4f6;border-radius:8px;text-align:center;\">';\nhtml += `<span style=\"display:inline-block;margin:0 12px;\"><strong style=\"font-size:24px;color:#22c55e;\">${totalCheckins}</strong><br><small>Arrivee(s)</small></span>`;\nhtml += `<span style=\"display:inline-block;margin:0 12px;\"><strong style=\"font-size:24px;color:#ef4444;\">${totalCheckouts}</strong><br><small>Depart(s)</small></span>`;\nhtml += `<span style=\"display:inline-block;margin:0 12px;\"><strong style=\"font-size:24px;color:#f59e0b;\">${totalPending}</strong><br><small>Tache(s) en attente</small></span>`;\nhtml += '</div>';\n\n// --- Boutons ---\nhtml += `<div style=\"margin-top:16px;text-align:center;\">`;\nhtml += `<a href=\"${config.DASHBOARD_URL}\" style=\"display:inline-block;background:#1a1a2e;color:#fff;padding:12px 24px;border-radius:6px;text-decoration:none;margin:4px;\">Voir le dashboard</a>`;\nhtml += `<a href=\"${config.DASHBOARD_URL}/cleaning\" style=\"display:inline-block;background:#6366f1;color:#fff;padding:12px 24px;border-radius:6px;text-decoration:none;margin:4px;\">Suivi menages</a>`;\nhtml += '</div>';\n\nhtml += '</div></div>';\n\nreturn [{\n  json: {\n    subject: `[Neurolia-Immo] Resume quotidien \\u2014 ${todayStr}`,\n    html: html,\n    stats: { checkins: totalCheckins, checkouts: totalCheckouts, pendingTasks: totalPending }\n  }\n}];"
+      },
+      "id": "d3b4c5e6-0301-4000-8000-00000000000e",
+      "name": "Code: Build Owner HTML",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1250, 900]
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "profiles",
+        "returnAll": true,
+        "filterType": "string",
+        "filterString": "=role=eq.owner&is_active=eq.true",
+        "options": {}
+      },
+      "id": "d3b4c5e6-0301-4000-8000-00000000000f",
+      "name": "Supabase: Get Owners",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [1500, 900],
+      "credentials": {
+        "supabaseApi": {
+          "id": "CRED-03-NATIVE",
+          "name": "Supabase Neurolia Immo"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "fromEmail": "={{ $('Config').item.json.SMTP_FROM_EMAIL }}",
+        "toEmail": "={{ $('Supabase: Get Owners').item.json.email }}",
+        "subject": "={{ $('Code: Build Owner HTML').item.json.subject }}",
+        "emailType": "html",
+        "html": "={{ $('Code: Build Owner HTML').item.json.html }}",
+        "options": {}
+      },
+      "id": "d3b4c5e6-0301-4000-8000-000000000010",
+      "name": "Send Email Owner",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.2,
+      "position": [1750, 900],
+      "credentials": {
+        "smtp": {
+          "id": "CRED-02",
+          "name": "CRED-02 — SMTP - Loc Immo"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Schedule Trigger Staff (07:00)": {
+      "main": [
+        [
+          {
+            "node": "Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Schedule Trigger Owner (08:00)": {
+      "main": [
+        [
+          {
+            "node": "Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Config": {
+      "main": [
+        [
+          {
+            "node": "HTTP: Get Cleaning Tasks Today",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "HTTP: Get Check-ins Today",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "HTTP: Get Check-outs Today",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "HTTP: Get Check-ins Tomorrow",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "HTTP: Get Pending Tasks",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP: Get Cleaning Tasks Today": {
+      "main": [
+        [
+          {
+            "node": "Supabase: Get Staff Profiles",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Supabase: Get Staff Profiles": {
+      "main": [
+        [
+          {
+            "node": "Code: Build Staff Emails",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code: Build Staff Emails": {
+      "main": [
+        [
+          {
+            "node": "Split In Batches: Staff Emails",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split In Batches: Staff Emails": {
+      "main": [
+        [
+          {
+            "node": "Send Email Staff",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Send Email Staff": {
+      "main": [
+        [
+          {
+            "node": "Split In Batches: Staff Emails",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP: Get Check-ins Today": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP: Get Check-outs Today": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "HTTP: Get Check-ins Tomorrow": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 2
+          }
+        ]
+      ]
+    },
+    "HTTP: Get Pending Tasks": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 3
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "Code: Build Owner HTML",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code: Build Owner HTML": {
+      "main": [
+        [
+          {
+            "node": "Supabase: Get Owners",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Supabase: Get Owners": {
+      "main": [
+        [
+          {
+            "node": "Send Email Owner",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "meta": {
+    "templateCredsSetupCompleted": false
+  },
+  "tags": []
+}

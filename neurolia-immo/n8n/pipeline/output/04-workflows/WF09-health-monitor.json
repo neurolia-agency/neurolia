@@ -1,0 +1,210 @@
+{
+  "name": "WF09 — Health Monitor",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 */6 * * *"
+            }
+          ]
+        },
+        "options": {
+          "timezone": "Europe/Paris"
+        }
+      },
+      "id": "d1e2f3a4-0009-4000-8000-000000000001",
+      "name": "Schedule Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "mode": "manual",
+        "assignments": {
+          "assignments": [
+            { "id": "cfg-09-01", "name": "DASHBOARD_URL", "value": "={{ $env.DASHBOARD_URL }}", "type": "string" },
+            { "id": "cfg-09-02", "name": "ADMIN_EMAIL", "value": "={{ $env.ADMIN_EMAIL }}", "type": "string" },
+            { "id": "cfg-09-03", "name": "SMTP_FROM_EMAIL", "value": "={{ $env.SMTP_FROM_EMAIL }}", "type": "string" },
+            { "id": "cfg-09-04", "name": "SUPABASE_URL", "value": "={{ $env.SUPABASE_URL }}", "type": "string" },
+            { "id": "cfg-09-05", "name": "SUPABASE_SERVICE_KEY", "value": "={{ $env.SUPABASE_SERVICE_KEY }}", "type": "string" }
+          ]
+        }
+      },
+      "id": "d1e2f3a4-0009-4000-8000-000000000002",
+      "name": "Config",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [500, 300]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $('Config').item.json.SUPABASE_URL }}/rest/v1/properties?is_active=eq.true&select=*,profiles!properties_owner_id_fkey(email,display_name)",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "apikey", "value": "={{ $('Config').item.json.SUPABASE_SERVICE_KEY }}" },
+            { "name": "Authorization", "value": "=Bearer {{ $('Config').item.json.SUPABASE_SERVICE_KEY }}" }
+          ]
+        },
+        "options": {}
+      },
+      "id": "d1e2f3a4-0009-4000-8000-000000000003",
+      "name": "HTTP: Get Active Properties",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [750, 300]
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "sync_logs",
+        "returnAll": false,
+        "limit": 5,
+        "filterType": "string",
+        "filterString": "=source=eq.imap&order=synced_at.desc",
+        "options": {}
+      },
+      "id": "d1e2f3a4-0009-4000-8000-000000000008",
+      "name": "Supabase: Get IMAP Sync Logs",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [875, 300],
+      "credentials": {
+        "supabaseApi": {
+          "id": "CRED-03-NATIVE",
+          "name": "Supabase Neurolia Immo"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "language": "javaScript",
+        "jsCode": "// ============================================================\n// WF09 — Health checks: iCal syncs + IMAP syncs\n// Check sync_logs for each property, detect stale/error/never_synced\n// IMAP sync logs read from Supabase node, iCal still via fetch\n// ============================================================\n\nconst config = $('Config').first().json;\nconst propertiesRaw = $('HTTP: Get Active Properties').all().map(i => i.json);\nconst properties = Array.isArray(propertiesRaw[0]) ? propertiesRaw[0] : propertiesRaw;\n\nconst supabaseUrl = config.SUPABASE_URL;\nconst supabaseKey = config.SUPABASE_SERVICE_KEY;\nconst headers = {\n  'apikey': supabaseKey,\n  'Authorization': `Bearer ${supabaseKey}`\n};\n\n// --- Read IMAP sync logs from Supabase node ---\nconst imapSyncLogs = $('Supabase: Get IMAP Sync Logs').all().map(i => i.json);\n\nconst now = new Date();\nconst results = [];\n\n// Thresholds (in milliseconds)\nconst ICAL_WARNING_MS = 60 * 60 * 1000;       // 1 hour\nconst ICAL_ERROR_MS = 2 * 60 * 60 * 1000;     // 2 hours\nconst IMAP_WARNING_MS = 5 * 60 * 1000;         // 5 minutes\nconst IMAP_ERROR_MS = 10 * 60 * 1000;          // 10 minutes\n\nfor (const property of properties) {\n  if (!property.id) continue;\n\n  const propResult = {\n    property_id: property.id,\n    property_name: property.name,\n    owner_email: property.profiles ? property.profiles.email : null,\n    owner_name: property.profiles ? property.profiles.display_name : null,\n    ical_status: 'n/a',\n    imap_status: 'n/a',\n    last_ical_sync: null,\n    last_imap_sync: null,\n    issues: []\n  };\n\n  // --- Check iCal syncs ---\n  if (property.ical_airbnb_url || property.ical_booking_url) {\n    try {\n      const icalRes = await fetch(\n        `${supabaseUrl}/rest/v1/sync_logs?property_id=eq.${property.id}&source=like.ical_*&order=synced_at.desc&limit=5`,\n        { headers }\n      );\n      const icalLogs = await icalRes.json();\n\n      if (!icalLogs || icalLogs.length === 0) {\n        propResult.ical_status = 'error';\n        propResult.issues.push({ type: 'never_synced', severity: 'error', message: 'Aucune sync iCal enregistree' });\n      } else {\n        const lastSync = new Date(icalLogs[0].synced_at);\n        propResult.last_ical_sync = icalLogs[0].synced_at;\n        const ageMs = now - lastSync;\n\n        // Check for consecutive errors\n        const consecutiveErrors = icalLogs.filter(l => l.status === 'error').length;\n\n        if (icalLogs[0].status === 'error') {\n          propResult.ical_status = consecutiveErrors >= 3 ? 'error' : 'warning';\n          propResult.issues.push({\n            type: consecutiveErrors >= 3 ? 'persistent_error' : 'sync_error',\n            severity: consecutiveErrors >= 3 ? 'error' : 'warning',\n            message: `Derniere sync en erreur${consecutiveErrors >= 3 ? ` (${consecutiveErrors} erreurs consecutives)` : ''}`\n          });\n        } else if (ageMs > ICAL_ERROR_MS) {\n          propResult.ical_status = 'error';\n          propResult.issues.push({ type: 'stale_sync', severity: 'error', message: `Derniere sync iCal > 2 heures (${Math.round(ageMs / 60000)} min)` });\n        } else if (ageMs > ICAL_WARNING_MS) {\n          propResult.ical_status = 'warning';\n          propResult.issues.push({ type: 'stale_sync', severity: 'warning', message: `Derniere sync iCal > 1 heure (${Math.round(ageMs / 60000)} min)` });\n        } else {\n          propResult.ical_status = 'ok';\n        }\n      }\n    } catch (err) {\n      propResult.ical_status = 'error';\n      propResult.issues.push({ type: 'check_failed', severity: 'error', message: `Erreur verification iCal: ${err.message}` });\n    }\n  }\n\n  // --- Check IMAP syncs ---\n  // IMAP is global, not per-property — check once using data from Supabase node\n  if (property === properties[0]) {\n    if (imapSyncLogs && imapSyncLogs.length > 0) {\n      const lastImapSync = new Date(imapSyncLogs[0].synced_at);\n      const imapAgeMs = now - lastImapSync;\n\n      const imapErrors = imapSyncLogs.filter(l => l.status === 'error').length;\n\n      if (imapSyncLogs[0].status === 'error' && imapErrors >= 5) {\n        propResult.imap_status = 'error';\n        propResult.issues.push({ type: 'imap_error', severity: 'error', message: `IMAP en erreur (${imapErrors} erreurs consecutives)` });\n      } else if (imapAgeMs > IMAP_ERROR_MS) {\n        propResult.imap_status = 'error';\n        propResult.issues.push({ type: 'stale_imap', severity: 'error', message: `Derniere sync IMAP > 10 min (${Math.round(imapAgeMs / 60000)} min)` });\n      } else if (imapAgeMs > IMAP_WARNING_MS) {\n        propResult.imap_status = 'warning';\n        propResult.issues.push({ type: 'stale_imap', severity: 'warning', message: `Derniere sync IMAP > 5 min (${Math.round(imapAgeMs / 60000)} min)` });\n      } else {\n        propResult.imap_status = 'ok';\n      }\n\n      propResult.last_imap_sync = imapSyncLogs[0].synced_at;\n    }\n  }\n\n  results.push(propResult);\n}\n\n// Aggregate\nconst totalProperties = results.length;\nconst healthy = results.filter(r => r.issues.length === 0).length;\nconst withWarnings = results.filter(r => r.issues.some(i => i.severity === 'warning') && !r.issues.some(i => i.severity === 'error')).length;\nconst withErrors = results.filter(r => r.issues.some(i => i.severity === 'error')).length;\n\nreturn [{\n  json: {\n    total_properties: totalProperties,\n    healthy: healthy,\n    warnings: withWarnings,\n    errors: withErrors,\n    has_issues: withWarnings > 0 || withErrors > 0,\n    details: results,\n    checked_at: now.toISOString()\n  }\n}];"
+      },
+      "id": "d1e2f3a4-0009-4000-8000-000000000004",
+      "name": "Code: Health Checks",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1000, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+          "conditions": [
+            {
+              "id": "if-09-01",
+              "leftValue": "={{ $json.has_issues }}",
+              "rightValue": true,
+              "operator": { "type": "boolean", "operation": "true" }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "d1e2f3a4-0009-4000-8000-000000000005",
+      "name": "IF: Issues Found?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [1250, 300]
+    },
+    {
+      "parameters": {
+        "language": "javaScript",
+        "jsCode": "// ============================================================\n// WF09 — Build health check alert email\n// ============================================================\n\nconst config = $('Config').item.json;\nconst data = $input.item.json;\n\nconst statusColors = {\n  'ok': '#22c55e',\n  'warning': '#f59e0b',\n  'error': '#dc2626',\n  'n/a': '#9ca3af'\n};\n\nconst statusLabels = {\n  'ok': 'OK',\n  'warning': 'Warning',\n  'error': 'Erreur',\n  'n/a': 'N/A'\n};\n\nconst statusDot = (status) => {\n  const color = statusColors[status] || '#9ca3af';\n  return `<span style=\"display:inline-block;width:10px;height:10px;border-radius:50%;background:${color};margin-right:4px;\"></span>${statusLabels[status] || status}`;\n};\n\nlet html = `<div style=\"font-family:-apple-system,sans-serif;max-width:600px;margin:0 auto;\">`;\nhtml += `<div style=\"background:#1a1a2e;color:#fff;padding:16px;border-radius:8px 8px 0 0;\">`;\nhtml += `<h2 style=\"margin:0;\">Health Check — ${data.errors} erreur(s), ${data.warnings} warning(s)</h2>`;\nhtml += `<p style=\"margin:4px 0 0 0;opacity:0.8;\">${new Date(data.checked_at).toLocaleString('fr-FR', { timeZone: 'Europe/Paris' })}</p>`;\nhtml += `</div>`;\nhtml += `<div style=\"padding:16px;\">`;\n\n// KPIs\nhtml += `<div style=\"display:flex;justify-content:space-around;margin-bottom:16px;padding:12px;background:#f3f4f6;border-radius:8px;text-align:center;\">`;\nhtml += `<div><strong style=\"font-size:24px;color:#22c55e;\">${data.healthy}</strong><br><small>Sain(s)</small></div>`;\nhtml += `<div><strong style=\"font-size:24px;color:#f59e0b;\">${data.warnings}</strong><br><small>Warning(s)</small></div>`;\nhtml += `<div><strong style=\"font-size:24px;color:#dc2626;\">${data.errors}</strong><br><small>Erreur(s)</small></div>`;\nhtml += `</div>`;\n\n// Table details\nhtml += `<table style=\"width:100%;border-collapse:collapse;font-size:14px;\">`;\nhtml += `<tr style=\"background:#1a1a2e;color:#fff;\">`;\nhtml += `<th style=\"padding:8px;text-align:left;\">Propriete</th>`;\nhtml += `<th style=\"padding:8px;text-align:left;\">Owner</th>`;\nhtml += `<th style=\"padding:8px;text-align:center;\">iCal</th>`;\nhtml += `<th style=\"padding:8px;text-align:center;\">IMAP</th>`;\nhtml += `</tr>`;\n\nfor (const prop of data.details) {\n  if (prop.issues.length === 0) continue;\n\n  const bgColor = prop.issues.some(i => i.severity === 'error') ? '#fef2f2' :\n                  prop.issues.some(i => i.severity === 'warning') ? '#fffbeb' : '#fff';\n\n  html += `<tr style=\"background:${bgColor};border-bottom:1px solid #e5e7eb;\">`;\n  html += `<td style=\"padding:8px;\">${prop.property_name}</td>`;\n  html += `<td style=\"padding:8px;\">${prop.owner_name || '-'}</td>`;\n  html += `<td style=\"padding:8px;text-align:center;\">${statusDot(prop.ical_status)}</td>`;\n  html += `<td style=\"padding:8px;text-align:center;\">${statusDot(prop.imap_status)}</td>`;\n  html += `</tr>`;\n\n  for (const issue of prop.issues) {\n    html += `<tr style=\"background:#f9fafb;\"><td colspan=\"4\" style=\"padding:4px 8px 4px 24px;font-size:12px;color:${statusColors[issue.severity]};\">`;\n    html += `${issue.message}`;\n    html += `</td></tr>`;\n  }\n}\n\nhtml += `</table>`;\nhtml += `</div></div>`;\n\nconst subject = `[Neurolia-Immo] Health Check — ${data.errors} erreur(s), ${data.warnings} warning(s)`;\n\nreturn [{\n  json: {\n    subject: subject,\n    html: html\n  }\n}];"
+      },
+      "id": "d1e2f3a4-0009-4000-8000-000000000006",
+      "name": "Code: Build Alert Email",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1500, 200]
+    },
+    {
+      "parameters": {
+        "fromEmail": "={{ $('Config').item.json.SMTP_FROM_EMAIL }}",
+        "toEmail": "={{ $('Config').item.json.ADMIN_EMAIL }}",
+        "subject": "={{ $json.subject }}",
+        "emailType": "html",
+        "html": "={{ $json.html }}",
+        "options": {}
+      },
+      "id": "d1e2f3a4-0009-4000-8000-000000000007",
+      "name": "Send Email Admin",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.2,
+      "position": [1750, 200],
+      "credentials": {
+        "smtp": {
+          "id": "CRED-02",
+          "name": "CRED-02 — SMTP - Loc Immo"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          { "node": "Config", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Config": {
+      "main": [
+        [
+          { "node": "HTTP: Get Active Properties", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "HTTP: Get Active Properties": {
+      "main": [
+        [
+          { "node": "Supabase: Get IMAP Sync Logs", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Supabase: Get IMAP Sync Logs": {
+      "main": [
+        [
+          { "node": "Code: Health Checks", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Code: Health Checks": {
+      "main": [
+        [
+          { "node": "IF: Issues Found?", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "IF: Issues Found?": {
+      "main": [
+        [
+          { "node": "Code: Build Alert Email", "type": "main", "index": 0 }
+        ],
+        []
+      ]
+    },
+    "Code: Build Alert Email": {
+      "main": [
+        [
+          { "node": "Send Email Admin", "type": "main", "index": 0 }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "errorWorkflow": "WF00 — Error Handler"
+  },
+  "meta": {
+    "templateCredsSetupCompleted": false
+  },
+  "tags": []
+}

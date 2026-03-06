@@ -1,0 +1,741 @@
+{
+  "name": "Parseur d'emails (Airbnb + Booking)",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## Parseur d'emails\nCe workflow lit les emails de reservation entrants (Airbnb + Booking) via IMAP, extrait les informations cles (voyageur, dates, montant) et les envoie au dashboard.\n\n**Declencheur** : IMAP (polling)\n**Sortie** : POST /api/webhooks/n8n/reservation",
+        "height": 220,
+        "width": 350,
+        "color": 4
+      },
+      "id": "bdce898f-23b4-441d-920f-b93f271e2936",
+      "name": "Note",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        3792,
+        816
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## Routage par plateforme\nDeux noeuds IF successifs detectent l'expediteur :\n- `@airbnb` (couvre @airbnb.com + @airbnbmail.com) → Parser Airbnb\n- `@booking` (couvre @booking.com + @guest.booking.com) → Parser Booking\n- Sinon → Alerte email inconnu\n\nPuis deux IF routent par type (confirmation / modification / annulation).",
+        "height": 220,
+        "width": 350
+      },
+      "id": "c27057a4-c8ac-4b5a-91bb-207095c92827",
+      "name": "Note1",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        4336,
+        816
+      ]
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "4a61b39f-b570-454a-acbc-bd18d0bc90d2",
+      "name": "Recevoir email",
+      "type": "n8n-nodes-base.emailReadImap",
+      "typeVersion": 2,
+      "position": [
+        3632,
+        1296
+      ],
+      "credentials": {
+        "imap": {
+          "id": "jlJPAMgyTNY5Aecr",
+          "name": "IMAP account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "cond-node-wf01-002a",
+              "leftValue": "={{ $json.from }}",
+              "rightValue": "@airbnb",
+              "operator": {
+                "type": "string",
+                "operation": "contains"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "f1fbf5db-f6d9-401a-87d9-eda40f28ff59",
+      "name": "Email Airbnb ?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        4080,
+        1280
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "cond-node-wf01-002b",
+              "leftValue": "={{ $json.from }}",
+              "rightValue": "@booking",
+              "operator": {
+                "type": "string",
+                "operation": "contains"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "7053cb46-9289-4d89-a634-4a00ef3bd974",
+      "name": "Email Booking ?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        4080,
+        1536
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// ============================================================\n// WF01 — Parse Airbnb email (v2 - adapte au format reel)\n// IMPORTANT: utilise textHtml (pas html) pour IMAP v2\n// ============================================================\n\nvar html = $input.first().json.textHtml || $input.first().json.html || \"\";\nvar subject = $input.first().json.subject || \"\";\nvar messageId = $input.first().json.messageId || \"\";\n\n// --- Detection du type d email ---\n// IMPORTANT: defaut = \"unknown\" — seuls les emails avec match positif sont traites\nvar emailType = \"unknown\";\n\n// Annulation (tester en premier car prioritaire)\nif (/annul/i.test(subject) || /cancel/i.test(subject)) {\n  emailType = \"cancellation\";\n}\n// Modification\nelse if (/modifi/i.test(subject) || /updated/i.test(subject) || /changed/i.test(subject)) {\n  emailType = \"modification\";\n}\n// \"En attente\" ou \"demande\" = inquiry (en attente de validation proprietaire)\nelse if (/en attente/i.test(subject) || /demande de r/i.test(subject) || /demande.*reservation/i.test(subject) || /reservation request/i.test(subject)) {\n  emailType = \"inquiry\";\n}\n// Confirmation (match positif requis — sujet doit contenir un mot-cle reservation)\nelse if (/r[e\\u00e9]serv/i.test(subject) || /confirm[e\\u00e9]e?/i.test(subject) || /s[e\\u00e9]jour/i.test(subject) || /booking confirm/i.test(subject)) {\n  emailType = \"confirmation\";\n}\n\n// --- Extraction du nom du voyageur ---\nvar guestName = \"\";\n\n// Pattern 1: \"demande de Alexis\" ou \"demande de Jean Dupont\"\nvar m = subject.match(/demande de ([A-Z\\u00C0-\\u00DC][a-z\\u00E0-\\u00FC]+(?:\\s+[A-Z\\u00C0-\\u00DC][a-z\\u00E0-\\u00FC]+)*)/);\nif (m) guestName = m[1].trim();\n\n// Pattern 2: dans le HTML \"demande de Alexis\"\nif (!guestName) {\n  m = html.match(/demande de ([A-Z\\u00C0-\\u00DC][a-z\\u00E0-\\u00FC]+(?:\\s+[A-Z\\u00C0-\\u00DC][a-z\\u00E0-\\u00FC]+)*)/);\n  if (m) guestName = m[1].trim();\n}\n\n// Pattern 3: \"a reserve\" ou \"a r\\u00e9serv\\u00e9\"\nif (!guestName) {\n  m = html.match(/([A-Z\\u00C0-\\u00DC][a-z\\u00E0-\\u00FC]+(?:\\s+[A-Z\\u00C0-\\u00DC][a-z\\u00E0-\\u00FC]+)*)\\s+a\\s+r[e\\u00e9]serv/);\n  if (m) guestName = m[1].trim();\n}\n\n// Pattern 4: aria-label avec un prenom\nif (!guestName) {\n  m = html.match(/aria-label=\"([A-Z\\u00C0-\\u00DC][a-z\\u00E0-\\u00FC]+(?:\\s+[A-Z\\u00C0-\\u00DC][a-z\\u00E0-\\u00FC]+)*)\"/);\n  if (m) guestName = m[1].trim();\n}\n\n// Pattern 5: \"Votre voyageur : Xxx\"\nif (!guestName) {\n  m = html.match(/voyageur\\s*:\\s*([A-Z\\u00C0-\\u00DC][a-z\\u00E0-\\u00FC]+(?:\\s+[A-Z\\u00C0-\\u00DC][a-z\\u00E0-\\u00FC]+)*)/i);\n  if (m) guestName = m[1].trim();\n}\n\n// --- Extraction des dates ---\nvar moisFR = {\n  \"janv\": \"01\", \"janvier\": \"01\", \"jan\": \"01\",\n  \"f\\u00e9vr\": \"02\", \"fevr\": \"02\", \"f\\u00e9vrier\": \"02\", \"fevrier\": \"02\", \"fev\": \"02\", \"feb\": \"02\",\n  \"mars\": \"03\", \"mar\": \"03\",\n  \"avr\": \"04\", \"avril\": \"04\", \"apr\": \"04\",\n  \"mai\": \"05\", \"may\": \"05\",\n  \"juin\": \"06\", \"jun\": \"06\",\n  \"juil\": \"07\", \"juillet\": \"07\", \"jul\": \"07\",\n  \"ao\\u00fbt\": \"08\", \"aout\": \"08\", \"aug\": \"08\",\n  \"sept\": \"09\", \"septembre\": \"09\", \"sep\": \"09\",\n  \"oct\": \"10\", \"octobre\": \"10\",\n  \"nov\": \"11\", \"novembre\": \"11\",\n  \"d\\u00e9c\": \"12\", \"d\\u00e9cembre\": \"12\", \"dec\": \"12\", \"decembre\": \"12\"\n};\n\nfunction getMonth(str) {\n  var key = str.toLowerCase().replace(/\\./g, \"\");\n  return moisFR[key] || null;\n}\n\nvar checkIn = \"\";\nvar checkOut = \"\";\n\n// Pattern 1: format compact \"19\\u201320 f\\u00e9vr. 2026\" (jour\\u2013jour mois annee)\nm = subject.match(/(\\d{1,2})\\s*[\\u2013\\u2014-]\\s*(\\d{1,2})\\s+([\\w\\u00e9\\u00fb\\u00f4]+)\\.?\\s+(\\d{4})/);\nif (!m) m = html.match(/(\\d{1,2})\\s*[\\u2013\\u2014-]\\s*(\\d{1,2})\\s+([\\w\\u00e9\\u00fb\\u00f4]+)\\.?\\s+(\\d{4})/);\nif (m) {\n  var month = getMonth(m[3]);\n  if (month) {\n    checkIn = m[4] + \"-\" + month + \"-\" + m[1].padStart(2, \"0\");\n    checkOut = m[4] + \"-\" + month + \"-\" + m[2].padStart(2, \"0\");\n  }\n}\n\n// Pattern 2: format complet \"19 f\\u00e9vr. 2026 \\u2013 20 f\\u00e9vr. 2026\"\nif (!checkIn) {\n  m = (subject + \" \" + html).match(/(\\d{1,2})\\s+([\\w\\u00e9\\u00fb\\u00f4]+)\\.?\\s+(\\d{4})\\s*[\\u2013\\u2014-]\\s*(\\d{1,2})\\s+([\\w\\u00e9\\u00fb\\u00f4]+)\\.?\\s+(\\d{4})/);\n  if (m) {\n    var m1 = getMonth(m[2]);\n    var m2 = getMonth(m[5]);\n    if (m1) checkIn = m[3] + \"-\" + m1 + \"-\" + m[1].padStart(2, \"0\");\n    if (m2) checkOut = m[6] + \"-\" + m2 + \"-\" + m[4].padStart(2, \"0\");\n  }\n}\n\n// Pattern 3: \"Arriv\\u00e9e\" et \"D\\u00e9part\" dans le HTML\nif (!checkIn) {\n  var arrM = html.match(/[Aa]rriv[e\\u00e9]e[^<\\d]*?(\\d{1,2})\\s+([\\w\\u00e9\\u00fb\\u00f4]+)\\.?\\s+(\\d{4})/);\n  var depM = html.match(/[Dd][e\\u00e9]part[^<\\d]*?(\\d{1,2})\\s+([\\w\\u00e9\\u00fb\\u00f4]+)\\.?\\s+(\\d{4})/);\n  if (arrM) {\n    var am = getMonth(arrM[2]);\n    if (am) checkIn = arrM[3] + \"-\" + am + \"-\" + arrM[1].padStart(2, \"0\");\n  }\n  if (depM) {\n    var dm = getMonth(depM[2]);\n    if (dm) checkOut = depM[3] + \"-\" + dm + \"-\" + depM[1].padStart(2, \"0\");\n  }\n}\n\n// --- Extraction du nombre de voyageurs ---\nvar nbGuests = 1;\nm = html.match(/(\\d+)\\s+voyageur/i);\nif (!m) m = html.match(/(\\d+)\\s+guest/i);\nif (!m) m = html.match(/voyageurs?\\s*:\\s*(\\d+)/i);\nif (m) nbGuests = parseInt(m[1], 10);\n\n// --- Extraction du montant ---\nvar amount = null;\nm = html.match(/[Tt]otal[^0-9\\u20ac]*[\\u20ac]?\\s*([\\d\\s]+[.,]\\d{2})\\s*[\\u20acEUR]?/);\nif (!m) m = html.match(/[Rr]evenus?\\s*:?\\s*[\\u20ac]?\\s*([\\d\\s]+[.,]\\d{2})/);\nif (!m) m = html.match(/[\\u20acEUR]\\s*([\\d\\s]+[.,]\\d{2})/);\nif (!m) m = html.match(/([\\d\\s]+[.,]\\d{2})\\s*[\\u20acEUR]/);\nif (m) {\n  amount = parseFloat(m[1].replace(/\\s/g, \"\").replace(\",\", \".\"));\n}\n\n// --- Extraction de la reference Airbnb ---\n// Format: HMXXXXXXXXXX dans les URLs\nvar platformRefId = \"\";\nm = html.match(/reservations\\/details\\/(HM[A-Z0-9]+)/);\nif (!m) m = html.match(/\\b(HM[A-Z0-9]{6,12})\\b/);\nif (!m) m = subject.match(/\\b(HM[A-Z0-9]{6,12})\\b/);\nif (!m) m = html.match(/[Cc]ode\\s+de\\s+confirmation\\s*:?\\s*([A-Z0-9]{8,14})/);\nif (!m) m = html.match(/[Cc]onfirmation\\s+code\\s*:?\\s*([A-Z0-9]{8,14})/);\nif (m) platformRefId = m[1].trim();\n\n// --- Extraction du nom de la propriete ---\nvar propertyName = \"\";\n\n// Pattern 1: sujet \"l annonce Villa Sidi Kaouki\"\nm = subject.match(/l'annonce\\s+(.+?)\\s+pour\\s/i);\nif (!m) m = subject.match(/annonce\\s+(.+?)\\s+pour\\s/i);\nif (!m) m = subject.match(/concernant\\s+(.+?)\\s+pour\\s/i);\n\n// Pattern 2: \"votre logement X\"\nif (!m) m = html.match(/votre\\s+(?:logement|bien|propri[e\\u00e9]t[e\\u00e9]|appartement|studio|maison|annonce)\\s+([^<\\n\"]+)/i);\n\n// Pattern 3: \"Logement : X\"\nif (!m) m = html.match(/[Ll]ogement\\s*:\\s*([^<\\n]+)/);\n\nif (m) {\n  propertyName = m[1].trim();\n  // Nettoyer les guillemets\n  propertyName = propertyName.replace(/[\"\\u00ab\\u00bb]/g, \"\").trim();\n}\n\n// --- Construction de l output ---\nvar result = {\n  platform: \"airbnb\",\n  emailType: emailType,\n  guestName: guestName || \"[NON DETECTE]\",\n  checkIn: checkIn || \"[NON DETECTE]\",\n  checkOut: checkOut || \"[NON DETECTE]\",\n  nbGuests: nbGuests,\n  amount: amount,\n  platformRefId: platformRefId || \"[NON DETECTE]\",\n  propertyName: propertyName || \"[NON DETECTE]\",\n  sourceEmailId: messageId,\n  _parseQuality: {\n    guestName: !!guestName,\n    dates: !!(checkIn && checkOut),\n    amount: amount !== null,\n    reference: !!platformRefId,\n    property: !!propertyName\n  },\n  _rawSubject: subject\n};\n\nvar criticalFields = [guestName, checkIn, checkOut, platformRefId];\nresult._isPartialParse = criticalFields.some(function(f) { return !f; });\n\nreturn [{json: result}];\n"
+      },
+      "id": "a3b251b0-f1b0-4d97-a983-974e0011f102",
+      "name": "Parser email Airbnb",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        4336,
+        1136
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// ============================================================\n// WF01 — Parse Booking.com confirmation email\n// Extrait les informations de reservation depuis le HTML\n// ============================================================\n\nconst html = $input.first().json.html || '';\nconst subject = $input.first().json.subject || '';\nconst messageId = $input.first().json.messageId || '';\n\n// --- Detection du type d'email ---\n// IMPORTANT: defaut = 'unknown' — seuls les emails avec match positif sont traites\nlet emailType = 'unknown';\n\nconst cancelPatterns = [\n  /annul(é|e|ation)/i,\n  /cancel(led|lation)/i,\n  /[Rr][ée]servation\\s+annul[ée]e/i,\n  /[Bb]ooking\\s+cancell?ation/i,\n];\n\nconst modifyPatterns = [\n  /modifi(é|cation)/i,\n  /mis(e)?\\s+[àa]\\s+jour/i,\n  /updated/i,\n  /changed/i,\n  /changement/i,\n];\n\nfor (const pattern of cancelPatterns) {\n  if (pattern.test(subject) || pattern.test(html)) {\n    emailType = 'cancellation';\n    break;\n  }\n}\n\nif (emailType === 'unknown') {\n  for (const pattern of modifyPatterns) {\n    if (pattern.test(subject) || pattern.test(html)) {\n      emailType = 'modification';\n      break;\n    }\n  }\n}\n\nconst inquiryPatterns = [\n  /demande de r[ée]servation/i,\n  /reservation request/i,\n  /en attente de confirmation/i,\n  /en attente de validation/i,\n  /pending confirmation/i,\n  /awaiting.*confirmation/i,\n  /demande.*en attente/i,\n];\n\nif (emailType === 'unknown') {\n  for (const pattern of inquiryPatterns) {\n    if (pattern.test(subject) || pattern.test(html)) {\n      emailType = 'inquiry';\n      break;\n    }\n  }\n}\n\nconst confirmationPatterns = [\n  /r[ée]serv/i,\n  /confirm[ée]e?/i,\n  /s[ée]jour/i,\n  /nouvelle? r[ée]servation/i,\n  /new booking/i,\n];\n\nif (emailType === 'unknown') {\n  for (const pattern of confirmationPatterns) {\n    if (pattern.test(subject) || pattern.test(html)) {\n      emailType = 'confirmation';\n      break;\n    }\n  }\n}\n\n// --- Extraction du nom du voyageur ---\n// Booking FR : \"Nouvelle réservation de Jean Dupont\"\n// Booking EN : \"New booking from Jean Dupont\"\n// Booking : \"Nom du client : Jean Dupont\"\nlet guestName = '';\n\nconst guestPatterns = [\n  // \"Nom du client : Jean Dupont\" ou \"Guest name: Jean Dupont\"\n  /[Nn]om\\s+du\\s+client\\s*:\\s*([A-ZÀ-Ü][a-zà-ü]+(?:\\s+[A-ZÀ-Ü][a-zà-ü]+)+)/,\n  /[Gg]uest\\s+name\\s*:\\s*([A-Z][a-z]+(?:\\s+[A-Z][a-z]+)+)/,\n  // \"réservation de Jean Dupont\"\n  /r[ée]servation\\s+de\\s+([A-ZÀ-Ü][a-zà-ü]+(?:\\s+[A-ZÀ-Ü][a-zà-ü]+)+)/,\n  // \"booking from Jean Dupont\"\n  /booking\\s+from\\s+([A-Z][a-z]+(?:\\s+[A-Z][a-z]+)+)/i,\n  // Dans le HTML\n  /class=\"[^\"]*guest[_-]?name[^\"]*\"[^>]*>([^<]+)</i,\n  // \"Client : Jean Dupont\"\n  /[Cc]lient\\s*:\\s*([A-ZÀ-Ü][a-zà-ü]+(?:\\s+[A-ZÀ-Ü][a-zà-ü]+)+)/,\n  // Sujet : \"Confirmation — Jean Dupont\"\n  /[Cc]onfirmation\\s*[-–—]\\s*([A-ZÀ-Ü][a-zà-ü]+(?:\\s+[A-ZÀ-Ü][a-zà-ü]+)+)/,\n];\n\nfor (const pattern of guestPatterns) {\n  const match = html.match(pattern) || subject.match(pattern);\n  if (match) {\n    guestName = match[1].trim();\n    break;\n  }\n}\n\n// --- Extraction des dates ---\n// Booking utilise souvent : \"Arrivée : lun. 15 mars 2026\" et \"Départ : jeu. 18 mars 2026\"\n// Ou en format compact : \"15 mars 2026 — 18 mars 2026\"\n// Ou \"Check-in: 2026-03-15\" \"Check-out: 2026-03-18\"\n\nconst moisFR = {\n  'janv': '01', 'janvier': '01', 'jan': '01',\n  'févr': '02', 'février': '02', 'fevr': '02', 'fevrier': '02', 'fev': '02', 'feb': '02',\n  'mars': '03', 'mar': '03',\n  'avr': '04', 'avril': '04', 'apr': '04',\n  'mai': '05', 'may': '05',\n  'juin': '06', 'jun': '06',\n  'juil': '07', 'juillet': '07', 'jul': '07',\n  'août': '08', 'aout': '08', 'aug': '08',\n  'sept': '09', 'septembre': '09', 'sep': '09',\n  'oct': '10', 'octobre': '10',\n  'nov': '11', 'novembre': '11',\n  'déc': '12', 'décembre': '12', 'dec': '12', 'decembre': '12',\n};\n\nfunction parseDateFR(dateStr) {\n  // Format \"15 mars 2026\" ou \"lun. 15 mars 2026\"\n  const match = dateStr.match(/(\\d{1,2})\\s+([\\wéûô]+)\\.?\\s+(\\d{4})/);\n  if (match) {\n    const day = match[1].padStart(2, '0');\n    const monthKey = match[2].toLowerCase().replace(/\\./g, '');\n    const month = moisFR[monthKey];\n    const year = match[3];\n    if (month) return `${year}-${month}-${day}`;\n  }\n  // Format YYYY-MM-DD\n  const matchISO = dateStr.match(/(\\d{4})-(\\d{2})-(\\d{2})/);\n  if (matchISO) return matchISO[0];\n  // Format DD/MM/YYYY\n  const matchSlash = dateStr.match(/(\\d{2})\\/(\\d{2})\\/(\\d{4})/);\n  if (matchSlash) return `${matchSlash[3]}-${matchSlash[2]}-${matchSlash[1]}`;\n  return null;\n}\n\nlet checkIn = '';\nlet checkOut = '';\n\n// Pattern 1 : \"Arrivée ... date\" et \"Départ ... date\"\nconst arrivalPattern = /[Aa]rriv[ée]e[^<\\d]*?(\\d{1,2}\\s+[\\wéûô]+\\.?\\s+\\d{4})/;\nconst departurePattern = /[Dd][ée]part[^<\\d]*?(\\d{1,2}\\s+[\\wéûô]+\\.?\\s+\\d{4})/;\n\n// Pattern 2 : \"Check-in ... date\" et \"Check-out ... date\"\nconst checkinPattern = /[Cc]heck[\\s-]?in[^<\\d]*?(\\d{1,2}\\s+[\\wéûô]+\\.?\\s+\\d{4}|\\d{4}-\\d{2}-\\d{2})/;\nconst checkoutPattern = /[Cc]heck[\\s-]?out[^<\\d]*?(\\d{1,2}\\s+[\\wéûô]+\\.?\\s+\\d{4}|\\d{4}-\\d{2}-\\d{2})/;\n\n// Pattern 3 : plage de dates \"15 mars 2026 — 18 mars 2026\"\nconst dateRangePattern = /(\\d{1,2}\\s+[\\wéûô]+\\.?\\s+\\d{4})\\s*[-–—]\\s*(\\d{1,2}\\s+[\\wéûô]+\\.?\\s+\\d{4})/;\n\nlet arrMatch = html.match(arrivalPattern);\nlet depMatch = html.match(departurePattern);\n\nif (arrMatch && depMatch) {\n  checkIn = parseDateFR(arrMatch[1]);\n  checkOut = parseDateFR(depMatch[1]);\n} else {\n  arrMatch = html.match(checkinPattern);\n  depMatch = html.match(checkoutPattern);\n  if (arrMatch && depMatch) {\n    checkIn = parseDateFR(arrMatch[1]);\n    checkOut = parseDateFR(depMatch[1]);\n  } else {\n    const rangeMatch = html.match(dateRangePattern);\n    if (rangeMatch) {\n      checkIn = parseDateFR(rangeMatch[1]);\n      checkOut = parseDateFR(rangeMatch[2]);\n    }\n  }\n}\n\n// --- Extraction du nombre de voyageurs ---\nlet nbGuests = 1;\n\nconst guestsPatterns = [\n  /(\\d+)\\s+(?:voyageur|adulte|personne|guest|occupant)/i,\n  /[Nn]ombre\\s+de\\s+(?:voyageur|personne|client)s?\\s*:\\s*(\\d+)/,\n  /[Gg]uests?\\s*:\\s*(\\d+)/,\n  /[Oo]ccupants?\\s*:\\s*(\\d+)/,\n];\n\nfor (const pattern of guestsPatterns) {\n  const match = html.match(pattern);\n  if (match) {\n    nbGuests = parseInt(match[1] || match[2], 10);\n    break;\n  }\n}\n\n// --- Extraction du montant ---\n// Booking FR : \"Prix total : 450,00 EUR\" ou \"Montant : € 450,00\"\n// Booking EN : \"Total price: EUR 450.00\" ou \"€ 450.00\"\nlet amount = null;\n\nconst amountPatterns = [\n  /[Pp]rix\\s+total\\s*:?\\s*[€]?\\s*([\\d\\s]+[.,]\\d{2})\\s*(?:EUR|€)?/,\n  /[Tt]otal\\s+(?:price|amount)\\s*:?\\s*(?:EUR|€)?\\s*([\\d\\s]+[.,]\\d{2})/,\n  /[Mm]ontant\\s+total\\s*:?\\s*(?:EUR|€)?\\s*([\\d\\s]+[.,]\\d{2})/,\n  /[Cc]ommission[^€\\d]*(?:EUR|€)\\s*([\\d\\s]+[.,]\\d{2})/,\n  /(?:EUR|€)\\s*([\\d\\s]+[.,]\\d{2})/,\n  /([\\d\\s]+[.,]\\d{2})\\s*(?:EUR|€)/,\n];\n\nfor (const pattern of amountPatterns) {\n  const match = html.match(pattern);\n  if (match) {\n    amount = parseFloat(match[1].replace(/\\s/g, '').replace(',', '.'));\n    break;\n  }\n}\n\n// --- Extraction du numero de confirmation Booking ---\n// Format Booking : numero a 9-10 chiffres ou format \"12345678.1\"\nlet platformRefId = '';\n\nconst refPatterns = [\n  // \"Numéro de confirmation : 1234567890\"\n  /[Nn]um[ée]ro\\s+de\\s+confirmation\\s*:\\s*(\\d{7,12}(?:\\.\\d+)?)/,\n  // \"Confirmation number: 1234567890\"\n  /[Cc]onfirmation\\s+number\\s*:\\s*(\\d{7,12}(?:\\.\\d+)?)/,\n  // \"Réf. : 1234567890\"\n  /[Rr][ée]f\\.?\\s*:\\s*(\\d{7,12}(?:\\.\\d+)?)/,\n  // \"Booking reference: 1234567890\"\n  /[Bb]ooking\\s+reference\\s*:\\s*(\\d{7,12}(?:\\.\\d+)?)/,\n  // Numero seul dans un element HTML specifique\n  /class=\"[^\"]*(?:confirmation|booking)[_-]?(?:number|ref)[^\"]*\"[^>]*>(\\d{7,12}(?:\\.\\d+)?)</i,\n  // Dans le sujet : \"Confirmation #1234567890\"\n  /[Cc]onfirmation\\s*#?\\s*(\\d{7,12})/,\n];\n\nfor (const pattern of refPatterns) {\n  const match = html.match(pattern) || subject.match(pattern);\n  if (match) {\n    platformRefId = match[1].trim();\n    break;\n  }\n}\n\n// --- Extraction du nom de la propriete ---\nlet propertyName = '';\n\nconst propertyPatterns = [\n  // \"Nom de l'hébergement : Villa Sidi Kaouki\"\n  /[Nn]om\\s+de\\s+l'(?:hébergement|h[ée]bergement|logement)\\s*:\\s*([^<\\n]+)/,\n  // \"Property: Villa Sidi Kaouki\"\n  /[Pp]roperty\\s*:\\s*([^<\\n]+)/,\n  // \"pour Villa Sidi Kaouki\"\n  /pour\\s+(?:le\\s+|votre\\s+)?([A-ZÀ-Ü][^<,\\n]{2,40}?)(?:\\s+[àa]\\s+|\\s*,|\\s*<)/,\n  // \"Reservation at Villa Sidi Kaouki\"\n  /(?:at|pour|chez)\\s+([A-ZÀ-Ü][^<,\\n]{2,40}?)(?:\\s*[-–,<]|\\s*$)/i,\n  // Dans le sujet\n  /(?:pour|at|chez)\\s+([A-ZÀ-Ü][^<,\\n]{2,40})/i,\n];\n\nfor (const pattern of propertyPatterns) {\n  const match = html.match(pattern) || subject.match(pattern);\n  if (match) {\n    propertyName = match[1].trim();\n    break;\n  }\n}\n\n// --- Construction de l'output ---\nconst result = {\n  platform: 'booking',\n  emailType,\n  guestName: guestName || '[NON DETECTE]',\n  checkIn: checkIn || '[NON DETECTE]',\n  checkOut: checkOut || '[NON DETECTE]',\n  nbGuests,\n  amount,\n  platformRefId: platformRefId || '[NON DETECTE]',\n  propertyName: propertyName || '[NON DETECTE]',\n  sourceEmailId: messageId,\n  _parseQuality: {\n    guestName: !!guestName,\n    dates: !!(checkIn && checkOut),\n    amount: amount !== null,\n    reference: !!platformRefId,\n    property: !!propertyName,\n  },\n  _rawSubject: subject,\n};\n\nconst criticalFields = [guestName, checkIn, checkOut, platformRefId];\nresult._isPartialParse = criticalFields.some(f => !f);\n\nreturn [{json: result}];"
+      },
+      "id": "59942b58-9a54-4ffd-8446-90213f967a62",
+      "name": "Parser email Booking",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        4336,
+        1440
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Log l'email non reconnu et preparer l'alerte\nconst from = $input.first().json.from || 'inconnu';\nconst subject = $input.first().json.subject || '(sans sujet)';\nconst date = $input.first().json.date || new Date().toISOString();\n\nreturn [{\n  json: {\n    alertType: 'unknown_email',\n    from,\n    subject,\n    date,\n    message: `Email non reconnu recu de ${from} : \"${subject}\"`,\n  }\n}];"
+      },
+      "id": "f0c97f82-bf13-4d21-af8c-ead28338d5ec",
+      "name": "Email inconnu",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        4336,
+        1728
+      ]
+    },
+    {
+      "parameters": {
+        "fromEmail": "gustiez.dorian@neurolia.work",
+        "toEmail": "gustiez.dorian@neurolia.work",
+        "subject": "[Loc Immo] Email non reconnu recu",
+        "html": "<h2>Email non reconnu</h2><p>Un email provenant d'un expediteur non reconnu a ete recu sur la boite de reservations.</p><p><strong>De :</strong> {{ $json.from }}</p><p><strong>Sujet :</strong> {{ $json.subject }}</p><p><strong>Date :</strong> {{ $json.date }}</p><p>Veuillez verifier manuellement cet email.</p>",
+        "options": {}
+      },
+      "id": "ae1efd6a-206f-4182-9ac6-ee63e6c884b0",
+      "name": "Alerte email inconnu",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        4576,
+        1728
+      ],
+      "webhookId": "a300d59a-4f4a-4235-be9c-c1d1ae5a95d9",
+      "credentials": {
+        "smtp": {
+          "id": "z1Bus01typcwYd7C",
+          "name": "SMTP"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "cond-node-wf01-007a",
+              "leftValue": "={{ $json.emailType }}",
+              "rightValue": "confirmation",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "b90310e3-c7d2-40ca-9c08-986117bfa695",
+      "name": "Confirmation ?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        4576,
+        1280
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "cond-node-wf01-007b",
+              "leftValue": "={{ $json.emailType }}",
+              "rightValue": "modification",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "cca26962-7476-4c27-9566-922289a399f3",
+      "name": "Modification ?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        4576,
+        1488
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Preparer le payload pour l'API webhook\nconst data = $input.first().json;\n\nreturn [{\n  json: {\n    platform: data.platform,\n    platformRefId: data.platformRefId,\n    propertyName: data.propertyName,\n    guestName: data.guestName,\n    checkIn: data.checkIn,\n    checkOut: data.checkOut,\n    nbGuests: data.nbGuests,\n    amount: data.amount,\n    currency: 'EUR',\n    status: 'confirmed',\n    sourceType: 'email_parse',\n    sourceEmailId: data.sourceEmailId,\n  }\n}];"
+      },
+      "id": "1e79e266-80d4-425d-b7a1-9ddbd320a8f8",
+      "name": "Payload confirmation",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        4832,
+        1136
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Preparer le payload pour l'API webhook (modification)\nconst data = $input.first().json;\n\nreturn [{\n  json: {\n    platform: data.platform,\n    platformRefId: data.platformRefId,\n    propertyName: data.propertyName,\n    guestName: data.guestName,\n    checkIn: data.checkIn,\n    checkOut: data.checkOut,\n    nbGuests: data.nbGuests,\n    amount: data.amount,\n    currency: 'EUR',\n    status: 'confirmed',\n    sourceType: 'email_parse',\n    sourceEmailId: data.sourceEmailId,\n  }\n}];"
+      },
+      "id": "776cfd21-7f7d-4ce9-9697-283982f65cb5",
+      "name": "Payload modification",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        4832,
+        1376
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const data = $input.first().json;\n\nreturn [{\n  json: {\n    platform: data.platform,\n    platformRefId: data.platformRefId,\n    propertyName: data.propertyName,\n    guestName: data.guestName,\n    checkIn: data.checkIn,\n    checkOut: data.checkOut,\n    nbGuests: data.nbGuests,\n    amount: data.amount,\n    currency: 'EUR',\n    status: 'cancelled',\n    sourceType: 'email_parse',\n    sourceEmailId: data.sourceEmailId,\n  }\n}];"
+      },
+      "id": "abdd93e8-cbc5-4122-9224-182b881e9443",
+      "name": "Payload annulation",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        4832,
+        1920
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Config').first().json.DASHBOARD_URL }}/api/webhooks/n8n/reservation",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-api-key",
+              "value": "8708c0a6d4766898a2293e41d5137b4b11b3e497a37fc043416b2f823079ca27"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json) }}",
+        "options": {}
+      },
+      "id": "7470e737-7324-4907-a7d3-cf67cb5fc52a",
+      "name": "Upsert reservation",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        5072,
+        1280
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "cond-wf01-012",
+              "leftValue": "={{ $json.action }}",
+              "rightValue": "created",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "90a18a4f-5e93-4217-9966-06fcc9fce3c9",
+      "name": "Nouvelle reservation ?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        5328,
+        1280
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Config').first().json.N8N_WF04_WEBHOOK_URL }}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.reservation) }}",
+        "options": {}
+      },
+      "id": "e23c4de6-3436-4d1e-b58b-a1851c9a9423",
+      "name": "Creer tache menage",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        5584,
+        1184
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Config').first().json.N8N_WF05_WEBHOOK_URL }}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ triggerType: 'confirmation', reservationId: $json.reservation.id, propertyId: $json.reservation.property_id, guestName: $json.reservation.guest_name, checkIn: $json.reservation.check_in, checkOut: $json.reservation.check_out }) }}",
+        "options": {}
+      },
+      "id": "50e64bbd-0c56-425f-a186-63de8d03f6c1",
+      "name": "Envoyer confirmation voyageur",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        5584,
+        1376
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// ============================================================\n// Config — Variables de configuration Loc Immo\n// Modifier les valeurs ci-dessous selon votre environnement\n// ============================================================\n\nreturn [{\n  json: {\n    DASHBOARD_URL: 'https://dashboard-loc-immo.vercel.app',\n    SMTP_FROM_EMAIL: 'gustiez.dorian@neurolia.work',\n    ADMIN_EMAIL: 'gustiez.dorian@neurolia.work',\n    N8N_WF04_WEBHOOK_URL: 'https://n8n.srv1207220.hstgr.cloud/webhook/wf04-cleaning-task',\n    N8N_WF05_WEBHOOK_URL: 'https://n8n.srv1207220.hstgr.cloud/webhook/wf05-auto-message',\n  }\n}];"
+      },
+      "id": "02dc030c-9f88-4492-9c5e-a637fc636d33",
+      "name": "Config",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3840,
+        1152
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "cond-node-wf01-008",
+              "leftValue": "={{ $json.emailType }}",
+              "rightValue": "inquiry",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "d4e5f6a7-b8c9-0d1e-2f3a-4b5c6d7e8f90",
+      "name": "Demande ?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        4576,
+        1648
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "e5f6a7b8-c9d0-1e2f-3a4b-5c6d7e8f9a01",
+      "name": "Ignorer demande",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        4832,
+        1648
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "cond-node-wf01-009",
+              "leftValue": "={{ $json.emailType }}",
+              "rightValue": "cancellation",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "f6a7b8c9-d0e1-2f3a-4b5c-6d7e8f9a0112",
+      "name": "Annulation ?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        4576,
+        1840
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "a7b8c9d0-e1f2-3a4b-5c6d-7e8f9a011223",
+      "name": "Ignorer email",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        4832,
+        2080
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Recevoir email": {
+      "main": [
+        [
+          {
+            "node": "Config",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Email Airbnb ?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Email Airbnb ?": {
+      "main": [
+        [
+          {
+            "node": "Parser email Airbnb",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Email Booking ?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Email Booking ?": {
+      "main": [
+        [
+          {
+            "node": "Parser email Booking",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Email inconnu",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parser email Airbnb": {
+      "main": [
+        [
+          {
+            "node": "Confirmation ?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parser email Booking": {
+      "main": [
+        [
+          {
+            "node": "Confirmation ?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Email inconnu": {
+      "main": [
+        [
+          {
+            "node": "Alerte email inconnu",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Confirmation ?": {
+      "main": [
+        [
+          {
+            "node": "Payload confirmation",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Modification ?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Modification ?": {
+      "main": [
+        [
+          {
+            "node": "Payload modification",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Demande ?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Payload confirmation": {
+      "main": [
+        [
+          {
+            "node": "Upsert reservation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Payload modification": {
+      "main": [
+        [
+          {
+            "node": "Upsert reservation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Payload annulation": {
+      "main": [
+        [
+          {
+            "node": "Upsert reservation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upsert reservation": {
+      "main": [
+        [
+          {
+            "node": "Nouvelle reservation ?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Nouvelle reservation ?": {
+      "main": [
+        [
+          {
+            "node": "Creer tache menage",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Envoyer confirmation voyageur",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Config": {
+      "main": [
+        []
+      ]
+    },
+    "Demande ?": {
+      "main": [
+        [
+          {
+            "node": "Ignorer demande",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Annulation ?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Annulation ?": {
+      "main": [
+        [
+          {
+            "node": "Payload annulation",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Ignorer email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false,
+    "timeSavedMode": "fixed",
+    "errorWorkflow": "Llq5u9tJbIJAm6kH",
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "versionId": "eeef2db5-19ee-4e15-89c5-4612dd13729b",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "53757d982cfc1ea69cd2856d22e27642cd4adf0846c52a03f167ef14d4fdf8ca"
+  },
+  "id": "12ZkL93SxVltvCIT",
+  "tags": [
+    {
+      "updatedAt": "2026-02-12T15:44:08.848Z",
+      "createdAt": "2026-02-12T15:44:08.848Z",
+      "id": "0WNyn4JsajsZ3A7w",
+      "name": "parseur-email"
+    },
+    {
+      "updatedAt": "2026-02-12T15:44:08.851Z",
+      "createdAt": "2026-02-12T15:44:08.851Z",
+      "id": "3qJeVqH1QTWW8JDM",
+      "name": "reservations"
+    },
+    {
+      "updatedAt": "2026-02-12T15:11:24.538Z",
+      "createdAt": "2026-02-12T15:11:24.538Z",
+      "id": "SGTxR2n6419dHjHp",
+      "name": "loc-immo"
+    }
+  ]
+}

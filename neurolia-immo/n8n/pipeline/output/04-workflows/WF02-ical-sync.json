@@ -1,0 +1,537 @@
+{
+  "name": "WF02 — iCal Sync",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "*/30 * * * *"
+            }
+          ]
+        },
+        "options": {
+          "timezone": "Europe/Paris"
+        }
+      },
+      "id": "c2a3b4d5-0201-4000-8000-000000000001",
+      "name": "Schedule Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "property-created",
+        "authentication": "headerAuth",
+        "responseMode": "onReceived",
+        "responseCode": 200,
+        "options": {}
+      },
+      "id": "c2a3b4d5-0201-4000-8000-000000000002",
+      "name": "Webhook: property.created",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [250, 550],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "CRED-04",
+          "name": "CRED-04 — Header Auth - API Key Dashboard"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "manual",
+        "assignments": {
+          "assignments": [
+            {
+              "id": "cfg-02-01",
+              "name": "DASHBOARD_URL",
+              "value": "={{ $env.DASHBOARD_URL }}",
+              "type": "string"
+            },
+            {
+              "id": "cfg-02-02",
+              "name": "N8N_WEBHOOK_API_KEY",
+              "value": "={{ $env.N8N_WEBHOOK_API_KEY }}",
+              "type": "string"
+            },
+            {
+              "id": "cfg-02-05",
+              "name": "SMTP_FROM_EMAIL",
+              "value": "={{ $env.SMTP_FROM_EMAIL }}",
+              "type": "string"
+            }
+          ]
+        }
+      },
+      "id": "c2a3b4d5-0201-4000-8000-000000000003",
+      "name": "Config",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [500, 300]
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "properties",
+        "returnAll": true,
+        "filterType": "string",
+        "filterString": "=is_active=eq.true&or=(ical_airbnb_url.not.is.null,ical_booking_url.not.is.null)&select=id,name,owner_id,ical_airbnb_url,ical_booking_url",
+        "options": {}
+      },
+      "id": "c2a3b4d5-0201-4000-8000-000000000004",
+      "name": "Supabase: Get Active Properties",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [750, 300],
+      "credentials": {
+        "supabaseApi": {
+          "id": "CRED-03-NATIVE",
+          "name": "Supabase Neurolia Immo"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "batchSize": 1,
+        "options": {}
+      },
+      "id": "c2a3b4d5-0201-4000-8000-000000000005",
+      "name": "Split In Batches",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [1000, 300]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $json.ical_airbnb_url }}",
+        "options": {
+          "timeout": 15000,
+          "redirect": {
+            "redirect": {
+              "followRedirects": true
+            }
+          }
+        }
+      },
+      "id": "c2a3b4d5-0201-4000-8000-000000000006",
+      "name": "HTTP: Fetch iCal Airbnb",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1250, 300],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $('Split In Batches').item.json.ical_booking_url }}",
+        "options": {
+          "timeout": 15000,
+          "redirect": {
+            "redirect": {
+              "followRedirects": true
+            }
+          }
+        }
+      },
+      "id": "c2a3b4d5-0201-4000-8000-000000000007",
+      "name": "HTTP: Fetch iCal Booking",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1500, 300],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "language": "javaScript",
+        "jsCode": "// ============================================================\n// WF02 — Parse iCal feeds (RFC 5545)\n// Extraire VEVENT, filtrer futur 90 jours, separer reservations vs blocked\n// ============================================================\n\nconst property = $('Split In Batches').item.json;\nconst airbnbRaw = $('HTTP: Fetch iCal Airbnb').item.json.data || \"\";\nconst bookingRaw = $('HTTP: Fetch iCal Booking').item.json.data || \"\";\n\nconst now = new Date();\nconst today = new Date(now.getFullYear(), now.getMonth(), now.getDate());\nconst future90 = new Date(today);\nfuture90.setDate(future90.getDate() + 90);\nconst past7 = new Date(today);\npast7.setDate(past7.getDate() - 7);\n\n// --- Parser VEVENT ---\nfunction parseIcalEvents(icalData, platform) {\n  if (!icalData || !icalData.includes('BEGIN:VEVENT')) return [];\n\n  const events = [];\n  const vevents = icalData.split('BEGIN:VEVENT');\n\n  for (let i = 1; i < vevents.length; i++) {\n    const block = vevents[i].split('END:VEVENT')[0];\n\n    const getField = (name) => {\n      const regex = new RegExp(`${name}[^:]*:(.*)`, 'i');\n      const match = block.match(regex);\n      return match ? match[1].trim() : null;\n    };\n\n    const dtstart = getField('DTSTART');\n    const dtend = getField('DTEND');\n    const summary = getField('SUMMARY') || '';\n    const uid = getField('UID') || '';\n    const description = getField('DESCRIPTION') || '';\n\n    if (!dtstart || !dtend) continue;\n\n    // Convertir YYYYMMDD → Date\n    const parseDate = (str) => {\n      if (!str) return null;\n      const clean = str.replace(/[^0-9]/g, '').substring(0, 8);\n      if (clean.length < 8) return null;\n      return new Date(\n        parseInt(clean.substring(0, 4)),\n        parseInt(clean.substring(4, 6)) - 1,\n        parseInt(clean.substring(6, 8))\n      );\n    };\n\n    const checkIn = parseDate(dtstart);\n    const checkOut = parseDate(dtend);\n\n    if (!checkIn || !checkOut) continue;\n\n    // Filtrer : futur 90 jours + 7 jours passe\n    if (checkOut < past7 || checkIn > future90) continue;\n\n    // Determiner si c'est une reservation ou un blocage\n    const blockedKeywords = ['not available', 'blocked', 'closed', 'indisponible', 'airbnb (not available)'];\n    const isBlocked = blockedKeywords.some(kw => summary.toLowerCase().includes(kw));\n\n    const formatDate = (d) => {\n      return d.getFullYear() + '-' +\n        String(d.getMonth() + 1).padStart(2, '0') + '-' +\n        String(d.getDate()).padStart(2, '0');\n    };\n\n    events.push({\n      uid: uid,\n      summary: summary,\n      description: description,\n      check_in: formatDate(checkIn),\n      check_out: formatDate(checkOut),\n      platform: platform,\n      is_blocked: isBlocked,\n      is_reservation: !isBlocked,\n      property_id: property.id,\n      raw_dtstart: dtstart,\n      raw_dtend: dtend\n    });\n  }\n\n  return events;\n}\n\nconst airbnbEvents = parseIcalEvents(airbnbRaw, 'airbnb');\nconst bookingEvents = parseIcalEvents(bookingRaw, 'booking');\n\n// Separer reservations et blocages\nconst allEvents = [...airbnbEvents, ...bookingEvents];\nconst reservations = allEvents.filter(e => e.is_reservation);\nconst blocked = allEvents.filter(e => e.is_blocked);\n\n// Detecter les erreurs de fetch\nconst fetchErrors = [];\nif (property.ical_airbnb_url && !airbnbRaw) {\n  fetchErrors.push({ platform: 'airbnb', error: 'Fetch failed or empty response' });\n}\nif (property.ical_booking_url && !bookingRaw) {\n  fetchErrors.push({ platform: 'booking', error: 'Fetch failed or empty response' });\n}\n\nreturn [{\n  json: {\n    property_id: property.id,\n    property_name: property.name,\n    owner_id: property.owner_id,\n    reservations: reservations,\n    blocked_periods: blocked,\n    total_events: allEvents.length,\n    total_reservations: reservations.length,\n    total_blocked: blocked.length,\n    fetch_errors: fetchErrors,\n    synced_at: new Date().toISOString()\n  }\n}];"
+      },
+      "id": "c2a3b4d5-0201-4000-8000-000000000008",
+      "name": "Code: Parse .ics",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1750, 300]
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "profiles",
+        "returnAll": false,
+        "limit": 1,
+        "filterType": "string",
+        "filterString": "=id=eq.{{ $json.owner_id }}&select=id,email,display_name",
+        "options": {}
+      },
+      "id": "c2a3b4d5-0201-4000-8000-000000000009",
+      "name": "Supabase: Get Owner",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [2000, 300],
+      "credentials": {
+        "supabaseApi": {
+          "id": "CRED-03-NATIVE",
+          "name": "Supabase Neurolia Immo"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "reservations",
+        "returnAll": true,
+        "filterType": "string",
+        "filterString": "=property_id=eq.{{ $('Code: Parse .ics').item.json.property_id }}&check_out=gte.{{ $now.minus(7, 'days').toFormat('yyyy-MM-dd') }}&check_in=lte.{{ $now.plus(90, 'days').toFormat('yyyy-MM-dd') }}&status=neq.cancelled&select=id,platform,platform_ref_id,source,guest_name,check_in,check_out,status,ical_uid",
+        "options": {}
+      },
+      "id": "c2a3b4d5-0201-4000-8000-00000000000a",
+      "name": "Supabase: Get DB Reservations",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [2250, 300],
+      "credentials": {
+        "supabaseApi": {
+          "id": "CRED-03-NATIVE",
+          "name": "Supabase Neurolia Immo"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "language": "javaScript",
+        "jsCode": "// ============================================================\n// WF02 — Compare iCal vs DB\n// Detecter anomalies avec tolerance 1 jour (timezone differences)\n// ============================================================\n\nconst icalData = $('Code: Parse .ics').item.json;\nconst dbReservations = $('Supabase: Get DB Reservations').all().map(i => i.json);\n// Si le resultat est un tableau dans un seul item\nconst dbResaArray = Array.isArray(dbReservations[0]) ? dbReservations[0] : dbReservations;\nconst icalReservations = icalData.reservations || [];\n\nconst TOLERANCE_DAYS = 1;\n\n// --- Helper : comparer dates avec tolerance ---\nfunction datesMatch(date1, date2, tolerance) {\n  if (!date1 || !date2) return false;\n  const d1 = new Date(date1);\n  const d2 = new Date(date2);\n  const diffMs = Math.abs(d1 - d2);\n  const diffDays = diffMs / (1000 * 60 * 60 * 24);\n  return diffDays <= tolerance;\n}\n\n// --- Helper : trouver un match DB pour une reservation iCal ---\nfunction findDbMatch(icalEvent, dbList) {\n  // 1. Match par ical_uid exact\n  if (icalEvent.uid) {\n    const uidMatch = dbList.find(db => db.ical_uid === icalEvent.uid);\n    if (uidMatch) return { match: uidMatch, method: 'ical_uid' };\n  }\n\n  // 2. Match par platform_ref_id (si present dans description/summary)\n  if (icalEvent.description) {\n    const refMatch = dbList.find(db =>\n      db.platform_ref_id && icalEvent.description.includes(db.platform_ref_id)\n    );\n    if (refMatch) return { match: refMatch, method: 'platform_ref_id' };\n  }\n\n  // 3. Match par dates + platform (avec tolerance)\n  const dateMatch = dbList.find(db =>\n    db.platform === icalEvent.platform &&\n    datesMatch(db.check_in, icalEvent.check_in, TOLERANCE_DAYS) &&\n    datesMatch(db.check_out, icalEvent.check_out, TOLERANCE_DAYS)\n  );\n  if (dateMatch) return { match: dateMatch, method: 'dates_platform' };\n\n  // 4. Match par dates uniquement (cross-platform, tolerance 0)\n  const crossMatch = dbList.find(db =>\n    datesMatch(db.check_in, icalEvent.check_in, 0) &&\n    datesMatch(db.check_out, icalEvent.check_out, 0)\n  );\n  if (crossMatch) return { match: crossMatch, method: 'dates_cross_platform' };\n\n  return null;\n}\n\nconst anomalies = [];\nconst upsertPayloads = [];\nconst matchedDbIds = new Set();\n\n// --- 1. Pour chaque reservation iCal, chercher un match DB ---\nfor (const icalEvent of icalReservations) {\n  const result = findDbMatch(icalEvent, dbResaArray);\n\n  if (!result) {\n    // iCal a une reservation, DB non → missing_reservation\n    anomalies.push({\n      type: 'missing_reservation',\n      severity: 'warning',\n      message: `Reservation iCal non trouvee en DB`,\n      ical_event: {\n        uid: icalEvent.uid,\n        summary: icalEvent.summary,\n        check_in: icalEvent.check_in,\n        check_out: icalEvent.check_out,\n        platform: icalEvent.platform\n      }\n    });\n\n    // Creer un payload upsert\n    upsertPayloads.push({\n      property_id: icalData.property_id,\n      platform: icalEvent.platform,\n      source: 'ical',\n      guest_name: icalEvent.summary || 'Voyageur iCal',\n      check_in: icalEvent.check_in,\n      check_out: icalEvent.check_out,\n      ical_uid: icalEvent.uid,\n      raw_ical_data: {\n        summary: icalEvent.summary,\n        description: icalEvent.description,\n        dtstart: icalEvent.raw_dtstart,\n        dtend: icalEvent.raw_dtend\n      }\n    });\n  } else {\n    matchedDbIds.add(result.match.id);\n\n    // Verifier date_mismatch (si match par uid/ref mais dates differentes)\n    if (result.method === 'ical_uid' || result.method === 'platform_ref_id') {\n      if (!datesMatch(result.match.check_in, icalEvent.check_in, 0) ||\n          !datesMatch(result.match.check_out, icalEvent.check_out, 0)) {\n        anomalies.push({\n          type: 'date_mismatch',\n          severity: 'warning',\n          message: `Dates differentes entre iCal et DB`,\n          db_reservation: {\n            id: result.match.id,\n            check_in: result.match.check_in,\n            check_out: result.match.check_out\n          },\n          ical_event: {\n            uid: icalEvent.uid,\n            check_in: icalEvent.check_in,\n            check_out: icalEvent.check_out\n          }\n        });\n      }\n    }\n  }\n}\n\n// --- 2. Pour chaque reservation DB, verifier si elle est dans iCal ---\nfor (const dbResa of dbResaArray) {\n  if (matchedDbIds.has(dbResa.id)) continue;\n  if (dbResa.status === 'cancelled') continue;\n\n  // DB a une reservation, iCal non → missing_ical_block\n  // Ne pas alerter pour les reservations source \"ical\" (reconciliation normale)\n  if (dbResa.source !== 'ical') {\n    anomalies.push({\n      type: 'missing_ical_block',\n      severity: 'info',\n      message: `Reservation DB non trouvee dans iCal`,\n      db_reservation: {\n        id: dbResa.id,\n        guest_name: dbResa.guest_name,\n        check_in: dbResa.check_in,\n        check_out: dbResa.check_out,\n        platform: dbResa.platform,\n        source: dbResa.source\n      }\n    });\n  }\n}\n\n// Ajouter fetch errors comme anomalies\nfor (const fetchErr of (icalData.fetch_errors || [])) {\n  anomalies.push({\n    type: 'fetch_error',\n    severity: 'error',\n    message: `Erreur fetch iCal ${fetchErr.platform}`,\n    platform: fetchErr.platform,\n    error: fetchErr.error\n  });\n}\n\nreturn [{\n  json: {\n    property_id: icalData.property_id,\n    property_name: icalData.property_name,\n    owner_id: icalData.owner_id,\n    upsert_payloads: upsertPayloads,\n    anomalies: anomalies,\n    has_anomalies: anomalies.length > 0,\n    has_upserts: upsertPayloads.length > 0,\n    stats: {\n      ical_reservations: icalReservations.length,\n      db_reservations: dbResaArray.length,\n      matched: matchedDbIds.size,\n      new_from_ical: upsertPayloads.length,\n      anomalies_count: anomalies.length\n    },\n    synced_at: icalData.synced_at\n  }\n}];"
+      },
+      "id": "c2a3b4d5-0201-4000-8000-00000000000b",
+      "name": "Code: Compare iCal vs DB",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2500, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "if-02-01",
+              "leftValue": "={{ $json.has_upserts }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "c2a3b4d5-0201-4000-8000-00000000000c",
+      "name": "IF: Has Upserts?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [2750, 300]
+    },
+    {
+      "parameters": {
+        "language": "javaScript",
+        "jsCode": "// ============================================================\n// WF02 — Upsert iCal reservations via API\n// Envoie chaque payload individuellement a l'API App\n// ============================================================\n\nconst config = $('Config').item.json;\nconst compareResult = $input.item.json;\nconst payloads = compareResult.upsert_payloads || [];\n\nconst results = [];\n\nfor (const payload of payloads) {\n  const idempotencyKey = `wf02-ical-${payload.platform}-${payload.ical_uid}-${Date.now()}`;\n\n  try {\n    const response = await fetch(\n      `${config.DASHBOARD_URL}/api/webhooks/n8n/reservation`,\n      {\n        method: 'POST',\n        headers: {\n          'Content-Type': 'application/json',\n          'x-api-key': config.N8N_WEBHOOK_API_KEY,\n          'x-idempotency-key': idempotencyKey\n        },\n        body: JSON.stringify(payload)\n      }\n    );\n\n    const data = await response.json();\n    results.push({\n      success: response.ok,\n      action: data.action || 'unknown',\n      ical_uid: payload.ical_uid,\n      check_in: payload.check_in,\n      check_out: payload.check_out,\n      status_code: response.status\n    });\n  } catch (err) {\n    results.push({\n      success: false,\n      error: err.message,\n      ical_uid: payload.ical_uid,\n      check_in: payload.check_in,\n      check_out: payload.check_out\n    });\n  }\n}\n\nreturn [{\n  json: {\n    ...compareResult,\n    upsert_results: results,\n    upserts_successful: results.filter(r => r.success).length,\n    upserts_failed: results.filter(r => !r.success).length\n  }\n}];"
+      },
+      "id": "c2a3b4d5-0201-4000-8000-00000000000d",
+      "name": "Code: Upsert Reservations",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [3000, 200]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "if-02-02",
+              "leftValue": "={{ $json.has_anomalies }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "c2a3b4d5-0201-4000-8000-00000000000e",
+      "name": "IF: Has Anomalies?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [3250, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Config').item.json.DASHBOARD_URL }}/api/webhooks/n8n/ical-alert",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-api-key",
+              "value": "={{ $('Config').item.json.N8N_WEBHOOK_API_KEY }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyContentType": "json",
+        "jsonBody": "={{ JSON.stringify({ property_id: $json.property_id, anomalies: $json.anomalies, synced_at: $json.synced_at }) }}",
+        "options": {
+          "retry": {
+            "maxTries": 2
+          }
+        }
+      },
+      "id": "c2a3b4d5-0201-4000-8000-00000000000f",
+      "name": "HTTP: Post iCal Alert",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [3500, 200]
+    },
+    {
+      "parameters": {
+        "fromEmail": "={{ $('Config').item.json.SMTP_FROM_EMAIL }}",
+        "toEmail": "={{ $('Supabase: Get Owner').item.json.email }}",
+        "subject": "=[Neurolia-Immo] Anomalie iCal — {{ $json.property_name }}",
+        "emailType": "html",
+        "html": "={{ (function() { const anomalies = $json.anomalies; const propName = $json.property_name; const dashUrl = $('Config').item.json.DASHBOARD_URL; let html = '<div style=\"font-family:-apple-system,sans-serif;max-width:600px;margin:0 auto;\">'; html += '<div style=\"background:#f59e0b;color:#fff;padding:16px;border-radius:8px 8px 0 0;\"><h2 style=\"margin:0;\">Anomalie detectee</h2></div>'; html += '<div style=\"padding:16px;background:#fffbeb;border:1px solid #f59e0b;border-top:none;border-radius:0 0 8px 8px;\">'; html += '<p>Propriete : <strong>' + propName + '</strong></p>'; html += '<table style=\"width:100%;border-collapse:collapse;\">'; html += '<tr style=\"background:#fef3c7;\"><th style=\"padding:8px;text-align:left;\">Type</th><th style=\"padding:8px;text-align:left;\">Details</th></tr>'; for (const a of anomalies) { html += '<tr style=\"border-bottom:1px solid #e5e7eb;\"><td style=\"padding:8px;\">' + a.type + '</td><td style=\"padding:8px;\">' + a.message + '</td></tr>'; } html += '</table>'; html += '<p style=\"margin-top:16px;\"><a href=\"' + dashUrl + '/properties\" style=\"background:#1a1a2e;color:#fff;padding:10px 20px;border-radius:6px;text-decoration:none;\">Voir mes biens</a></p>'; html += '</div></div>'; return html; })() }}",
+        "options": {
+          "replyTo": "={{ $('Config').item.json.SMTP_FROM_EMAIL }}"
+        }
+      },
+      "id": "c2a3b4d5-0201-4000-8000-000000000010",
+      "name": "Send Email: iCal Alert",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.2,
+      "position": [3750, 200],
+      "credentials": {
+        "smtp": {
+          "id": "CRED-02",
+          "name": "CRED-02 — SMTP - Loc Immo"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook: property.created": {
+      "main": [
+        [
+          {
+            "node": "Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Config": {
+      "main": [
+        [
+          {
+            "node": "Supabase: Get Active Properties",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Supabase: Get Active Properties": {
+      "main": [
+        [
+          {
+            "node": "Split In Batches",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split In Batches": {
+      "main": [
+        [
+          {
+            "node": "HTTP: Fetch iCal Airbnb",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "HTTP: Fetch iCal Airbnb": {
+      "main": [
+        [
+          {
+            "node": "HTTP: Fetch iCal Booking",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP: Fetch iCal Booking": {
+      "main": [
+        [
+          {
+            "node": "Code: Parse .ics",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code: Parse .ics": {
+      "main": [
+        [
+          {
+            "node": "Supabase: Get Owner",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Supabase: Get Owner": {
+      "main": [
+        [
+          {
+            "node": "Supabase: Get DB Reservations",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Supabase: Get DB Reservations": {
+      "main": [
+        [
+          {
+            "node": "Code: Compare iCal vs DB",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code: Compare iCal vs DB": {
+      "main": [
+        [
+          {
+            "node": "IF: Has Upserts?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF: Has Upserts?": {
+      "main": [
+        [
+          {
+            "node": "Code: Upsert Reservations",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "IF: Has Anomalies?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code: Upsert Reservations": {
+      "main": [
+        [
+          {
+            "node": "IF: Has Anomalies?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF: Has Anomalies?": {
+      "main": [
+        [
+          {
+            "node": "HTTP: Post iCal Alert",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Split In Batches",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP: Post iCal Alert": {
+      "main": [
+        [
+          {
+            "node": "Send Email: iCal Alert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Email: iCal Alert": {
+      "main": [
+        [
+          {
+            "node": "Split In Batches",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "meta": {
+    "templateCredsSetupCompleted": false
+  },
+  "tags": []
+}

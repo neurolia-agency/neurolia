@@ -29,6 +29,7 @@ coverage/
 private_informations/
 sécurité/
 .claude/settings.local.json
+.mcp.json
 .ai/claude/runs/
 .ai/gemini/runs/
 .ai/**/transcripts/

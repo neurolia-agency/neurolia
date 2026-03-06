@@ -1,0 +1,697 @@
+{
+  "name": "Creation taches menage",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## Creation automatique des taches de menage\nA la reception d'une nouvelle reservation (webhook), cree automatiquement les taches de menage (checkout_clean + checkin_prep) et les assigne au personnel disponible.\n\n**Declencheur** : Webhook POST (avec authentification Header Auth)\n**Resultat** : Taches creees + staff notifie par email",
+        "height": 240,
+        "width": 500,
+        "color": 4
+      },
+      "id": "276937a7-e44b-4e65-a3c0-46dc5f6459ce",
+      "name": "Note",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        2128,
+        592
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## Assignation et notification\nAssignation round-robin du personnel de menage, puis envoi d'un email de notification a chaque membre du staff concerne avec les details du logement (adresse, code d'acces, voyageur).",
+        "height": 180,
+        "width": 420
+      },
+      "id": "3b8dc624-d80a-4c37-a8ca-5dcd7c3a243f",
+      "name": "Note1",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        4048,
+        592
+      ]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "wf04-cleaning-task",
+        "options": {}
+      },
+      "id": "8785d257-66de-495f-aba0-09c3061a2322",
+      "name": "Recevoir nouvelle reservation",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        2192,
+        848
+      ],
+      "webhookId": "wf04-cleaning-task"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Valider le payload minimal\nconst data = $input.first().json.body;\n\nconst required = ['id', 'property_id', 'check_in', 'check_out'];\nconst missing = required.filter(field => !data[field]);\n\nif (missing.length > 0) {\n  throw new Error(`Champs manquants dans le payload : ${missing.join(', ')}`);\n}\n\n// Verifier que check_out > check_in\nif (data.check_out <= data.check_in) {\n  throw new Error(`Dates invalides : check_in=${data.check_in}, check_out=${data.check_out}`);\n}\n\nreturn [{ json: data }];"
+      },
+      "id": "b58f1f9f-54d5-4d0e-a6af-4b276656435b",
+      "name": "Valider payload",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2432,
+        848
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "properties",
+        "limit": 1,
+        "filterType": "string",
+        "filterString": "=id=eq.{{ $json.property_id }}"
+      },
+      "id": "35932d92-0b32-487a-945d-aa9cd2d63259",
+      "name": "Get propriete",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        2688,
+        848
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "jAZu1DEMMOLAGYT0",
+          "name": "Supabase Neurolia Immo"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "users",
+        "limit": 1,
+        "filterType": "string",
+        "filterString": "=id=eq.{{ $json.owner_id }}"
+      },
+      "id": "ad633515-80ae-46fa-9f03-ceb35ab53f2a",
+      "name": "Get owner email",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        2816,
+        848
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "jAZu1DEMMOLAGYT0",
+          "name": "Supabase Neurolia Immo"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "cleaning_tasks",
+        "returnAll": true,
+        "filterType": "string",
+        "filterString": "=reservation_id=eq.{{ $node['Recevoir nouvelle reservation'].json.body.id }}&type=eq.checkout_clean"
+      },
+      "id": "d3b98f06-6943-45b8-83ae-bc8930672147",
+      "name": "Get tache checkout existante",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        2992,
+        848
+      ],
+      "alwaysOutputData": true,
+      "credentials": {
+        "supabaseApi": {
+          "id": "jAZu1DEMMOLAGYT0",
+          "name": "Supabase Neurolia Immo"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "id": "condition-wf04-001",
+              "leftValue": "={{ DateTime.fromISO($('Recevoir nouvelle reservation').first().json.body.check_in).diffNow('hours').hours }}",
+              "rightValue": 24,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "ddc87558-aa9e-4825-8799-dd2caec6e535",
+      "name": "Checkin prep necessaire ?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        3568,
+        752
+      ]
+    },
+    {
+      "parameters": {
+        "tableId": "cleaning_tasks",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "reservation_id",
+              "fieldValue": "={{ $('Recevoir nouvelle reservation').first().json.body.id }}"
+            },
+            {
+              "fieldId": "property_id",
+              "fieldValue": "={{ $('Recevoir nouvelle reservation').first().json.body.property_id }}"
+            },
+            {
+              "fieldId": "type",
+              "fieldValue": "checkin_prep"
+            },
+            {
+              "fieldId": "status",
+              "fieldValue": "pending"
+            },
+            {
+              "fieldId": "scheduled_date",
+              "fieldValue": "={{ $('Recevoir nouvelle reservation').first().json.body.check_in }}"
+            },
+            {
+              "fieldId": "checklist",
+              "fieldValue": "=[{\"label\":\"Verifier la proprete generale\",\"done\":false},{\"label\":\"Installer les draps propres\",\"done\":false},{\"label\":\"Disposer les serviettes\",\"done\":false},{\"label\":\"Verifier les produits d'accueil\",\"done\":false},{\"label\":\"Verifier le fonctionnement du chauffage/climatisation\",\"done\":false},{\"label\":\"Laisser les cles / verifier le digicode\",\"done\":false}]"
+            }
+          ]
+        }
+      },
+      "id": "bea773e4-0d58-4c20-9ed8-e63846d4cee2",
+      "name": "Creer tache checkin_prep",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        3856,
+        752
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "jAZu1DEMMOLAGYT0",
+          "name": "Supabase Neurolia Immo"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "users",
+        "returnAll": true,
+        "filterType": "string",
+        "filterString": "role=eq.cleaning_staff"
+      },
+      "id": "f945b293-5586-4158-84ae-4f10e4c74526",
+      "name": "Get staff actif",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        4096,
+        848
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "jAZu1DEMMOLAGYT0",
+          "name": "Supabase Neurolia Immo"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": " // ============================================================\n  // WF04 — Assignation round-robin des taches de menage\n  // ============================================================\n\n  // Recuperer TOUS les staff (array)\n  const staffList = $('Get staff actif').all().map(i => i.json);\n\n  const reservation = $('Recevoir nouvelle reservation').first().json.body;\n  const checkoutTask = $('Creer tache checkout_clean').first()?.json;\n  const checkinTask = $('Creer tache checkin_prep').first()?.json;\n\n  if (!staffList || staffList.length === 0) {\n    return [{\n      json: {\n        assignedCheckout: null,\n        assignedCheckin: null,\n        warning: 'Aucun personnel de menage actif. Taches non assignees.',\n      }\n    }];\n  }\n\n  if (staffList.length === 1) {\n    return [{\n      json: {\n        assignedCheckout: {\n          taskId: checkoutTask?.id,\n          staffId: staffList[0].id,\n          staffName: staffList[0].full_name,\n          staffEmail: staffList[0].email,\n        },\n        assignedCheckin: checkinTask ? {\n          taskId: checkinTask.id,\n          staffId: staffList[0].id,\n          staffName: staffList[0].full_name,\n          staffEmail: staffList[0].email,\n        } : null,\n      }\n    }];\n  }\n\n  // Round-robin simple base sur le timestamp\n  const staffIndex = Math.floor(Date.now() / 1000) % staffList.length;\n  const checkoutStaff = staffList[staffIndex];\n  const checkinStaff = staffList[(staffIndex + 1) % staffList.length];\n\n  return [{\n    json: {\n      assignedCheckout: {\n        taskId: checkoutTask?.id,\n        staffId: checkoutStaff.id,\n        staffName: checkoutStaff.full_name,\n        staffEmail: checkoutStaff.email,\n      },\n      assignedCheckin: checkinTask ? {\n        taskId: checkinTask.id,\n        staffId: checkinStaff.id,\n        staffName: checkinStaff.full_name,\n        staffEmail: checkinStaff.email,\n      } : null,\n    }\n  }];"
+      },
+      "id": "1d05a0ad-130f-41f8-8484-bff52d753721",
+      "name": "Assignation round-robin",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        4352,
+        848
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "tableId": "cleaning_tasks",
+        "filterType": "string",
+        "filterString": "=id=eq.{{ $json.assignedCheckout.taskId }}",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "assigned_to",
+              "fieldValue": "={{ $json.assignedCheckout.staffId }}"
+            }
+          ]
+        }
+      },
+      "id": "026b7980-890b-4aec-8321-b1604b097286",
+      "name": "Assigner checkout_clean",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        4608,
+        752
+      ],
+      "executeOnce": false,
+      "credentials": {
+        "supabaseApi": {
+          "id": "jAZu1DEMMOLAGYT0",
+          "name": "Supabase Neurolia Immo"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "tableId": "cleaning_tasks",
+        "filterType": "string",
+        "filterString": "=id=eq.{{ $json.assignedCheckin.taskId }}",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "assigned_to",
+              "fieldValue": "={{ $json.assignedCheckin.staffId }}"
+            }
+          ]
+        }
+      },
+      "id": "97fdb747-6f92-46cd-934c-51a4170e3e04",
+      "name": "Assigner checkin_prep",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        4608,
+        944
+      ],
+      "executeOnce": false,
+      "credentials": {
+        "supabaseApi": {
+          "id": "jAZu1DEMMOLAGYT0",
+          "name": "Supabase Neurolia Immo"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Construire les emails de notification pour le staff assigne                                                                            \n  const data = $('Assignation round-robin').first().json;                                                                                   \n  const reservation = $('Recevoir nouvelle reservation').first().json.body;                                                                 \n  const property = $('Get propriete').first().json;\n\n  const emails = [];\n\n  // Email pour le staff du checkout\n  if (data.assignedCheckout?.staffEmail) {\n    emails.push({\n      json: {\n        to: data.assignedCheckout.staffEmail,\n        subject: `[Loc Immo] Nouvelle tache : menage depart — ${property.name} (${reservation.check_out})`,\n        html: `\n          <div style=\"font-family: -apple-system, sans-serif; max-width: 500px;\">\n            <h2>Nouvelle tache de menage</h2>\n            <p>Bonjour ${data.assignedCheckout.staffName.split(' ')[0]},</p>\n            <p>Une nouvelle tache de menage t'a ete assignee :</p>\n            <div style=\"padding: 16px; background: #f9fafb; border-radius: 8px; border-left: 4px solid #dc2626;\">\n              <p><strong>Type :</strong> Menage depart</p>\n              <p><strong>Date :</strong> ${reservation.check_out}</p>\n              <p><strong>Logement :</strong> ${property.name}</p>\n              <p><strong>Adresse :</strong>\n                <a href=\"https://maps.google.com/?q=${encodeURIComponent(property.address + ', ' + property.city)}\">\n                  ${property.address}\n                </a>\n              </p>\n            </div>\n            <p style=\"margin-top: 16px;\">\n              <a href=\"https://app.locimmo.fr/cleaning\"\n                 style=\"display: inline-block; padding: 10px 20px; background: #059669;\n                        color: white; text-decoration: none; border-radius: 6px;\">\n                Voir mon planning\n              </a>\n            </p>\n          </div>\n        `,\n      }\n    });\n  }\n\n  // Email pour le staff du checkin_prep (si different)\n  if (data.assignedCheckin?.staffEmail) {\n    emails.push({\n      json: {\n        to: data.assignedCheckin.staffEmail,\n        subject: `[Loc Immo] Nouvelle tache : preparation arrivee — ${property.name} (${reservation.check_in})`,\n        html: `\n          <div style=\"font-family: -apple-system, sans-serif; max-width: 500px;\">\n            <h2>Nouvelle tache de preparation</h2>\n            <p>Bonjour ${data.assignedCheckin.staffName.split(' ')[0]},</p>\n            <p>Une nouvelle tache de preparation t'a ete assignee :</p>\n            <div style=\"padding: 16px; background: #f9fafb; border-radius: 8px; border-left: 4px solid #3b82f6;\">\n              <p><strong>Type :</strong> Preparation arrivee</p>\n              <p><strong>Date :</strong> ${reservation.check_in}</p>\n              <p><strong>Logement :</strong> ${property.name}</p>\n              <p><strong>Adresse :</strong>\n                <a href=\"https://maps.google.com/?q=${encodeURIComponent(property.address + ', ' + property.city)}\">\n                  ${property.address}\n                </a>\n              </p>\n            </div>\n            <p style=\"margin-top: 16px;\">\n              <a href=\"https://app.locimmo.fr/cleaning\"\n                 style=\"display: inline-block; padding: 10px 20px; background: #059669;\n                        color: white; text-decoration: none; border-radius: 6px;\">\n                Voir mon planning\n              </a>\n            </p>\n          </div>\n        `,\n      }\n    });\n  }\nif (emails.length === 0) {\n    return [{ json: { warning: 'Aucun email a envoyer', debug: data } }];                                                                    \n  }\n  return emails;"
+      },
+      "id": "2a346bed-a778-4660-a9dc-7e2308bb8b51",
+      "name": "Construire notification staff",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        4848,
+        848
+      ]
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "792dfdf0-aba4-46e6-81f8-256fe2b9bc2d",
+      "name": "Boucle notifications staff",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        5104,
+        848
+      ]
+    },
+    {
+      "parameters": {
+        "fromEmail": "=gustiez.dorian@neurolia.work",
+        "toEmail": "={{ $json.to }}",
+        "subject": "={{ $json.subject }}",
+        "html": "={{ $json.html }}",
+        "options": {}
+      },
+      "id": "b0139c43-ec90-47bd-82c0-37b8b9222b9b",
+      "name": "Envoyer notification staff",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        5344,
+        848
+      ],
+      "webhookId": "920f03c5-5532-49a5-8db4-902459f3518d",
+      "credentials": {
+        "smtp": {
+          "id": "z1Bus01typcwYd7C",
+          "name": "SMTP"
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "jsCode": "// ============================================================\n// Config — Variables de configuration Loc Immo\n// Modifier les valeurs ci-dessous selon votre environnement\n// ============================================================\n\nreturn [{\n  json: {\n    DASHBOARD_URL: 'https://app.locimmo.fr',\n    SMTP_FROM_EMAIL: 'gustiez.dorian@neurolia.work',\n    ADMIN_EMAIL: 'gustiez.dorian@neurolia.work',\n    N8N_WF04_WEBHOOK_URL: 'https://n8n.srv1207220.hstgr.cloud/webhook/wf04-cleaning-task',\n    N8N_WF05_WEBHOOK_URL: 'https://n8n.srv1207220.hstgr.cloud/webhook/wf05-auto-message',\n  }\n}];"
+      },
+      "id": "df578b0d-7841-48a8-8a6c-95c1fcaa65a6",
+      "name": "Config",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1984,
+        992
+      ]
+    },
+    {
+      "parameters": {
+        "tableId": "cleaning_tasks",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "reservation_id",
+              "fieldValue": "={{ $('Recevoir nouvelle reservation').first().json.body.id }}"
+            },
+            {
+              "fieldId": "property_id",
+              "fieldValue": "={{ $('Recevoir nouvelle reservation').first().json.body.property_id }}"
+            },
+            {
+              "fieldId": "type",
+              "fieldValue": "checkout_clean"
+            },
+            {
+              "fieldId": "status",
+              "fieldValue": "pending"
+            },
+            {
+              "fieldId": "scheduled_date",
+              "fieldValue": "={{ $('Recevoir nouvelle reservation').first().json.body.check_out }}"
+            },
+            {
+              "fieldId": "checklist",
+              "fieldValue": "[{\"label\":\"Nettoyage complet salle de bain\",\"done\":false},{\"label\":\"Changement des draps\",\"done\":false},{\"label\":\"Nettoyage cuisine\",\"done\":false},{\"label\":\"Aspirer/laver les sols\",\"done\":false},{\"label\":\"Vider les poubelles\",\"done\":false},{\"label\":\"Verifier inventaire\",\"done\":false}]"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        3392,
+        912
+      ],
+      "id": "893cefb6-f1d6-409e-8a2a-4082d2c84379",
+      "name": "Creer tache checkout_clean",
+      "credentials": {
+        "supabaseApi": {
+          "id": "jAZu1DEMMOLAGYT0",
+          "name": "Supabase Neurolia Immo"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "27e9409e-5c6e-4314-8ed8-14f6361201ce",
+              "leftValue": "={{ $json.id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        3200,
+        848
+      ],
+      "id": "07775ef7-ba1a-4ac1-a824-801b787b115c",
+      "name": "If"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Recevoir nouvelle reservation": {
+      "main": [
+        [
+          {
+            "node": "Config",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Valider payload",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Valider payload": {
+      "main": [
+        [
+          {
+            "node": "Get propriete",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get propriete": {
+      "main": [
+        [
+          {
+            "node": "Get owner email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get owner email": {
+      "main": [
+        [
+          {
+            "node": "Get tache checkout existante",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get tache checkout existante": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Checkin prep necessaire ?": {
+      "main": [
+        [
+          {
+            "node": "Creer tache checkin_prep",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Get staff actif",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Creer tache checkin_prep": {
+      "main": [
+        [
+          {
+            "node": "Get staff actif",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get staff actif": {
+      "main": [
+        [
+          {
+            "node": "Assignation round-robin",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Assignation round-robin": {
+      "main": [
+        [
+          {
+            "node": "Assigner checkout_clean",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Assigner checkin_prep",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Assigner checkout_clean": {
+      "main": [
+        [
+          {
+            "node": "Construire notification staff",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Assigner checkin_prep": {
+      "main": [
+        [
+          {
+            "node": "Construire notification staff",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Construire notification staff": {
+      "main": [
+        [
+          {
+            "node": "Boucle notifications staff",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Boucle notifications staff": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Envoyer notification staff",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Envoyer notification staff": {
+      "main": [
+        [
+          {
+            "node": "Boucle notifications staff",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Creer tache checkout_clean": {
+      "main": [
+        [
+          {
+            "node": "Checkin prep necessaire ?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Checkin prep necessaire ?",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Creer tache checkout_clean",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false,
+    "timeSavedMode": "fixed",
+    "errorWorkflow": "Llq5u9tJbIJAm6kH",
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "versionId": "a487cd10-30ab-47b9-88a3-b835a92e041f",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "53757d982cfc1ea69cd2856d22e27642cd4adf0846c52a03f167ef14d4fdf8ca"
+  },
+  "id": "QIM5RPmejqk1p5zu",
+  "tags": [
+    {
+      "updatedAt": "2026-02-12T15:40:41.020Z",
+      "createdAt": "2026-02-12T15:40:41.020Z",
+      "id": "7HdYhBKUT4dWuIHC",
+      "name": "automatisation"
+    },
+    {
+      "updatedAt": "2026-02-12T15:40:41.018Z",
+      "createdAt": "2026-02-12T15:40:41.018Z",
+      "id": "A8Am0pqVa5kdMWE6",
+      "name": "menage"
+    },
+    {
+      "updatedAt": "2026-02-12T15:11:24.538Z",
+      "createdAt": "2026-02-12T15:11:24.538Z",
+      "id": "SGTxR2n6419dHjHp",
+      "name": "loc-immo"
+    }
+  ]
+}

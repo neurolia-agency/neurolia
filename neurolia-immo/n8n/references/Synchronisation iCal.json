@@ -1,0 +1,671 @@
+{
+  "name": "Synchronisation iCal",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## Synchronisation iCal\nCe workflow recupere les flux iCal (Airbnb + Booking) de chaque propriete, les compare avec les reservations en base de donnees, et detecte les anomalies (reservations manquantes, ecarts de dates).\n\n**Declencheur** : Cron toutes les 30 min\n**Sortie** : POST /api/webhooks/n8n/ical-alert + email proprietaire",
+        "height": 220,
+        "width": 380,
+        "color": 4
+      },
+      "id": "e610b2d1-81a5-4db4-8133-bb2c8e740178",
+      "name": "Note",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        176,
+        -80
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## Boucle de traitement\nChaque propriete est traitee individuellement :\n1. Recuperation des flux iCal (Airbnb + Booking)\n2. Parsing des fichiers .ics (RFC 5545)\n3. Comparaison avec les reservations en base\n4. Si anomalies : alerte API + email proprietaire\n\nLes evenements bloques (\"Not available\") sont filtres separement.",
+        "height": 220,
+        "width": 380
+      },
+      "id": "e88c2cd2-7b75-46d8-9fc1-6553491d89f3",
+      "name": "Note1",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        944,
+        -64
+      ]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 30
+            }
+          ]
+        }
+      },
+      "id": "4c1dcd6f-837b-4d21-a7e4-5b85d666316c",
+      "name": "Cron 30 min",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -288,
+        304
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "properties",
+        "returnAll": true,
+        "filterType": "string",
+        "filterString": "is_active=eq.true"
+      },
+      "id": "2b907252-00e0-4110-b28b-24c8f4db4625",
+      "name": "Get proprietes avec iCal",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        96,
+        304
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "jAZu1DEMMOLAGYT0",
+          "name": "Supabase Neurolia Immo"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "edaf2529-ccfb-4329-ab40-ccdd229614f7",
+      "name": "Boucle proprietes",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        448,
+        304
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// ============================================================                                                                            \n  // WF02 — Parser iCal (.ics) en liste d'evenements                                                                                         \n  // Format iCal : RFC 5545                                                                                                                  \n  // ============================================================                                                                            \n                                                                                                                                             \n  // Owner depuis \"Get owner\" (input direct)                                                                                                 \n  const ownerRecord = $input.first().json || {};\n  const ownerEmail = ownerRecord.email || null;\n  const ownerName = ownerRecord.full_name || null;\n\n  // Property depuis le node amont\n  const property = $('Get proprietes avec iCal').first().json;\n  const propertyId = property.id;\n  const propertyName = property.name;\n\n  // iCal text depuis le HTTP Request node\n  const icalRaw = $('Fetch iCal Airbnb').first().json;\n  const icalAirbnb = icalRaw.data || icalRaw.body || '';\n  const icalBooking = ''; // Booking non configure\n\n  function parseICS(icsText, platform) {\n    const events = [];\n    if (!icsText) return events;\n\n    const veventBlocks = icsText.match(/BEGIN:VEVENT[\\s\\S]*?END:VEVENT/g) || [];\n\n    for (const block of veventBlocks) {\n      const event = { platform };\n\n      // DTSTART\n      const dtStartMatch = block.match(/DTSTART[;:]([^\\r\\n]+)/);\n      if (dtStartMatch) {\n        const dateMatch = dtStartMatch[1].match(/(\\d{4})(\\d{2})(\\d{2})/);\n        if (dateMatch) {\n          event.startDate = `${dateMatch[1]}-${dateMatch[2]}-${dateMatch[3]}`;\n        }\n      }\n\n      // DTEND\n      const dtEndMatch = block.match(/DTEND[;:]([^\\r\\n]+)/);\n      if (dtEndMatch) {\n        const dateMatch = dtEndMatch[1].match(/(\\d{4})(\\d{2})(\\d{2})/);\n        if (dateMatch) {\n          event.endDate = `${dateMatch[1]}-${dateMatch[2]}-${dateMatch[3]}`;\n        }\n      }\n\n      // SUMMARY\n      const summaryMatch = block.match(/SUMMARY[;:]([^\\r\\n]+)/);\n      if (summaryMatch) {\n        event.summary = summaryMatch[1].trim();\n      }\n\n      // UID\n      const uidMatch = block.match(/UID[;:]([^\\r\\n]+)/);\n      if (uidMatch) {\n        event.uid = uidMatch[1].trim();\n      }\n\n      // DESCRIPTION\n      const descMatch = block.match(/DESCRIPTION[;:]([^\\r\\n]+)/);\n      if (descMatch) {\n        event.description = descMatch[1].trim();\n      }\n\n      // Filtrer : evenements futurs (prochains 90 jours)\n      if (event.startDate && event.endDate) {\n        const today = new Date();\n        today.setHours(0, 0, 0, 0);\n        const futureLimit = new Date(today);\n        futureLimit.setDate(futureLimit.getDate() + 90);\n        const startDate = new Date(event.startDate);\n\n        if (startDate >= today && startDate <= futureLimit) {\n          events.push(event);\n        }\n      }\n    }\n\n    return events;\n  }\n\n  // Parser les deux flux\n  const airbnbEvents = parseICS(icalAirbnb, 'airbnb');\n  const bookingEvents = parseICS(icalBooking, 'booking');\n  const allEvents = [...airbnbEvents, ...bookingEvents];\n\n  // Separer vrais bookings vs periodes bloquees\n  const blockedKeywords = [\n    'not available', 'blocked', 'closed', 'unavailable',\n    'indisponible', 'bloqu',\n  ];\n\n  const realBookings = [];\n  const blockedPeriods = [];\n\n  for (const event of allEvents) {\n    const summaryLower = (event.summary || '').toLowerCase();\n    const isBlocked = blockedKeywords.some(kw => summaryLower.includes(kw));\n\n    if (isBlocked) {\n      blockedPeriods.push(event);\n    } else {\n      realBookings.push(event);\n    }\n  }\n\n  return [{\n    json: {\n      propertyId,\n      propertyName,\n      ownerEmail,\n      ownerName,\n      icalEvents: allEvents,\n      realBookings,\n      blockedPeriods,\n      totalEvents: allEvents.length,\n    }\n  }];"
+      },
+      "id": "712d2887-7928-435e-8b1b-2bf1bae1818b",
+      "name": "Parser .ics",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1392,
+        304
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "reservations",
+        "returnAll": true,
+        "filterType": "string",
+        "filterString": "=property_id=eq.{{ $('Get proprietes avec iCal').item.json.id }}&check_in=gte.{{ $now.toFormat('yyyy-MM-dd') }}&status=neq.cancelled"
+      },
+      "id": "a04e46e5-724e-4c1e-b035-2db8c42b2a25",
+      "name": "Get reservations DB",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        1632,
+        304
+      ],
+      "settings": {
+        "alwaysOutputData": true
+      },
+      "credentials": {
+        "supabaseApi": {
+          "id": "jAZu1DEMMOLAGYT0",
+          "name": "Supabase Neurolia Immo"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// ============================================================\n// WF02 — Comparer les evenements iCal avec les reservations en DB\n// Generer les alertes d'anomalie\n// ============================================================\n\nconst icalData = $('Parser .ics').first().json;\nconst resaArray = $input.all().map(item => item.json).filter(r => r && r.check_in);\nconst propertyId = icalData.propertyId;\nconst propertyName = icalData.propertyName;\nconst ownerEmail = icalData.ownerEmail;\nconst dashboardUrl =\n  'https://dashboard-loc-immo.vercel.app';\n\nconst alerts = [];\n\n// --- 1. Detecter les creneaux iCal sans reservation en DB ---\n// (realBookings = evenements avec un nom de voyageur, pas des blocages)\nfor (const event of icalData.realBookings) {\n  // Chercher une reservation correspondante en DB\n  const match = resaArray.find(r => {\n    if (!r || !r.check_in) return false;\n    // Match par dates (avec tolerance de +/- 1 jour pour les fuseaux)\n    const sameStart = r.check_in === event.startDate;\n    const sameEnd = r.check_out === event.endDate;\n\n    // Ou match par platform + dates approximatives\n    const samePlatform = r.platform === event.platform;\n    const closeStart = Math.abs(\n      new Date(r.check_in) - new Date(event.startDate)\n    ) <= 86400000; // 1 jour en ms\n    const closeEnd = Math.abs(\n      new Date(r.check_out) - new Date(event.endDate)\n    ) <= 86400000;\n\n    return (sameStart && sameEnd) || (samePlatform && closeStart && closeEnd);\n  });\n\n  if (!match) {\n    alerts.push({\n      alertType: 'missing_reservation',\n      propertyName,\n      propertyId,\n      icalBlockedFrom: event.startDate,\n      icalBlockedTo: event.endDate,\n      platform: event.platform,\n      message: `Creneau ${event.platform} (${event.startDate} -> ${event.endDate}) ` +\n        `avec voyageur \"${event.summary}\" sans reservation correspondante en base. ` +\n        `L'email de confirmation a peut-etre ete manque.`,\n    });\n  }\n}\n\n// --- 2. Detecter les reservations DB sans creneau iCal ---\nfor (const resa of resaArray) {\n  if (!resa || !resa.check_in) continue;\n  // Ne verifier que les reservations de plateformes (pas manuelles)\n  if (resa.platform === 'manual') continue;\n\n  const match = icalData.icalEvents.find(event => {\n    const sameStart = event.startDate === resa.check_in;\n    const sameEnd = event.endDate === resa.check_out;\n    const samePlatform = event.platform === resa.platform;\n    const closeStart = Math.abs(\n      new Date(event.startDate) - new Date(resa.check_in)\n    ) <= 86400000;\n    const closeEnd = Math.abs(\n      new Date(event.endDate) - new Date(resa.check_out)\n    ) <= 86400000;\n\n    return (sameStart && sameEnd) || (samePlatform && closeStart && closeEnd);\n  });\n\n  if (!match) {\n    alerts.push({\n      alertType: 'missing_ical_block',\n      propertyName,\n      propertyId,\n      icalBlockedFrom: resa.check_in,\n      icalBlockedTo: resa.check_out,\n      platform: resa.platform,\n      message: `Reservation ${resa.platform} (${resa.check_in} -> ${resa.check_out}) ` +\n        `en base mais aucun creneau correspondant en iCal. ` +\n        `Possible annulation non detectee.`,\n    });\n  }\n}\n\n// --- 3. Detecter les date mismatches ---\nfor (const resa of resaArray) {\n  if (!resa || !resa.check_in) continue;\n  if (resa.platform === 'manual') continue;\n\n  const match = icalData.icalEvents.find(event => {\n    return event.platform === resa.platform &&\n      (event.startDate === resa.check_in || event.endDate === resa.check_out);\n  });\n\n  if (match) {\n    const startMismatch = match.startDate !== resa.check_in;\n    const endMismatch = match.endDate !== resa.check_out;\n\n    if (startMismatch || endMismatch) {\n      const details = [];\n      if (startMismatch) {\n        details.push(`Check-in : DB=${resa.check_in}, iCal=${match.startDate}`);\n      }\n      if (endMismatch) {\n        details.push(`Check-out : DB=${resa.check_out}, iCal=${match.endDate}`);\n      }\n\n      alerts.push({\n        alertType: 'date_mismatch',\n        propertyName,\n        propertyId,\n        icalBlockedFrom: match.startDate,\n        icalBlockedTo: match.endDate,\n        platform: resa.platform,\n        message: `Ecart de dates detecte pour ${resa.platform}. ${details.join('. ')}. ` +\n          `Possible modification non detectee.`,\n      });\n    }\n  }\n}\n\nreturn [{\n  json: {\n    propertyId,\n    propertyName,\n    ownerEmail,\n    dashboardUrl,\n    alertCount: alerts.length,\n    alerts,\n    _summary: alerts.length === 0\n      ? `${propertyName} : OK, aucune anomalie`\n      : `${propertyName} : ${alerts.length} anomalie(s) detectee(s)`,\n  }\n}];"
+      },
+      "id": "0f0ab9cc-9312-4d12-b89f-e9f7069d5fd5",
+      "name": "Comparer iCal vs DB",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1888,
+        304
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.alertCount }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "b433cc9c-652e-45c6-bd32-78b142df44c8",
+      "name": "Anomalies ?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        2144,
+        304
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $json.dashboardUrl }}/api/webhooks/n8n/ical-alert\n",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ propertyId: $json.propertyId, propertyName: $json.propertyName, alertCount: $json.alertCount, alerts: $json.alerts }) }}",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "ac9b4fb5-85a6-4b82-a015-52a3b7da2a6b",
+      "name": "Envoyer alertes",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2528,
+        288
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "7PRUiKI0dKs7lMmp",
+          "name": "API Key - Dashboard"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Construire le HTML de l'email d'alerte proprietaire\nconst data = $input.first().json;\nconst dashboardUrl = data.dashboardUrl;\nconst ownerEmail = data.ownerEmail;\n\nlet alertRows = '';\nfor (const alert of data.alerts) {\n  alertRows += `<tr>\n    <td style=\"padding: 8px; border: 1px solid #ddd;\">${alert.alertType}</td>\n    <td style=\"padding: 8px; border: 1px solid #ddd;\">${alert.platform}</td>\n    <td style=\"padding: 8px; border: 1px solid #ddd;\">${alert.icalBlockedFrom} -> ${alert.icalBlockedTo}</td>\n    <td style=\"padding: 8px; border: 1px solid #ddd;\">${alert.message}</td>\n  </tr>`;\n}\n\nconst htmlBody = `<h2>Alertes iCal detectees</h2>\n<p><strong>Propriete :</strong> ${data.propertyName}</p>\n<p><strong>Nombre d'alertes :</strong> ${data.alertCount}</p>\n\n<table border=\"1\" cellpadding=\"8\" cellspacing=\"0\" style=\"border-collapse: collapse;\">\n  <thead>\n    <tr>\n      <th style=\"padding: 8px; background: #f5f5f5;\">Type</th>\n      <th style=\"padding: 8px; background: #f5f5f5;\">Plateforme</th>\n      <th style=\"padding: 8px; background: #f5f5f5;\">Dates iCal</th>\n      <th style=\"padding: 8px; background: #f5f5f5;\">Detail</th>\n    </tr>\n  </thead>\n  <tbody>\n    ${alertRows}\n  </tbody>\n</table>\n\n<p>\n  <a href=\"${dashboardUrl}/dashboard/reservations\">\n    Voir le dashboard\n  </a>\n</p>`;\n\nreturn [{\n  json: {\n    ownerEmail,\n    emailSubject: `[Loc Immo] ${data.alertCount} alerte(s) iCal - ${data.propertyName}`,\n    emailHtml: htmlBody,\n  }\n}];"
+      },
+      "id": "b8813754-2ed0-4181-85b7-a4941714da76",
+      "name": "Preparer email alerte",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2528,
+        496
+      ]
+    },
+    {
+      "parameters": {
+        "fromEmail": "=gustiez.dorian@neurolia.work",
+        "toEmail": "={{ $json.ownerEmail }}",
+        "subject": "={{ $json.emailSubject }}",
+        "html": "={{ $json.emailHtml }}",
+        "options": {}
+      },
+      "id": "f4f4c227-4169-46a5-8008-d87d27a2518c",
+      "name": "Email alerte proprietaire",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        2784,
+        496
+      ],
+      "webhookId": "bea66647-bd92-499a-b266-d8c453874725",
+      "credentials": {
+        "smtp": {
+          "id": "z1Bus01typcwYd7C",
+          "name": "SMTP"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{\n    json: {\n      DASHBOARD_URL: 'https://dashboard-loc-immo.vercel.app',\n      SMTP_FROM_EMAIL: 'gustiez.dorian@neurolia.work',\n      ADMIN_EMAIL: 'gustiez.dorian@neurolia.work',\n      N8N_WF04_WEBHOOK_URL: 'https://n8n.srv1207220.hstgr.cloud/webhook/wf04-cleaning-task',\n      N8N_WF05_WEBHOOK_URL: 'https://n8n.srv1207220.hstgr.cloud/webhook/wf05-auto-message',\n      SUPABASE_URL: 'https://inifqalehucqqkqpgzas.supabase.co',\n      SUPABASE_SERVICE_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImluaWZxYWxlaHVjcXFrcXBnemFzIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MDkxNjk3NCwiZXhwIjoyMDg2NDkyOTc0fQ.PZyDCghN3MGn64sSYXizYnOHjORoSFlHW2jY5_ZBIVo',\n    }\n  }];"
+      },
+      "id": "fc17e11c-b609-49fe-91db-12e928a29b51",
+      "name": "Config",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -112,
+        304
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "users",
+        "limit": 1,
+        "filterType": "string",
+        "filterString": "=id=eq.{{ $json.id }}"
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        1232,
+        304
+      ],
+      "id": "082b2d29-fd93-429d-baad-c01e3a9fd6d5",
+      "name": "Get many rows",
+      "alwaysOutputData": true,
+      "credentials": {
+        "supabaseApi": {
+          "id": "jAZu1DEMMOLAGYT0",
+          "name": "Supabase Neurolia Immo"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "users",
+        "limit": 1,
+        "filterType": "string",
+        "filterString": "=id=eq.{{ $('Get proprietes avec iCal').item.json.owner_id }}"
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        1072,
+        304
+      ],
+      "id": "b6577ac4-7871-4b5b-9683-5308f3782e18",
+      "name": "Get owner",
+      "credentials": {
+        "supabaseApi": {
+          "id": "jAZu1DEMMOLAGYT0",
+          "name": "Supabase Neurolia Immo"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.ical_airbnb_url }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "User-Agent",
+              "value": "Mozilla/5.0 (compatible; LocImmo/1.0)"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "text"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        912,
+        192
+      ],
+      "id": "bdac9dfe-5b80-4efa-972e-c95a2519aabd",
+      "name": "Fetch iCal Airbnb"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.ical_airbnb_url }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "string",
+                      "operation": "exists",
+                      "singleValue": true
+                    },
+                    "id": "20bc9f65-a851-4b39-b8f5-e5a4d3c1f24e"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Air BnB"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "640fa0f9-ec6b-4296-8930-1608eed2cf95",
+                    "leftValue": "={{ $json.ical_booking_url }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "string",
+                      "operation": "exists",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Booking"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        704,
+        320
+      ],
+      "id": "be66af6b-c1cb-4bb5-8d25-17acc74f8456",
+      "name": "Switch"
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.ical_booking_url }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "User-Agent",
+              "value": "Mozilla/5.0 (compatible; LocImmo/1.0)"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "text"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        912,
+        368
+      ],
+      "id": "23093b37-3d3a-4c70-ab3e-0deb55f5bd8d",
+      "name": "Fetch iCal Booking"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Cron 30 min": {
+      "main": [
+        [
+          {
+            "node": "Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get proprietes avec iCal": {
+      "main": [
+        [
+          {
+            "node": "Boucle proprietes",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Boucle proprietes": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Switch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parser .ics": {
+      "main": [
+        [
+          {
+            "node": "Get reservations DB",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get reservations DB": {
+      "main": [
+        [
+          {
+            "node": "Comparer iCal vs DB",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Comparer iCal vs DB": {
+      "main": [
+        [
+          {
+            "node": "Anomalies ?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Anomalies ?": {
+      "main": [
+        [
+          {
+            "node": "Envoyer alertes",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Preparer email alerte",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Boucle proprietes",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Envoyer alertes": {
+      "main": [
+        [
+          {
+            "node": "Boucle proprietes",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparer email alerte": {
+      "main": [
+        [
+          {
+            "node": "Email alerte proprietaire",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Email alerte proprietaire": {
+      "main": [
+        [
+          {
+            "node": "Boucle proprietes",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Config": {
+      "main": [
+        [
+          {
+            "node": "Get proprietes avec iCal",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get many rows": {
+      "main": [
+        [
+          {
+            "node": "Parser .ics",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get owner": {
+      "main": [
+        [
+          {
+            "node": "Get many rows",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch iCal Airbnb": {
+      "main": [
+        [
+          {
+            "node": "Get owner",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch": {
+      "main": [
+        [
+          {
+            "node": "Fetch iCal Airbnb",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Fetch iCal Booking",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch iCal Booking": {
+      "main": [
+        [
+          {
+            "node": "Get owner",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false,
+    "timeSavedMode": "fixed",
+    "errorWorkflow": "Llq5u9tJbIJAm6kH",
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "versionId": "33e71f1f-71bf-46fb-ba5c-3aa4aa8a35a0",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "53757d982cfc1ea69cd2856d22e27642cd4adf0846c52a03f167ef14d4fdf8ca"
+  },
+  "id": "5X54l5ANPMBdgil6",
+  "tags": [
+    {
+      "updatedAt": "2026-02-12T15:42:36.948Z",
+      "createdAt": "2026-02-12T15:42:36.948Z",
+      "id": "6jRfouefHOufHZU0",
+      "name": "formulaire-checkin"
+    },
+    {
+      "updatedAt": "2026-02-12T15:11:24.538Z",
+      "createdAt": "2026-02-12T15:11:24.538Z",
+      "id": "SGTxR2n6419dHjHp",
+      "name": "loc-immo"
+    },
+    {
+      "updatedAt": "2026-02-12T15:30:42.893Z",
+      "createdAt": "2026-02-12T15:30:42.893Z",
+      "id": "Uvx62IAvJh9xDCmH",
+      "name": "detection-anomalies"
+    },
+    {
+      "updatedAt": "2026-02-12T15:30:42.895Z",
+      "createdAt": "2026-02-12T15:30:42.895Z",
+      "id": "WJNKneD7ohPAEdFk",
+      "name": "synchronisation-ical"
+    },
+    {
+      "updatedAt": "2026-02-12T15:12:46.021Z",
+      "createdAt": "2026-02-12T15:12:46.021Z",
+      "id": "wwuZiGRt8aRoOdmO",
+      "name": "notification"
+    }
+  ]
+}

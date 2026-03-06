@@ -1,0 +1,400 @@
+{
+  "name": "Notification formulaire pre-arrivee",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## Notification formulaire pre-arrivee\nQuand un voyageur soumet le formulaire de pre-arrivee,\nce workflow notifie le proprietaire par email.\n\nSi des mots-cles prioritaires sont detectes (bebe, arrivee tardive,\nhandicap, animaux, urgence), l'email est marque **[PRIORITE]**.",
+        "height": 220,
+        "width": 400,
+        "color": 4
+      },
+      "id": "782ef9ba-eb7d-4a74-b270-cdfb02075ed0",
+      "name": "Note",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -224,
+        -192
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## Detection de priorite\nLe node \"Detecter mots-cles prioritaires\" analyse le champ\n`specialRequests` et l'heure d'arrivee.\n\nCategories detectees :\n- Enfants / bebes\n- Arrivee tardive (>= 21h)\n- Handicap / accessibilite\n- Animaux\n- Problemes / urgences\n\nSi au moins un mot-cle est trouve, l'email passe\nen format prioritaire (bandeau rouge + [PRIORITE]).",
+        "height": 260,
+        "width": 350
+      },
+      "id": "9a315dae-f16c-4c2d-8d55-fea39bf70f1e",
+      "name": "Note1",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        480,
+        -208
+      ]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "wf06-checkin-notify",
+        "options": {}
+      },
+      "id": "61e580e8-4171-43cc-9b5a-dd9ca64a1471",
+      "name": "Formulaire pre-arrivee soumis",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -128,
+        128
+      ],
+      "webhookId": "wf06-checkin-notify"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Valider le payload\nconst data = $input.first().json.body;\n\nif (!data.reservationId || !data.guestName || !data.propertyName) {\n  throw new Error('Payload invalide : reservationId, guestName et propertyName sont requis');\n}\n\nreturn [{\n  json: {\n    ...data,\n    arrivalTime: data.arrivalTime || 'non renseignee',\n    specialRequests: data.specialRequests || null,\n    nbGuests: data.nbGuests || 1,\n  }\n}];\n"
+      },
+      "id": "55a783d0-9f39-4afa-8633-ada5cdee8174",
+      "name": "Valider payload",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        128,
+        128
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "properties",
+        "limit": 1,
+        "filterType": "string",
+        "filterString": "=name=eq.{{ $json.propertyName }}"
+      },
+      "id": "f1f3a678-e91e-4701-a221-fc92af2b5fa5",
+      "name": "Get property",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        272,
+        128
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "jAZu1DEMMOLAGYT0",
+          "name": "Supabase Neurolia Immo"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "users",
+        "limit": 1,
+        "filterType": "string",
+        "filterString": "=id=eq.{{ $json.owner_id }}"
+      },
+      "id": "e235ce9a-ceef-4c4b-b96e-077777f38772",
+      "name": "Get owner",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        448,
+        128
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "jAZu1DEMMOLAGYT0",
+          "name": "Supabase Neurolia Immo"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// ============================================================\n// WF06 — Detection de mots-cles prioritaires dans les demandes speciales\n// ============================================================\n\nconst data = $input.first().json;\nconst ownerEmail = $('Get owner').first().json.email;\nconst ownerName = $('Get owner').first().json.full_name;\nconst specialRequests = (data.specialRequests || '').toLowerCase();\n\n// Mots-cles indiquant une demande prioritaire\nconst priorityKeywords = [\n  // Enfants / bebes\n  'b\\u00e9b\\u00e9', 'bebe', 'b\\u00e9b\\u00e9s', 'bebes',\n  'enfant', 'enfants',\n  'lit b\\u00e9b\\u00e9', 'lit bebe', 'lit enfant',\n  'poussette',\n  'chaise haute',\n\n  // Arrivee tardive\n  'tard', 'tardif', 'tardive',\n  'late', 'arriv\\u00e9e tardive', 'arrivee tardive',\n  'apr\\u00e8s 21h', 'apres 21h',\n  'apr\\u00e8s 22h', 'apres 22h',\n  'apr\\u00e8s minuit', 'apres minuit',\n\n  // Handicap / accessibilite\n  'handicap', 'handicap\\u00e9', 'handicape',\n  'fauteuil', 'fauteuil roulant',\n  'mobilit\\u00e9 r\\u00e9duite', 'mobilite reduite',\n  'accessibilit\\u00e9', 'accessibilite',\n  'pmr',\n\n  // Animaux\n  'animal', 'animaux',\n  'chien', 'chat',\n  'pet', 'dog', 'cat',\n\n  // Problemes / urgences\n  'probl\\u00e8me', 'probleme',\n  'urgence', 'urgent',\n  'allergie', 'allergique',\n];\n\nconst detectedKeywords = [];\nfor (const keyword of priorityKeywords) {\n  if (specialRequests.includes(keyword)) {\n    detectedKeywords.push(keyword);\n  }\n}\n\nlet isPriority = detectedKeywords.length > 0;\n\n// Detecter aussi une arrivee tardive par l'heure\nlet lateArrival = false;\nif (data.arrivalTime) {\n  const hourMatch = data.arrivalTime.match(/(\\d{1,2})/);\n  if (hourMatch) {\n    const hour = parseInt(hourMatch[1], 10);\n    if (hour >= 21) {\n      lateArrival = true;\n      if (!detectedKeywords.includes('arriv\\u00e9e tardive')) {\n        detectedKeywords.push('arriv\\u00e9e tardive (heure >= 21h)');\n      }\n    }\n  }\n}\n\nreturn [{\n  json: {\n    ...data,\n    ownerEmail,\n    ownerName,\n    isPriority: isPriority || lateArrival,\n    detectedKeywords,\n    priorityReason: detectedKeywords.length > 0\n      ? `Mots-cles detectes : ${detectedKeywords.join(', ')}`\n      : null,\n  }\n}];\n"
+      },
+      "id": "3610b35a-a668-458c-bf99-f8d6d02aa339",
+      "name": "Detecter mots-cles prioritaires",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        592,
+        128
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "condition-wf06-01",
+              "leftValue": "={{ $json.isPriority }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals",
+                "singleValue": false
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "8e70636e-6a0c-4911-b7be-8522f9b6cc12",
+      "name": "Prioritaire ?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        736,
+        128
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const data = $input.first().json;\n\nconst subject = `[PRIORITE] Formulaire pre-arrivee \\u2014 ${data.guestName} @ ${data.propertyName}`;\n\nconst html = `\n<div style=\"font-family: -apple-system, sans-serif; max-width: 600px; margin: 0 auto;\">\n  <div style=\"background: #fef2f2; border: 2px solid #dc2626; border-radius: 8px; padding: 16px; margin-bottom: 16px;\">\n    <h2 style=\"color: #dc2626; margin: 0 0 8px 0;\">ATTENTION REQUISE</h2>\n    <p style=\"color: #991b1b; margin: 0;\">${data.priorityReason}</p>\n  </div>\n\n  <h2 style=\"color: #1a1a2e;\">Formulaire pre-arrivee soumis</h2>\n\n  <table border=\"0\" cellpadding=\"8\" style=\"width: 100%; border-collapse: collapse;\">\n    <tr style=\"border-bottom: 1px solid #e5e7eb;\">\n      <td style=\"color: #6b7280;\"><strong>Voyageur</strong></td>\n      <td>${data.guestName}</td>\n    </tr>\n    <tr style=\"border-bottom: 1px solid #e5e7eb;\">\n      <td style=\"color: #6b7280;\"><strong>Propriete</strong></td>\n      <td>${data.propertyName}</td>\n    </tr>\n    <tr style=\"border-bottom: 1px solid #e5e7eb;\">\n      <td style=\"color: #6b7280;\"><strong>Dates</strong></td>\n      <td>${data.checkIn} -> ${data.checkOut}</td>\n    </tr>\n    <tr style=\"border-bottom: 1px solid #e5e7eb;\">\n      <td style=\"color: #6b7280;\"><strong>Nb voyageurs</strong></td>\n      <td>${data.nbGuests}</td>\n    </tr>\n    <tr style=\"border-bottom: 1px solid #e5e7eb;\">\n      <td style=\"color: #6b7280;\"><strong>Heure d'arrivee</strong></td>\n      <td><strong>${data.arrivalTime}</strong></td>\n    </tr>\n    <tr style=\"background: #fef3c7;\">\n      <td style=\"color: #6b7280;\"><strong>Demandes speciales</strong></td>\n      <td><strong>${data.specialRequests || '-'}</strong></td>\n    </tr>\n  </table>\n\n  <div style=\"margin-top: 16px; text-align: center;\">\n    <a href=\"https://app.locimmo.fr/dashboard/reservations/${data.reservationId}\"\n       style=\"display: inline-block; padding: 12px 24px; background: #dc2626;\n              color: white; text-decoration: none; border-radius: 8px;\">\n      Voir la reservation\n    </a>\n  </div>\n</div>`;\n\nreturn [{\n  json: {\n    to: data.ownerEmail,\n    subject,\n    html,\n  }\n}];\n"
+      },
+      "id": "455f4a87-6987-4231-ac6a-8d06031830a0",
+      "name": "Email prioritaire",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        976,
+        32
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const data = $input.first().json;\n\nconst subject = `Formulaire pre-arrivee \\u2014 ${data.guestName} @ ${data.propertyName}`;\n\nconst html = `\n<div style=\"font-family: -apple-system, sans-serif; max-width: 600px; margin: 0 auto;\">\n  <h2 style=\"color: #1a1a2e;\">Formulaire pre-arrivee soumis</h2>\n\n  <p>${data.guestName} a rempli le formulaire de pre-arrivee pour\n     <strong>${data.propertyName}</strong>.</p>\n\n  <table border=\"0\" cellpadding=\"8\" style=\"width: 100%; border-collapse: collapse;\">\n    <tr style=\"border-bottom: 1px solid #e5e7eb;\">\n      <td style=\"color: #6b7280;\"><strong>Dates</strong></td>\n      <td>${data.checkIn} -> ${data.checkOut}</td>\n    </tr>\n    <tr style=\"border-bottom: 1px solid #e5e7eb;\">\n      <td style=\"color: #6b7280;\"><strong>Nb voyageurs</strong></td>\n      <td>${data.nbGuests}</td>\n    </tr>\n    <tr style=\"border-bottom: 1px solid #e5e7eb;\">\n      <td style=\"color: #6b7280;\"><strong>Heure d'arrivee</strong></td>\n      <td>${data.arrivalTime}</td>\n    </tr>\n    <tr style=\"border-bottom: 1px solid #e5e7eb;\">\n      <td style=\"color: #6b7280;\"><strong>Demandes speciales</strong></td>\n      <td>${data.specialRequests || 'Aucune'}</td>\n    </tr>\n  </table>\n\n  <div style=\"margin-top: 16px; text-align: center;\">\n    <a href=\"https://app.locimmo.fr/dashboard/reservations/${data.reservationId}\"\n       style=\"display: inline-block; padding: 12px 24px; background: #3b82f6;\n              color: white; text-decoration: none; border-radius: 8px;\">\n      Voir la reservation\n    </a>\n  </div>\n</div>`;\n\nreturn [{\n  json: {\n    to: data.ownerEmail,\n    subject,\n    html,\n  }\n}];\n"
+      },
+      "id": "f232f078-ceab-4d98-8ff4-756633233460",
+      "name": "Email standard",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        976,
+        272
+      ]
+    },
+    {
+      "parameters": {
+        "fromEmail": "gustiez.dorian@neurolia.work",
+        "toEmail": "={{ $json.to }}",
+        "subject": "={{ $json.subject }}",
+        "html": "={{ $json.html }}",
+        "options": {}
+      },
+      "id": "2184dc47-6fbe-49e6-9d9c-14aee3dacb21",
+      "name": "Email proprietaire",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        1232,
+        128
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000,
+      "webhookId": "0deb73ac-254c-4894-91c2-22963590bf84",
+      "credentials": {
+        "smtp": {
+          "id": "z1Bus01typcwYd7C",
+          "name": "SMTP"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// ============================================================\n// Config — Variables de configuration Loc Immo\n// Modifier les valeurs ci-dessous selon votre environnement\n// ============================================================\n\nreturn [{\n  json: {\n    DASHBOARD_URL: 'https://app.locimmo.fr',\n    SMTP_FROM_EMAIL: 'gustiez.dorian@neurolia.work',\n    ADMIN_EMAIL: 'gustiez.dorian@neurolia.work',\n    N8N_WF04_WEBHOOK_URL: 'https://n8n.srv1207220.hstgr.cloud/webhook/wf04-cleaning-task',\n    N8N_WF05_WEBHOOK_URL: 'https://n8n.srv1207220.hstgr.cloud/webhook/wf05-auto-message',\n  }\n}];"
+      },
+      "id": "125ed6e1-15f6-4a41-a925-ae114e88a47f",
+      "name": "Config",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -336,
+        272
+      ]
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        448,
+        384
+      ],
+      "id": "b6719913-2952-44fd-be69-74b92b4d4eb2",
+      "name": "Merge"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Formulaire pre-arrivee soumis": {
+      "main": [
+        [
+          {
+            "node": "Config",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Valider payload",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Valider payload": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Get property",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get property": {
+      "main": [
+        [
+          {
+            "node": "Get owner",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get owner": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Detecter mots-cles prioritaires": {
+      "main": [
+        [
+          {
+            "node": "Prioritaire ?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prioritaire ?": {
+      "main": [
+        [
+          {
+            "node": "Email prioritaire",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Email standard",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Email prioritaire": {
+      "main": [
+        [
+          {
+            "node": "Email proprietaire",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Email standard": {
+      "main": [
+        [
+          {
+            "node": "Email proprietaire",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "Detecter mots-cles prioritaires",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false,
+    "timeSavedMode": "fixed",
+    "errorWorkflow": "Llq5u9tJbIJAm6kH",
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "versionId": "406dfd10-92a9-4e1e-806a-ba1be27975b7",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "53757d982cfc1ea69cd2856d22e27642cd4adf0846c52a03f167ef14d4fdf8ca"
+  },
+  "id": "8qDAmQdk9btk4cQ7",
+  "tags": [
+    {
+      "updatedAt": "2026-02-12T15:42:36.948Z",
+      "createdAt": "2026-02-12T15:42:36.948Z",
+      "id": "6jRfouefHOufHZU0",
+      "name": "formulaire-checkin"
+    },
+    {
+      "updatedAt": "2026-02-12T15:11:24.538Z",
+      "createdAt": "2026-02-12T15:11:24.538Z",
+      "id": "SGTxR2n6419dHjHp",
+      "name": "loc-immo"
+    },
+    {
+      "updatedAt": "2026-02-12T15:30:42.893Z",
+      "createdAt": "2026-02-12T15:30:42.893Z",
+      "id": "Uvx62IAvJh9xDCmH",
+      "name": "detection-anomalies"
+    },
+    {
+      "updatedAt": "2026-02-12T15:30:42.895Z",
+      "createdAt": "2026-02-12T15:30:42.895Z",
+      "id": "WJNKneD7ohPAEdFk",
+      "name": "synchronisation-ical"
+    },
+    {
+      "updatedAt": "2026-02-12T15:12:46.021Z",
+      "createdAt": "2026-02-12T15:12:46.021Z",
+      "id": "wwuZiGRt8aRoOdmO",
+      "name": "notification"
+    }
+  ]
+}

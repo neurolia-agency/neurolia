@@ -1,0 +1,142 @@
+{
+  "name": "WF06 — Check-in Form Alert",
+  "deprecated": true,
+  "deprecated_version": "2.2",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "wf06-checkin-notify",
+        "authentication": "headerAuth",
+        "responseMode": "onReceived",
+        "responseCode": 200,
+        "options": {}
+      },
+      "id": "b1c2d3e4-0006-4000-8000-000000000001",
+      "name": "Webhook Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [250, 300],
+      "webhookId": "wf06-checkin-notify",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "CRED-04",
+          "name": "CRED-04 — Header Auth - API Key Dashboard"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "manual",
+        "assignments": {
+          "assignments": [
+            {
+              "id": "cfg-06-01",
+              "name": "DASHBOARD_URL",
+              "value": "={{ $env.DASHBOARD_URL }}",
+              "type": "string"
+            },
+            {
+              "id": "cfg-06-02",
+              "name": "SMTP_FROM_EMAIL",
+              "value": "={{ $env.SMTP_FROM_EMAIL }}",
+              "type": "string"
+            },
+            {
+              "id": "cfg-06-03",
+              "name": "SUPABASE_URL",
+              "value": "={{ $env.SUPABASE_URL }}",
+              "type": "string"
+            },
+            {
+              "id": "cfg-06-04",
+              "name": "SUPABASE_SERVICE_KEY",
+              "value": "={{ $env.SUPABASE_SERVICE_KEY }}",
+              "type": "string"
+            }
+          ]
+        }
+      },
+      "id": "b1c2d3e4-0006-4000-8000-000000000002",
+      "name": "Config",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [500, 300]
+    },
+    {
+      "parameters": {
+        "language": "javaScript",
+        "jsCode": "// ============================================================\n// WF06 — Validate payload + detect priority keywords\n// ============================================================\n\nconst config = $('Config').item.json;\nconst body = $('Webhook Trigger').item.json.body;\n\n// --- Validation ---\nconst required = ['reservationId', 'guestName', 'propertyName'];\nconst missing = required.filter(f => !body[f]);\nif (missing.length > 0) {\n  throw new Error(`Champs requis manquants: ${missing.join(', ')}`);\n}\n\n// --- Priority keyword detection ---\nconst specialRequests = (body.specialRequests || '').toLowerCase();\nconst arrivalTime = body.arrivalTime || '';\nconst reasons = [];\n\n// Bebe/enfants\nif (/b[eé]b[eé]|enfant|lit\\s*b[eé]b[eé]|nourrisson|poussette/i.test(specialRequests)) {\n  reasons.push('Bebe/enfant mentionne');\n}\n\n// Arrivee tardive (> 21:00)\nif (arrivalTime) {\n  const hour = parseInt(arrivalTime.split(':')[0]);\n  if (hour >= 21) {\n    reasons.push(`Arrivee tardive (${arrivalTime})`);\n  }\n}\n\n// Handicap/mobilite\nif (/handicap|fauteuil|mobilit[eé]\\s*r[eé]duite|pmr|accessibilit/i.test(specialRequests)) {\n  reasons.push('Mobilite reduite mentionnee');\n}\n\n// Animaux\nif (/animaux?|chien|chat|animal/i.test(specialRequests)) {\n  reasons.push('Animal mentionne');\n}\n\n// Allergie\nif (/allergi[eq]/i.test(specialRequests)) {\n  reasons.push('Allergie mentionnee');\n}\n\n// Probleme/urgence\nif (/probl[eè]me|urgence|urgent/i.test(specialRequests)) {\n  reasons.push('Urgence mentionnee');\n}\n\nconst isPriority = reasons.length > 0;\n\n// --- Lookup owner email ---\nlet ownerEmail = null;\ntry {\n  const supabaseUrl = config.SUPABASE_URL;\n  const supabaseKey = config.SUPABASE_SERVICE_KEY;\n  const res = await fetch(\n    `${supabaseUrl}/rest/v1/properties?id=eq.${body.propertyId}&select=owner_id,profiles!properties_owner_id_fkey(email)`,\n    {\n      headers: {\n        'apikey': supabaseKey,\n        'Authorization': `Bearer ${supabaseKey}`\n      }\n    }\n  );\n  const data = await res.json();\n  if (data && data[0] && data[0].profiles) {\n    ownerEmail = data[0].profiles.email;\n  }\n} catch (err) {\n  // Fallback handled below\n}\n\nif (!ownerEmail) {\n  throw new Error(`Impossible de recuperer l'email du owner pour property_id: ${body.propertyId}`);\n}\n\n// --- Format dates ---\nconst formatDateFR = (dateStr) => {\n  if (!dateStr) return '';\n  const d = new Date(dateStr + 'T12:00:00');\n  return d.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' });\n};\n\n// --- Build email ---\nconst headerColor = isPriority ? '#dc2626' : '#3b82f6';\nconst headerLabel = isPriority ? 'ATTENTION REQUISE' : 'Formulaire pre-arrivee';\nconst subjectPrefix = isPriority ? '[ATTENTION] ' : '';\n\nconst subject = `${subjectPrefix}Formulaire pre-arrivee — ${body.guestName} @ ${body.propertyName}`;\n\nlet html = `<div style=\"font-family:-apple-system,sans-serif;max-width:600px;margin:0 auto;\">`;\nhtml += `<div style=\"background:${headerColor};color:#fff;padding:16px;border-radius:8px 8px 0 0;\">`;\nhtml += `<h2 style=\"margin:0;\">${headerLabel}</h2>`;\nhtml += `</div>`;\nhtml += `<div style=\"padding:16px;border:1px solid #e5e7eb;border-top:none;border-radius:0 0 8px 8px;\">`;\n\nif (isPriority) {\n  html += `<div style=\"background:#fef2f2;padding:12px;border-radius:6px;margin-bottom:16px;\">`;\n  html += `<strong style=\"color:#dc2626;\">Raisons :</strong><ul style=\"margin:4px 0;\">`;\n  for (const r of reasons) {\n    html += `<li style=\"color:#dc2626;\">${r}</li>`;\n  }\n  html += `</ul></div>`;\n}\n\nhtml += `<table style=\"width:100%;border-collapse:collapse;\">`;\nhtml += `<tr><td style=\"padding:8px;font-weight:bold;\">Voyageur</td><td style=\"padding:8px;\">${body.guestName}</td></tr>`;\nhtml += `<tr style=\"background:#f3f4f6;\"><td style=\"padding:8px;font-weight:bold;\">Bien</td><td style=\"padding:8px;\">${body.propertyName}</td></tr>`;\nhtml += `<tr><td style=\"padding:8px;font-weight:bold;\">Arrivee</td><td style=\"padding:8px;\">${formatDateFR(body.checkIn)}</td></tr>`;\nhtml += `<tr style=\"background:#f3f4f6;\"><td style=\"padding:8px;font-weight:bold;\">Depart</td><td style=\"padding:8px;\">${formatDateFR(body.checkOut)}</td></tr>`;\nhtml += `<tr><td style=\"padding:8px;font-weight:bold;\">Heure arrivee</td><td style=\"padding:8px;\">${arrivalTime || 'Non renseignee'}</td></tr>`;\nhtml += `<tr style=\"background:#f3f4f6;\"><td style=\"padding:8px;font-weight:bold;\">Nombre de voyageurs</td><td style=\"padding:8px;\">${body.nbGuests || '-'}</td></tr>`;\nif (body.specialRequests) {\n  html += `<tr><td style=\"padding:8px;font-weight:bold;\">Demandes speciales</td><td style=\"padding:8px;background:#fef3c7;\">${body.specialRequests}</td></tr>`;\n}\nhtml += `</table>`;\n\nhtml += `<p style=\"margin-top:16px;\"><a href=\"${config.DASHBOARD_URL}/reservations/${body.reservationId}\" style=\"display:inline-block;background:#1a1a2e;color:#fff;padding:10px 20px;border-radius:6px;text-decoration:none;\">Voir la reservation</a></p>`;\nhtml += `</div></div>`;\n\nreturn [{\n  json: {\n    ownerEmail: ownerEmail,\n    subject: subject,\n    html: html,\n    isPriority: isPriority,\n    reasons: reasons,\n    guestName: body.guestName,\n    propertyName: body.propertyName\n  }\n}];"
+      },
+      "id": "b1c2d3e4-0006-4000-8000-000000000003",
+      "name": "Code: Validate & Detect Priority",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [750, 300]
+    },
+    {
+      "parameters": {
+        "fromEmail": "={{ $('Config').item.json.SMTP_FROM_EMAIL }}",
+        "toEmail": "={{ $json.ownerEmail }}",
+        "subject": "={{ $json.subject }}",
+        "emailType": "html",
+        "html": "={{ $json.html }}",
+        "options": {}
+      },
+      "id": "b1c2d3e4-0006-4000-8000-000000000004",
+      "name": "Send Email Owner",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.2,
+      "position": [1000, 300],
+      "credentials": {
+        "smtp": {
+          "id": "CRED-02",
+          "name": "CRED-02 — SMTP - Loc Immo"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Webhook Trigger": {
+      "main": [
+        [
+          {
+            "node": "Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Config": {
+      "main": [
+        [
+          {
+            "node": "Code: Validate & Detect Priority",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code: Validate & Detect Priority": {
+      "main": [
+        [
+          {
+            "node": "Send Email Owner",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "errorWorkflow": "WF00 — Error Handler"
+  },
+  "meta": {
+    "templateCredsSetupCompleted": false
+  },
+  "tags": []
+}

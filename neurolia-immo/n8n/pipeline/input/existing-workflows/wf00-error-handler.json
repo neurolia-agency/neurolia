@@ -1,0 +1,143 @@
+{
+  "name": "Error Handler (Loc Immo)",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## Gestion centralisee des erreurs\nCe workflow recoit les erreurs de tous les workflows Loc Immo et notifie l'equipe technique (Neurolia) par email.\n\nLe proprietaire n'est **jamais** notifie des erreurs techniques.\n\n**Configuration** : Dans chaque workflow → Settings → Error Workflow → selectionner ce workflow.",
+        "height": 220,
+        "width": 450,
+        "color": 3
+      },
+      "id": "sticky-wf00-01",
+      "name": "Note",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        432,
+        80
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "cbeb33dc-d747-4b73-bcdd-73f4cb6ec8d9",
+      "name": "Erreur detectee",
+      "type": "n8n-nodes-base.errorTrigger",
+      "typeVersion": 1,
+      "position": [
+        432,
+        368
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// ============================================================\n// Config — Variables de configuration Loc Immo\n// ============================================================\n\nreturn [{\n  json: {\n    DASHBOARD_URL: 'https://dashboard-loc-immo.vercel.app',\n    SMTP_FROM_EMAIL: 'gustiez.dorian@neurolia.work',\n    ADMIN_EMAIL: 'gustiez.dorian@neurolia.work',\n  }\n}];"
+      },
+      "id": "8eb3e10f-ae7f-42d7-a738-2c9f7b957f92",
+      "name": "Config",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        672,
+        368
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Lire les donnees d'erreur depuis le trigger (pas depuis $input qui vient de Config)\nconst errorData = $('Erreur detectee').first().json;\nconst execution = errorData.execution;\nconst workflow = errorData.workflow;\n\nconst errorMessage = execution?.error?.message || 'Erreur inconnue';\nconst errorNode = execution?.error?.node?.name || 'Inconnu';\nconst executionId = execution?.id || '-';\nconst executionUrl = execution?.url || '';\nconst workflowName = workflow?.name || 'Inconnu';\nconst workflowId = workflow?.id || '-';\nconst timestamp = new Date().toLocaleString('fr-FR', { timeZone: 'Europe/Paris' });\n\nconst html = `\n<div style=\"font-family: -apple-system, sans-serif; max-width: 600px; margin: 0 auto;\">\n  <div style=\"background: #fef2f2; border: 2px solid #dc2626; border-radius: 8px; padding: 16px; margin-bottom: 16px;\">\n    <h2 style=\"color: #dc2626; margin: 0 0 8px 0;\">Erreur workflow — ${workflowName}</h2>\n    <p style=\"color: #991b1b; margin: 0; font-size: 14px;\">${timestamp}</p>\n  </div>\n\n  <table border=\"0\" cellpadding=\"10\" style=\"width: 100%; border-collapse: collapse;\">\n    <tr style=\"border-bottom: 1px solid #e5e7eb;\">\n      <td style=\"color: #6b7280; width: 140px;\"><strong>Workflow</strong></td>\n      <td>${workflowName} <code>(${workflowId})</code></td>\n    </tr>\n    <tr style=\"border-bottom: 1px solid #e5e7eb;\">\n      <td style=\"color: #6b7280;\"><strong>Node en erreur</strong></td>\n      <td><code>${errorNode}</code></td>\n    </tr>\n    <tr style=\"border-bottom: 1px solid #e5e7eb;\">\n      <td style=\"color: #6b7280;\"><strong>Message</strong></td>\n      <td style=\"color: #dc2626;\"><strong>${errorMessage}</strong></td>\n    </tr>\n    <tr style=\"border-bottom: 1px solid #e5e7eb;\">\n      <td style=\"color: #6b7280;\"><strong>Execution</strong></td>\n      <td><code>${executionId}</code></td>\n    </tr>\n  </table>\n\n  ${executionUrl ? `<div style=\"margin-top: 16px; text-align: center;\"><a href=\"${executionUrl}\" style=\"display: inline-block; padding: 12px 24px; background: #dc2626; color: white; text-decoration: none; border-radius: 8px;\">Voir l'execution n8n</a></div>` : ''}\n</div>`;\n\nreturn [{\n  json: {\n    subject: `[Loc Immo] ERREUR — ${workflowName} — ${errorNode}`,\n    html,\n  }\n}];"
+      },
+      "id": "1f60e542-6b42-4f8e-9d05-de0ca4ad9452",
+      "name": "Construire alerte technique",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        912,
+        368
+      ]
+    },
+    {
+      "parameters": {
+        "fromEmail": "={{ $('Config').first().json.SMTP_FROM_EMAIL }}",
+        "toEmail": "={{ $('Config').first().json.ADMIN_EMAIL }}",
+        "subject": "={{ $json.subject }}",
+        "emailType": "html",
+        "html": "={{ $json.html }}",
+        "options": {
+          "senderName": "Loc Immo - Alerte Technique"
+        }
+      },
+      "id": "6f5e5b32-e00e-4f81-976a-67857d00b448",
+      "name": "Email technique",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        1152,
+        368
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000,
+      "credentials": {
+        "smtp": {
+          "id": "z1Bus01typcwYd7C",
+          "name": "SMTP"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Erreur detectee": {
+      "main": [
+        [
+          {
+            "node": "Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Config": {
+      "main": [
+        [
+          {
+            "node": "Construire alerte technique",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Construire alerte technique": {
+      "main": [
+        [
+          {
+            "node": "Email technique",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "Europe/Paris"
+  },
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "53757d982cfc1ea69cd2856d22e27642cd4adf0846c52a03f167ef14d4fdf8ca"
+  },
+  "tags": [
+    {
+      "name": "loc-immo"
+    },
+    {
+      "name": "erreurs"
+    },
+    {
+      "name": "transversal"
+    }
+  ]
+}

@@ -1,0 +1,121 @@
+{
+  "name": "WF00 — Error Handler",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "a1b2c3d4-0000-4000-8000-000000000001",
+      "name": "Error Trigger",
+      "type": "n8n-nodes-base.errorTrigger",
+      "typeVersion": 1,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "mode": "manual",
+        "assignments": {
+          "assignments": [
+            {
+              "id": "cfg-00-01",
+              "name": "ADMIN_EMAIL",
+              "value": "={{ $env.ADMIN_EMAIL }}",
+              "type": "string"
+            },
+            {
+              "id": "cfg-00-02",
+              "name": "DASHBOARD_URL",
+              "value": "={{ $env.DASHBOARD_URL }}",
+              "type": "string"
+            },
+            {
+              "id": "cfg-00-03",
+              "name": "SMTP_FROM_EMAIL",
+              "value": "={{ $env.SMTP_FROM_EMAIL }}",
+              "type": "string"
+            }
+          ]
+        }
+      },
+      "id": "a1b2c3d4-0000-4000-8000-000000000002",
+      "name": "Config",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [500, 300]
+    },
+    {
+      "parameters": {
+        "language": "javaScript",
+        "jsCode": "// ============================================================\n// WF00 — Format error message and detect severity\n// ============================================================\n\nconst errorData = $('Error Trigger').item.json;\nconst config = $('Config').item.json;\n\nconst execution = errorData.execution || {};\nconst workflow = errorData.workflow || {};\nconst error = execution.error || {};\nconst errorNode = error.node || {};\n\nconst workflowName = workflow.name || 'Unknown Workflow';\nconst nodeName = errorNode.name || execution.lastNodeExecuted || 'Unknown Node';\nconst errorMessage = error.message || 'Unknown error';\nconst executionId = execution.id || 'N/A';\nconst executionUrl = execution.url || '';\nconst timestamp = new Date().toISOString();\n\n// --- Detect severity ---\nconst criticalPatterns = [\n  /ECONNREFUSED/i,\n  /supabase/i,\n  /IMAP.*connection/i,\n  /API.*unreachable/i,\n  /ETIMEDOUT/i,\n  /502\\s+Bad\\s+Gateway/i,\n  /503\\s+Service\\s+Unavailable/i,\n  /authentication.*fail/i,\n  /credential.*invalid/i\n];\n\nconst isCritical = criticalPatterns.some(pattern => pattern.test(errorMessage));\nconst severity = isCritical ? 'critical' : 'warning';\n\n// --- Build severity label ---\nconst severityLabel = severity === 'critical' ? 'CRITIQUE' : 'WARNING';\nconst severityColor = severity === 'critical' ? '#dc2626' : '#f59e0b';\n\n// --- Build recommended action ---\nlet recommendedAction = 'Verifier les logs dans n8n et relancer manuellement si necessaire.';\nif (/ECONNREFUSED|ETIMEDOUT/i.test(errorMessage)) {\n  recommendedAction = 'Verifier la connectivite reseau et le statut du service cible.';\n} else if (/supabase/i.test(errorMessage)) {\n  recommendedAction = 'Verifier le statut Supabase : https://status.supabase.com';\n} else if (/IMAP/i.test(errorMessage)) {\n  recommendedAction = 'Verifier les credentials IMAP et la connexion au serveur email.';\n} else if (/authentication|credential/i.test(errorMessage)) {\n  recommendedAction = 'Verifier les credentials dans les settings n8n.';\n} else if (/timeout/i.test(errorMessage)) {\n  recommendedAction = 'Le service est probablement lent. L\\'execution sera retentee au prochain cycle.';\n}\n\n// --- Build email HTML ---\nconst html = `\n<div style=\"font-family:-apple-system,sans-serif;max-width:600px;margin:0 auto;\">\n  <div style=\"background:${severityColor};color:#fff;padding:16px;border-radius:8px 8px 0 0;\">\n    <h2 style=\"margin:0;\">[${severityLabel}] Erreur Workflow</h2>\n  </div>\n  <div style=\"padding:16px;background:#f9fafb;border:1px solid #e5e7eb;border-top:none;border-radius:0 0 8px 8px;\">\n    <table style=\"width:100%;border-collapse:collapse;\">\n      <tr><td style=\"padding:8px;font-weight:bold;\">Workflow</td><td style=\"padding:8px;\">${workflowName}</td></tr>\n      <tr style=\"background:#f3f4f6;\"><td style=\"padding:8px;font-weight:bold;\">Node</td><td style=\"padding:8px;\">${nodeName}</td></tr>\n      <tr><td style=\"padding:8px;font-weight:bold;\">Erreur</td><td style=\"padding:8px;color:#dc2626;\">${errorMessage}</td></tr>\n      <tr style=\"background:#f3f4f6;\"><td style=\"padding:8px;font-weight:bold;\">Execution</td><td style=\"padding:8px;\">#${executionId}</td></tr>\n      <tr><td style=\"padding:8px;font-weight:bold;\">Timestamp</td><td style=\"padding:8px;\">${new Date(timestamp).toLocaleString('fr-FR', { timeZone: 'Europe/Paris' })}</td></tr>\n      <tr style=\"background:#f3f4f6;\"><td style=\"padding:8px;font-weight:bold;\">Severite</td><td style=\"padding:8px;\"><span style=\"background:${severityColor};color:#fff;padding:2px 8px;border-radius:4px;\">${severityLabel}</span></td></tr>\n    </table>\n    <div style=\"margin-top:16px;padding:12px;background:#fef3c7;border-radius:6px;\">\n      <strong>Action recommandee :</strong> ${recommendedAction}\n    </div>\n    ${executionUrl ? `<p style=\"margin-top:16px;\"><a href=\"${executionUrl}\" style=\"display:inline-block;background:#1a1a2e;color:#fff;padding:10px 20px;border-radius:6px;text-decoration:none;\">Voir l'execution dans n8n</a></p>` : ''}\n  </div>\n</div>`;\n\nreturn [{\n  json: {\n    severity: severity,\n    severityLabel: severityLabel,\n    workflowName: workflowName,\n    nodeName: nodeName,\n    errorMessage: errorMessage,\n    executionId: executionId,\n    executionUrl: executionUrl,\n    timestamp: timestamp,\n    recommendedAction: recommendedAction,\n    emailSubject: `[Neurolia-Immo] ERREUR ${severityLabel} — ${workflowName}`,\n    emailHtml: html\n  }\n}];"
+      },
+      "id": "a1b2c3d4-0000-4000-8000-000000000003",
+      "name": "Code: Format Error",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [750, 300]
+    },
+    {
+      "parameters": {
+        "fromEmail": "={{ $('Config').item.json.SMTP_FROM_EMAIL }}",
+        "toEmail": "={{ $('Config').item.json.ADMIN_EMAIL }}",
+        "subject": "={{ $json.emailSubject }}",
+        "emailType": "html",
+        "html": "={{ $json.emailHtml }}",
+        "options": {
+          "replyTo": "={{ $('Config').item.json.SMTP_FROM_EMAIL }}"
+        }
+      },
+      "id": "a1b2c3d4-0000-4000-8000-000000000004",
+      "name": "Send Email",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.2,
+      "position": [1000, 300],
+      "credentials": {
+        "smtp": {
+          "id": "CRED-02",
+          "name": "CRED-02 — SMTP - Loc Immo"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Error Trigger": {
+      "main": [
+        [
+          {
+            "node": "Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Config": {
+      "main": [
+        [
+          {
+            "node": "Code: Format Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code: Format Error": {
+      "main": [
+        [
+          {
+            "node": "Send Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "meta": {
+    "templateCredsSetupCompleted": false
+  },
+  "tags": []
+}

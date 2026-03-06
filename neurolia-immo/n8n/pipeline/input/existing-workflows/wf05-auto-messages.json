@@ -1,0 +1,1483 @@
+{
+  "name": "Messages automatiques voyageurs",
+  "nodes": [
+    {
+      "parameters": {
+        "jsCode": "// ============================================================\n// Config — Variables de configuration Loc Immo\n// Modifier les valeurs ci-dessous selon votre environnement\n// ============================================================\n\nreturn [{\n  json: {\n    DASHBOARD_URL: 'https://app.locimmo.fr',\n    SMTP_FROM_EMAIL: 'gustiez.dorian@neurolia.work',\n    ADMIN_EMAIL: 'gustiez.dorian@neurolia.work',\n    N8N_WF04_WEBHOOK_URL: 'https://n8n.srv1207220.hstgr.cloud/webhook/wf04-cleaning-task',\n    N8N_WF05_WEBHOOK_URL: 'https://n8n.srv1207220.hstgr.cloud/webhook/wf05-auto-message',\n  }\n}];"
+      },
+      "id": "4eb9d5a8-0fc5-4fc1-9827-aa62f82c3943",
+      "name": "Config",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        672,
+        784
+      ]
+    },
+    {
+      "parameters": {
+        "tableId": "sent_messages",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "reservation_id",
+              "fieldValue": "={{ $json.reservationId }}"
+            },
+            {
+              "fieldId": "template_id",
+              "fieldValue": "={{ $json.templateId }}"
+            },
+            {
+              "fieldId": "channel",
+              "fieldValue": "email"
+            },
+            {
+              "fieldId": "status",
+              "fieldValue": "failed"
+            },
+            {
+              "fieldId": "error_message",
+              "fieldValue": "Email voyageur non disponible"
+            }
+          ]
+        }
+      },
+      "id": "24e652f5-7ccd-4171-8ff5-a447121f7cb0",
+      "name": "Log echec sans email (Flow C)",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        2800,
+        1728
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "jAZu1DEMMOLAGYT0",
+          "name": "Supabase Neurolia Immo"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "tableId": "sent_messages",
+        "filterType": "string",
+        "filterString": "=id=eq.{{ $node['Inserer message en attente (Flow C)'].json.id }}",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "status",
+              "fieldValue": "sent"
+            },
+            {
+              "fieldId": "sent_at",
+              "fieldValue": "={{ $now.toISO() }}"
+            }
+          ]
+        }
+      },
+      "id": "8a506a21-9a5d-4c18-9c69-33a124375c79",
+      "name": "Marquer message envoye (Flow C)",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        3296,
+        1488
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "jAZu1DEMMOLAGYT0",
+          "name": "Supabase Neurolia Immo"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "fromEmail": "={{ $('Config2').item.json.SMTP_FROM_EMAIL }}",
+        "toEmail": "={{ $node['Remplacer variables (Flow C)'].json.recipientEmail }}",
+        "subject": "={{ $node['Remplacer variables (Flow C)'].json.subject }}",
+        "html": "={{ $node['Remplacer variables (Flow C)'].json.htmlBody }}",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "id": "a4aa13cd-c3ac-49fd-ac9c-253dfc1d3e8b",
+      "name": "Envoyer email (Flow C)",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        3056,
+        1488
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000,
+      "webhookId": "cd379567-dde1-47e6-b10a-d3cdf1f3b9d1",
+      "credentials": {
+        "smtp": {
+          "id": "z1Bus01typcwYd7C",
+          "name": "SMTP"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "tableId": "sent_messages",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "reservation_id",
+              "fieldValue": "={{ $json.reservationId }}"
+            },
+            {
+              "fieldId": "template_id",
+              "fieldValue": "={{ $json.templateId }}"
+            },
+            {
+              "fieldId": "channel",
+              "fieldValue": "email"
+            },
+            {
+              "fieldId": "recipient_email",
+              "fieldValue": "={{ $json.recipientEmail }}"
+            },
+            {
+              "fieldId": "status",
+              "fieldValue": "pending"
+            }
+          ]
+        }
+      },
+      "id": "47f94e4c-f519-41e5-8444-cd9f0949a8c6",
+      "name": "Inserer message en attente (Flow C)",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        2800,
+        1488
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "jAZu1DEMMOLAGYT0",
+          "name": "Supabase Neurolia Immo"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "id": "condition-wf05-c1",
+              "leftValue": "={{ $json.hasRecipientEmail }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals",
+                "singleValue": false
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "2db2b161-78f9-4be9-9b4c-165ad07d2e97",
+      "name": "IF email valide (Flow C)",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        2544,
+        1584
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// ============================================================\n// WF05 Flow C — Remplacer les variables dynamiques (post-depart)\n// ============================================================\n\nconst template = $input.first().json;\nconst reservation = $node['Boucle reservations (Flow C)'].json;\nconst property = $node['Get propriete (Flow C)'].json;\n\n// Construire les URLs\nconst dashboardUrl = $('Config2').item.json.DASHBOARD_URL;\nconst welcomeLink = `${dashboardUrl}/welcome/${property.id}`;\nconst checkinFormLink = reservation.checkin_token\n  ? `${dashboardUrl}/checkin/${reservation.checkin_token}`\n  : '';\n\n// Formater les dates en francais\nfunction formatDateFR(dateStr) {\n  const date = new Date(dateStr + 'T00:00:00');\n  return date.toLocaleDateString('fr-FR', {\n    day: 'numeric',\n    month: 'long',\n    year: 'numeric',\n  });\n}\n\n// Map des variables\nconst variables = {\n  '{guest_name}': reservation.guest_name || 'Voyageur',\n  '{property_name}': property.name || '',\n  '{check_in}': formatDateFR(reservation.check_in),\n  '{check_out}': formatDateFR(reservation.check_out),\n  '{welcome_link}': welcomeLink,\n  '{checkin_form_link}': checkinFormLink,\n  '{access_code}': property.access_code || '[code non renseigne]',\n};\n\n// Remplacer dans le sujet et le body\nlet subject = template.subject || '';\nlet body = template.body || '';\n\nfor (const [variable, value] of Object.entries(variables)) {\n  subject = subject.replaceAll(variable, value);\n  body = body.replaceAll(variable, value);\n}\n\n// Convertir les sauts de ligne en <br> pour le HTML\nconst htmlBody = body\n  .replace(/&/g, '&amp;')\n  .replace(/</g, '&lt;')\n  .replace(/>/g, '&gt;')\n  .replace(/\\n/g, '<br>');\n\nreturn [{\n  json: {\n    recipientEmail: reservation.guest_email || null,\n    subject,\n    body,\n    htmlBody: `\n      <div style=\"font-family: -apple-system, sans-serif; max-width: 600px; margin: 0 auto; line-height: 1.6;\">\n        ${htmlBody}\n      </div>\n    `,\n    reservationId: reservation.id,\n    templateId: template.id,\n    hasRecipientEmail: !!reservation.guest_email,\n  }\n}];\n"
+      },
+      "id": "54d087fb-2fbc-4dcd-ae57-29efe1687461",
+      "name": "Remplacer variables (Flow C)",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2304,
+        1584
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "message_templates",
+        "limit": 1,
+        "filterType": "string",
+        "filterString": "=trigger_event=eq.post_departure&is_active=eq.true&owner_id=eq.{{ $node['Get propriete (Flow C)'].json.owner_id }}"
+      },
+      "id": "ced37225-bf49-475d-8f09-bdc6024d5eec",
+      "name": "Recuperer template post-depart",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        2048,
+        1584
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "jAZu1DEMMOLAGYT0",
+          "name": "Supabase Neurolia Immo"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "properties",
+        "limit": 1,
+        "filterType": "string",
+        "filterString": "=id=eq.{{ $node['Boucle reservations (Flow C)'].json.property_id }}"
+      },
+      "id": "e23a69f5-8f0e-4a83-b9e1-8ee9b2e2f3e2",
+      "name": "Get propriete (Flow C)",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        1808,
+        1584
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "jAZu1DEMMOLAGYT0",
+          "name": "Supabase Neurolia Immo"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "sent_messages",
+        "limit": 1,
+        "filterType": "string",
+        "filterString": "=reservation_id=eq.{{ $json.id }}&status=eq.sent&template_id=not.is.null"
+      },
+      "id": "1f804960-5bfa-4ac2-899f-46ad51fd54e1",
+      "name": "Verifier deduplication post-depart",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        1552,
+        1584
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "jAZu1DEMMOLAGYT0",
+          "name": "Supabase Neurolia Immo"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "42200bf1-f55b-416e-9ddb-03690625c1d0",
+      "name": "Boucle reservations (Flow C)",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        1296,
+        1584
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "reservations",
+        "returnAll": true,
+        "filterType": "string",
+        "filterString": "=check_out=eq.{{ DateTime.now().setZone('Europe/Paris').toFormat('yyyy-MM-dd') }}&status=not.in.(cancelled,no_show)"
+      },
+      "id": "d898a963-ec7a-40fd-80c9-972f9ab9cd75",
+      "name": "Get reservations check-out aujourd'hui",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        1056,
+        1584
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "jAZu1DEMMOLAGYT0",
+          "name": "Supabase Neurolia Immo"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 14 * * *"
+            }
+          ]
+        }
+      },
+      "id": "ff78c276-9c5f-425d-ac8d-feca1f740402",
+      "name": "Schedule Post-depart 14h",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        512,
+        1584
+      ]
+    },
+    {
+      "parameters": {
+        "tableId": "sent_messages",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "reservation_id",
+              "fieldValue": "={{ $json.reservationId }}"
+            },
+            {
+              "fieldId": "template_id",
+              "fieldValue": "={{ $json.templateId }}"
+            },
+            {
+              "fieldId": "channel",
+              "fieldValue": "email"
+            },
+            {
+              "fieldId": "status",
+              "fieldValue": "failed"
+            },
+            {
+              "fieldId": "error_message",
+              "fieldValue": "Email voyageur non disponible"
+            }
+          ]
+        }
+      },
+      "id": "c0877a47-e1a3-4386-b3e6-98461ef1d58e",
+      "name": "Log echec sans email (Flow B)",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        2800,
+        1232
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "jAZu1DEMMOLAGYT0",
+          "name": "Supabase Neurolia Immo"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "tableId": "sent_messages",
+        "filterType": "string",
+        "filterString": "=id=eq.{{ $node['Inserer message en attente (Flow B)'].json.id }}",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "status",
+              "fieldValue": "sent"
+            },
+            {
+              "fieldId": "sent_at",
+              "fieldValue": "={{ $now.toISO() }}"
+            }
+          ]
+        }
+      },
+      "id": "80cadccd-31e0-4ed5-8604-ab45957127ee",
+      "name": "Marquer message envoye (Flow B)",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        3296,
+        976
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "jAZu1DEMMOLAGYT0",
+          "name": "Supabase Neurolia Immo"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "fromEmail": "={{ $('Config1').item.json.SMTP_FROM_EMAIL }}",
+        "toEmail": "={{ $node['Remplacer variables (Flow B)'].json.recipientEmail }}",
+        "subject": "={{ $node['Remplacer variables (Flow B)'].json.subject }}",
+        "html": "={{ $node['Remplacer variables (Flow B)'].json.htmlBody }}",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "id": "718ef148-03c0-4007-a13f-457091b0b21e",
+      "name": "Envoyer email (Flow B)",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        3056,
+        976
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000,
+      "webhookId": "54d47db5-f748-473a-9677-1a1a23196dfe",
+      "credentials": {
+        "smtp": {
+          "id": "z1Bus01typcwYd7C",
+          "name": "SMTP"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "tableId": "sent_messages",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "reservation_id",
+              "fieldValue": "={{ $json.reservationId }}"
+            },
+            {
+              "fieldId": "template_id",
+              "fieldValue": "={{ $json.templateId }}"
+            },
+            {
+              "fieldId": "channel",
+              "fieldValue": "email"
+            },
+            {
+              "fieldId": "recipient_email",
+              "fieldValue": "={{ $json.recipientEmail }}"
+            },
+            {
+              "fieldId": "status",
+              "fieldValue": "pending"
+            }
+          ]
+        }
+      },
+      "id": "5655e633-775c-4d8b-bb47-aecd4373f55f",
+      "name": "Inserer message en attente (Flow B)",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        2800,
+        976
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "jAZu1DEMMOLAGYT0",
+          "name": "Supabase Neurolia Immo"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "condition-wf05-b1",
+              "leftValue": "={{ $json.hasRecipientEmail }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals",
+                "singleValue": false
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "d79a61d0-ac70-4a87-99a4-524caa2ff4e7",
+      "name": "IF email valide (Flow B)",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        2544,
+        1088
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// ============================================================\n// WF05 Flow B — Remplacer les variables dynamiques (pre-arrivee)\n// ============================================================\n\nconst template = $input.first().json;\nconst reservation = $node['Boucle reservations (Flow B)'].json;\nconst property = $node['Get propriete (Flow B)'].json;\n\n// Construire les URLs\nconst dashboardUrl = $('Config1').item.json.DASHBOARD_URL;\nconst welcomeLink = `${dashboardUrl}/welcome/${property.id}`;\nconst checkinFormLink = reservation.checkin_token\n  ? `${dashboardUrl}/checkin/${reservation.checkin_token}`\n  : '';\n\n// Formater les dates en francais\nfunction formatDateFR(dateStr) {\n  const date = new Date(dateStr + 'T00:00:00');\n  return date.toLocaleDateString('fr-FR', {\n    day: 'numeric',\n    month: 'long',\n    year: 'numeric',\n  });\n}\n\n// Map des variables\nconst variables = {\n  '{guest_name}': reservation.guest_name || 'Voyageur',\n  '{property_name}': property.name || '',\n  '{check_in}': formatDateFR(reservation.check_in),\n  '{check_out}': formatDateFR(reservation.check_out),\n  '{welcome_link}': welcomeLink,\n  '{checkin_form_link}': checkinFormLink,\n  '{access_code}': property.access_code || '[code non renseigne]',\n};\n\n// Remplacer dans le sujet et le body\nlet subject = template.subject || '';\nlet body = template.body || '';\n\nfor (const [variable, value] of Object.entries(variables)) {\n  subject = subject.replaceAll(variable, value);\n  body = body.replaceAll(variable, value);\n}\n\n// Convertir les sauts de ligne en <br> pour le HTML\nconst htmlBody = body\n  .replace(/&/g, '&amp;')\n  .replace(/</g, '&lt;')\n  .replace(/>/g, '&gt;')\n  .replace(/\\n/g, '<br>');\n\nreturn [{\n  json: {\n    recipientEmail: reservation.guest_email || null,\n    subject,\n    body,\n    htmlBody: `\n      <div style=\"font-family: -apple-system, sans-serif; max-width: 600px; margin: 0 auto; line-height: 1.6;\">\n        ${htmlBody}\n      </div>\n    `,\n    reservationId: reservation.id,\n    templateId: template.id,\n    hasRecipientEmail: !!reservation.guest_email,\n  }\n}];\n"
+      },
+      "id": "e21a54c0-aff0-4be7-a490-4cb1b51b0868",
+      "name": "Remplacer variables (Flow B)",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2304,
+        1088
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "message_templates",
+        "limit": 1,
+        "filterType": "string",
+        "filterString": "=trigger_event=eq.pre_arrival&is_active=eq.true&owner_id=eq.{{ $node['Get propriete (Flow B)'].json.owner_id }}"
+      },
+      "id": "9253eace-8698-4d88-bffe-6a0c0262997d",
+      "name": "Recuperer template pre-arrivee",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        2048,
+        1088
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "jAZu1DEMMOLAGYT0",
+          "name": "Supabase Neurolia Immo"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "properties",
+        "limit": 1,
+        "filterType": "string",
+        "filterString": "=id=eq.{{ $node['Boucle reservations (Flow B)'].json.property_id }}"
+      },
+      "id": "1d6de763-9fc0-48a9-9394-b4ff166aa685",
+      "name": "Get propriete (Flow B)",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        1808,
+        1088
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "jAZu1DEMMOLAGYT0",
+          "name": "Supabase Neurolia Immo"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "sent_messages",
+        "limit": 1,
+        "filterType": "string",
+        "filterString": "=reservation_id=eq.{{ $json.id }}&status=eq.sent&template_id=not.is.null"
+      },
+      "id": "097ba7d7-8358-492d-b147-5eb51fe73785",
+      "name": "Verifier deduplication pre-arrivee",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        1552,
+        1088
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "jAZu1DEMMOLAGYT0",
+          "name": "Supabase Neurolia Immo"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "675f57e6-850a-4c63-b330-0b48d6189c0c",
+      "name": "Boucle reservations (Flow B)",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        1296,
+        1088
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "reservations",
+        "returnAll": true,
+        "filterType": "string",
+        "filterString": "=check_in=eq.{{ DateTime.now().setZone('Europe/Paris').plus({ days: 1 }).toFormat('yyyy-MM-dd') }}&status=not.in.(cancelled,no_show)"
+      },
+      "id": "c7a21de5-5f11-42ca-9da0-ca5dda670985",
+      "name": "Get reservations check-in demain",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        1056,
+        1088
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "jAZu1DEMMOLAGYT0",
+          "name": "Supabase Neurolia Immo"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 10 * * *"
+            }
+          ]
+        }
+      },
+      "id": "e3039071-ed40-4f23-9da8-45c02720ded5",
+      "name": "Schedule Pre-arrivee 10h",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        512,
+        1104
+      ]
+    },
+    {
+      "parameters": {
+        "tableId": "sent_messages",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "reservation_id",
+              "fieldValue": "={{ $json.reservationId }}"
+            },
+            {
+              "fieldId": "template_id",
+              "fieldValue": "={{ $json.templateId }}"
+            },
+            {
+              "fieldId": "channel",
+              "fieldValue": "email"
+            },
+            {
+              "fieldId": "status",
+              "fieldValue": "failed"
+            },
+            {
+              "fieldId": "error_message",
+              "fieldValue": "Email voyageur non disponible"
+            }
+          ]
+        }
+      },
+      "id": "7d4b7f4d-3a7a-4603-ae7b-711af7d3015d",
+      "name": "Log echec sans email (Flow A)",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        2304,
+        736
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "jAZu1DEMMOLAGYT0",
+          "name": "Supabase Neurolia Immo"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "tableId": "sent_messages",
+        "filterType": "string",
+        "filterString": "=id=eq.{{ $node['Inserer message en attente (Flow A)'].json.id }}",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "status",
+              "fieldValue": "sent"
+            },
+            {
+              "fieldId": "sent_at",
+              "fieldValue": "={{ $now.toISO() }}"
+            }
+          ]
+        }
+      },
+      "id": "a87f9bef-3638-4741-88c2-7e93e576d533",
+      "name": "Marquer message envoye (Flow A)",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        2800,
+        480
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "jAZu1DEMMOLAGYT0",
+          "name": "Supabase Neurolia Immo"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "fromEmail": "={{ $('Config').item.json.SMTP_FROM_EMAIL }}",
+        "toEmail": "={{ $node['Remplacer variables (Flow A)'].json.recipientEmail }}",
+        "subject": "={{ $node['Remplacer variables (Flow A)'].json.subject }}",
+        "html": "={{ $node['Remplacer variables (Flow A)'].json.htmlBody }}",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "id": "08149c39-e122-4f51-abd6-3518c8a4b880",
+      "name": "Envoyer email (Flow A)",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        2544,
+        480
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000,
+      "webhookId": "ad66cc90-1df3-49e3-a758-8dce1bcce31e",
+      "credentials": {
+        "smtp": {
+          "id": "z1Bus01typcwYd7C",
+          "name": "SMTP"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "tableId": "sent_messages",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "reservation_id",
+              "fieldValue": "={{ $json.reservationId }}"
+            },
+            {
+              "fieldId": "template_id",
+              "fieldValue": "={{ $json.templateId }}"
+            },
+            {
+              "fieldId": "channel",
+              "fieldValue": "email"
+            },
+            {
+              "fieldId": "recipient_email",
+              "fieldValue": "={{ $json.recipientEmail }}"
+            },
+            {
+              "fieldId": "status",
+              "fieldValue": "pending"
+            }
+          ]
+        }
+      },
+      "id": "17495001-1f67-4f02-8124-6bdc40da9cc1",
+      "name": "Inserer message en attente (Flow A)",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        2304,
+        480
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "jAZu1DEMMOLAGYT0",
+          "name": "Supabase Neurolia Immo"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "condition-wf05-a1",
+              "leftValue": "={{ $json.hasRecipientEmail }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals",
+                "singleValue": false
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "3b592196-bbe6-49ba-874d-bab6889b2c03",
+      "name": "IF email valide (Flow A)",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        2048,
+        576
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// ============================================================\n// WF05 — Remplacer les variables dynamiques dans le template\n// ============================================================\n\nconst template = $input.first().json;\nconst reservation = $node['Valider payload confirmation'].json;\nconst property = $node['Get propriete (Flow A)'].json;\n\n// Construire les URLs\nconst dashboardUrl = $('Config').item.json.DASHBOARD_URL;\nconst welcomeLink = `${dashboardUrl}/welcome/${property.id}`;\nconst checkinFormLink = reservation.checkin_token\n  ? `${dashboardUrl}/checkin/${reservation.checkin_token}`\n  : '';\n\n// Formater les dates en francais\nfunction formatDateFR(dateStr) {\n  const date = new Date(dateStr + 'T00:00:00');\n  return date.toLocaleDateString('fr-FR', {\n    day: 'numeric',\n    month: 'long',\n    year: 'numeric',\n  });\n}\n\n// Map des variables\nconst variables = {\n  '{guest_name}': reservation.guestName || 'Voyageur',\n  '{property_name}': property.name || '',\n  '{check_in}': formatDateFR(reservation.checkIn),\n  '{check_out}': formatDateFR(reservation.checkOut),\n  '{welcome_link}': welcomeLink,\n  '{checkin_form_link}': checkinFormLink,\n  '{access_code}': property.access_code || '[code non renseigne]',\n};\n\n// Remplacer dans le sujet et le body\nlet subject = template.subject || '';\nlet body = template.body || '';\n\nfor (const [variable, value] of Object.entries(variables)) {\n  subject = subject.replaceAll(variable, value);\n  body = body.replaceAll(variable, value);\n}\n\n// Convertir les sauts de ligne en <br> pour le HTML\nconst htmlBody = body\n  .replace(/&/g, '&amp;')\n  .replace(/</g, '&lt;')\n  .replace(/>/g, '&gt;')\n  .replace(/\\n/g, '<br>');\n\nreturn [{\n  json: {\n    recipientEmail: reservation.guestEmail || null,\n    subject,\n    body,\n    htmlBody: `\n      <div style=\"font-family: -apple-system, sans-serif; max-width: 600px; margin: 0 auto; line-height: 1.6;\">\n        ${htmlBody}\n      </div>\n    `,\n    reservationId: reservation.reservationId,\n    templateId: template.id,\n    hasRecipientEmail: !!reservation.guestEmail,\n  }\n}];\n"
+      },
+      "id": "455a979c-efdc-4f22-b5e3-c0239eb1d97b",
+      "name": "Remplacer variables (Flow A)",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1808,
+        576
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "message_templates",
+        "limit": 1,
+        "filterType": "string",
+        "filterString": "=trigger_event=eq.confirmation&is_active=eq.true&owner_id=eq.{{ $node['Get propriete (Flow A)'].json.owner_id }}"
+      },
+      "id": "d399e042-1637-4d5d-99cf-ab32667ad479",
+      "name": "Recuperer template confirmation",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        1552,
+        576
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "jAZu1DEMMOLAGYT0",
+          "name": "Supabase Neurolia Immo"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "properties",
+        "limit": 1,
+        "filterType": "string",
+        "filterString": "=id=eq.{{ $json.propertyId }}"
+      },
+      "id": "d27b44dc-f7a3-4e3e-9468-b5561e662c02",
+      "name": "Get propriete (Flow A)",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        1296,
+        576
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "jAZu1DEMMOLAGYT0",
+          "name": "Supabase Neurolia Immo"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\"status\": \"ok\", \"message\": \"Confirmation message queued\"}",
+        "options": {}
+      },
+      "id": "629f404c-c02b-4665-823a-2c1f75cf5821",
+      "name": "Repondre 200 OK",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        1056,
+        784
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// ============================================================\n// WF05 Flow A — Valider et preparer les donnees de confirmation\n// ============================================================\n\nconst data = $('Webhook confirmation').first().json.body;\n\nif (!data.reservationId || !data.guestEmail || !data.propertyId) {\n  throw new Error('Payload invalide : reservationId, guestEmail et propertyId sont requis');\n}\n\nreturn [{\n  json: {\n    triggerType: 'confirmation',\n    reservationId: data.reservationId,\n    propertyId: data.propertyId,\n    guestName: data.guestName || 'Voyageur',\n    guestEmail: data.guestEmail,\n    checkIn: data.checkIn,\n    checkOut: data.checkOut,\n  }\n}];\n"
+      },
+      "id": "236b4c02-60cf-4d61-b3fe-28dfd8521472",
+      "name": "Valider payload confirmation",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1056,
+        576
+      ]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "wf05-auto-message",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "49fa7eb9-734e-4abd-81da-ae334e0d5ef7",
+      "name": "Webhook confirmation",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        496,
+        656
+      ],
+      "webhookId": "wf05-auto-message"
+    },
+    {
+      "parameters": {
+        "content": "## Flow C -- Post-depart J+0\nCron tous les jours a 14h. Recupere les reservations\navec check-out aujourd'hui et envoie un email post-depart.\nDeduplication pour eviter les doublons.",
+        "height": 150,
+        "width": 350
+      },
+      "id": "5ca23eff-77ba-48ba-82f5-abc9440e1a64",
+      "name": "Note3",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        800,
+        1424
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## Flow B -- Pre-arrivee J-1\nCron tous les jours a 10h. Recupere les reservations\navec check-in le lendemain et envoie un email de pre-arrivee.\nDeduplication pour eviter les doublons.",
+        "height": 150,
+        "width": 350
+      },
+      "id": "b95d3620-6e8a-4846-88be-842016fe58d6",
+      "name": "Note2",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        800,
+        928
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## Flow A -- Confirmation\nDeclenche par webhook lors d'une nouvelle reservation.\nRepond 200 immediatement, puis envoie l'email de confirmation.",
+        "height": 150,
+        "width": 350
+      },
+      "id": "de6fc212-fd2c-4590-8863-aafab33e64c7",
+      "name": "Note1",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        800,
+        416
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## Messages automatiques voyageurs\nEnvoi automatique d'emails aux voyageurs a 3 moments cles :\n- **Flow A** : Confirmation de reservation (webhook)\n- **Flow B** : Pre-arrivee J-1 (cron 10h)\n- **Flow C** : Post-depart J+0 (cron 14h)\n\nChaque flow recupere le template actif, remplace les variables, et envoie par SMTP.",
+        "height": 220,
+        "width": 500,
+        "color": 4
+      },
+      "id": "8e8e6352-aa95-4765-be72-94b7cd5547a0",
+      "name": "Note",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        256,
+        384
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// ============================================================\n// Config — Variables de configuration Loc Immo\n// Modifier les valeurs ci-dessous selon votre environnement\n// ============================================================\n\nreturn [{\n  json: {\n    DASHBOARD_URL: 'https://app.locimmo.fr',\n    SMTP_FROM_EMAIL: 'gustiez.dorian@neurolia.work',\n    ADMIN_EMAIL: 'gustiez.dorian@neurolia.work',\n    N8N_WF04_WEBHOOK_URL: 'https://n8n.srv1207220.hstgr.cloud/webhook/wf04-cleaning-task',\n    N8N_WF05_WEBHOOK_URL: 'https://n8n.srv1207220.hstgr.cloud/webhook/wf05-auto-message',\n  }\n}];"
+      },
+      "id": "ffa23808-9984-4abf-8b7b-fa9234e6d435",
+      "name": "Config1",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        752,
+        1104
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// ============================================================\n// Config — Variables de configuration Loc Immo\n// Modifier les valeurs ci-dessous selon votre environnement\n// ============================================================\n\nreturn [{\n  json: {\n    DASHBOARD_URL: 'https://app.locimmo.fr',\n    SMTP_FROM_EMAIL: 'gustiez.dorian@neurolia.work',\n    ADMIN_EMAIL: 'gustiez.dorian@neurolia.work',\n    N8N_WF04_WEBHOOK_URL: 'https://n8n.srv1207220.hstgr.cloud/webhook/wf04-cleaning-task',\n    N8N_WF05_WEBHOOK_URL: 'https://n8n.srv1207220.hstgr.cloud/webhook/wf05-auto-message',\n  }\n}];"
+      },
+      "id": "bfdacca5-b0dd-42bf-b782-279045b2ea2a",
+      "name": "Config2",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        752,
+        1584
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Log echec sans email (Flow C)": {
+      "main": [
+        [
+          {
+            "node": "Boucle reservations (Flow C)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Marquer message envoye (Flow C)": {
+      "main": [
+        [
+          {
+            "node": "Boucle reservations (Flow C)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Envoyer email (Flow C)": {
+      "main": [
+        [
+          {
+            "node": "Marquer message envoye (Flow C)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Inserer message en attente (Flow C)": {
+      "main": [
+        [
+          {
+            "node": "Envoyer email (Flow C)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF email valide (Flow C)": {
+      "main": [
+        [
+          {
+            "node": "Inserer message en attente (Flow C)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Log echec sans email (Flow C)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Remplacer variables (Flow C)": {
+      "main": [
+        [
+          {
+            "node": "IF email valide (Flow C)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Recuperer template post-depart": {
+      "main": [
+        [
+          {
+            "node": "Remplacer variables (Flow C)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get propriete (Flow C)": {
+      "main": [
+        [
+          {
+            "node": "Recuperer template post-depart",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Verifier deduplication post-depart": {
+      "main": [
+        [
+          {
+            "node": "Get propriete (Flow C)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Boucle reservations (Flow C)": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Verifier deduplication post-depart",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get reservations check-out aujourd'hui": {
+      "main": [
+        [
+          {
+            "node": "Boucle reservations (Flow C)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Schedule Post-depart 14h": {
+      "main": [
+        [
+          {
+            "node": "Config2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log echec sans email (Flow B)": {
+      "main": [
+        [
+          {
+            "node": "Boucle reservations (Flow B)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Marquer message envoye (Flow B)": {
+      "main": [
+        [
+          {
+            "node": "Boucle reservations (Flow B)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Envoyer email (Flow B)": {
+      "main": [
+        [
+          {
+            "node": "Marquer message envoye (Flow B)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Inserer message en attente (Flow B)": {
+      "main": [
+        [
+          {
+            "node": "Envoyer email (Flow B)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF email valide (Flow B)": {
+      "main": [
+        [
+          {
+            "node": "Inserer message en attente (Flow B)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Log echec sans email (Flow B)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Remplacer variables (Flow B)": {
+      "main": [
+        [
+          {
+            "node": "IF email valide (Flow B)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Recuperer template pre-arrivee": {
+      "main": [
+        [
+          {
+            "node": "Remplacer variables (Flow B)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get propriete (Flow B)": {
+      "main": [
+        [
+          {
+            "node": "Recuperer template pre-arrivee",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Verifier deduplication pre-arrivee": {
+      "main": [
+        [
+          {
+            "node": "Get propriete (Flow B)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Boucle reservations (Flow B)": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Verifier deduplication pre-arrivee",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get reservations check-in demain": {
+      "main": [
+        [
+          {
+            "node": "Boucle reservations (Flow B)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Schedule Pre-arrivee 10h": {
+      "main": [
+        [
+          {
+            "node": "Config1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Envoyer email (Flow A)": {
+      "main": [
+        [
+          {
+            "node": "Marquer message envoye (Flow A)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Inserer message en attente (Flow A)": {
+      "main": [
+        [
+          {
+            "node": "Envoyer email (Flow A)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF email valide (Flow A)": {
+      "main": [
+        [
+          {
+            "node": "Inserer message en attente (Flow A)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Log echec sans email (Flow A)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Remplacer variables (Flow A)": {
+      "main": [
+        [
+          {
+            "node": "IF email valide (Flow A)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Recuperer template confirmation": {
+      "main": [
+        [
+          {
+            "node": "Remplacer variables (Flow A)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get propriete (Flow A)": {
+      "main": [
+        [
+          {
+            "node": "Recuperer template confirmation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Valider payload confirmation": {
+      "main": [
+        [
+          {
+            "node": "Get propriete (Flow A)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook confirmation": {
+      "main": [
+        [
+          {
+            "node": "Repondre 200 OK",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Config": {
+      "main": [
+        [
+          {
+            "node": "Valider payload confirmation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Config1": {
+      "main": [
+        [
+          {
+            "node": "Get reservations check-in demain",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Config2": {
+      "main": [
+        [
+          {
+            "node": "Get reservations check-out aujourd'hui",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false,
+    "timeSavedMode": "fixed",
+    "errorWorkflow": "Llq5u9tJbIJAm6kH",
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "versionId": "c9abc48e-5486-4344-b4c1-531d43c4b083",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "53757d982cfc1ea69cd2856d22e27642cd4adf0846c52a03f167ef14d4fdf8ca"
+  },
+  "id": "21Xt6fTVf1vCXOUJ",
+  "tags": [
+    {
+      "updatedAt": "2026-02-12T15:41:08.917Z",
+      "createdAt": "2026-02-12T15:41:08.917Z",
+      "id": "Hi20SDliODB5tfGS",
+      "name": "messages-auto"
+    },
+    {
+      "updatedAt": "2026-02-12T15:11:24.538Z",
+      "createdAt": "2026-02-12T15:11:24.538Z",
+      "id": "SGTxR2n6419dHjHp",
+      "name": "loc-immo"
+    },
+    {
+      "updatedAt": "2026-02-12T15:41:08.923Z",
+      "createdAt": "2026-02-12T15:41:08.923Z",
+      "id": "VPXL2CbbEWQqPvNy",
+      "name": "voyageurs"
+    }
+  ]
+}

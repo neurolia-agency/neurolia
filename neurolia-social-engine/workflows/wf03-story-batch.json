@@ -1,0 +1,516 @@
+{
+  "id": "lseu1WhVn7c29EEj",
+  "name": "SE-WF03 — Story Batch",
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "Europe/Paris",
+    "saveDataErrorExecution": "all",
+    "saveDataSuccessExecution": "all",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": false
+  },
+  "nodes": [
+    {
+      "id": "sch01",
+      "name": "Schedule Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [0, 300],
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 20 * * 0"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "sb02",
+      "name": "Fetch Active Clients",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [280, 300],
+      "parameters": {
+        "resource": "row",
+        "operation": "getAll",
+        "tableId": "clients",
+        "returnAll": true,
+        "filterType": "manual",
+        "matchType": "allFilters",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "is_active",
+              "condition": "eq",
+              "keyValue": "true"
+            }
+          ]
+        }
+      },
+      "credentials": {
+        "supabaseApi": {
+          "id": "PLACEHOLDER",
+          "name": "Supabase Social Engine"
+        }
+      }
+    },
+    {
+      "id": "sp03",
+      "name": "Split Clients",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [560, 300],
+      "parameters": {
+        "batchSize": 1,
+        "options": {}
+      }
+    },
+    {
+      "id": "cd04",
+      "name": "Calculate Week Range",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [840, 300],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const c = $json;\nconst now = new Date();\nconst day = now.getDay();\nconst dM = day === 0 ? 1 : (8 - day);\nconst mon = new Date(now.getFullYear(), now.getMonth(), now.getDate() + dM);\nconst sun = new Date(mon.getFullYear(), mon.getMonth(), mon.getDate() + 6);\nconst fmt = d => d.toISOString().split('T')[0];\nreturn [{ json: { client_id: c.id, client_slug: c.slug, client_name: c.name, next_monday: fmt(mon), next_sunday: fmt(sun), batch_id: 'batch-' + Date.now() + '-' + Math.random().toString(36).substring(2,8), batch_week: fmt(mon) } }];"
+      }
+    },
+    {
+      "id": "cd05",
+      "name": "Fetch Story Slots",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1120, 300],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const httpRequest = globalThis.helpers.httpRequest;\nconst SB_URL = 'PLACEHOLDER_SUPABASE_URL';\nconst SB_KEY = 'PLACEHOLDER_SUPABASE_KEY';\nconst wr = $json;\nconst h = { apikey: SB_KEY, Authorization: 'Bearer ' + SB_KEY };\nlet slots = [];\ntry {\n  slots = await httpRequest({ method: 'GET', url: SB_URL + '/rest/v1/editorial_slots?client_id=eq.' + wr.client_id + '&content_type=eq.story&scheduled_date=gte.' + wr.next_monday + '&scheduled_date=lte.' + wr.next_sunday + '&order=scheduled_date.asc,scheduled_time.asc', headers: h });\n} catch(e) {}\nif (!Array.isArray(slots) || slots.length === 0) return [{ json: { _noData: true } }];\nreturn [{ json: { _noData: false, slots, slotsCount: slots.length, client_id: wr.client_id, client_slug: wr.client_slug, batch_id: wr.batch_id, batch_week: wr.batch_week } }];"
+      }
+    },
+    {
+      "id": "if06",
+      "name": "IF Slots Found",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [1400, 300],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "version": 2,
+            "leftValue": "",
+            "caseSensitive": true,
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "cond1",
+              "leftValue": "={{ $json._noData }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "false",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "sb07",
+      "name": "Fetch Brand Platform",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [1680, 200],
+      "parameters": {
+        "resource": "row",
+        "operation": "getAll",
+        "tableId": "brand_platforms",
+        "returnAll": true,
+        "filterType": "manual",
+        "matchType": "allFilters",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "client_id",
+              "condition": "eq",
+              "keyValue": "={{ $json.client_id }}"
+            }
+          ]
+        }
+      },
+      "credentials": {
+        "supabaseApi": {
+          "id": "PLACEHOLDER",
+          "name": "Supabase Social Engine"
+        }
+      }
+    },
+    {
+      "id": "cd08",
+      "name": "Assign Photos to Slots",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1960, 200],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const httpRequest = globalThis.helpers.httpRequest;\nconst SB_URL = 'PLACEHOLDER_SUPABASE_URL';\nconst SB_KEY = 'PLACEHOLDER_SUPABASE_KEY';\nconst data = $('Fetch Story Slots').first().json;\nconst h = { apikey: SB_KEY, Authorization: 'Bearer ' + SB_KEY };\nlet photos = [];\ntry {\n  photos = await httpRequest({ method: 'GET', url: SB_URL + '/rest/v1/uploads?client_id=eq.' + data.client_id + '&status=in.(new,assigned)', headers: h });\n} catch(e) {}\nif (!photos || photos.length === 0) return [];\nconst slots = data.slots || [];\nconst results = [];\nfor (let i = 0; i < slots.length; i++) {\n  const slot = slots[i];\n  let photo = photos.find(p => p.slot_id === slot.id);\n  if (!photo) photo = photos[i % photos.length];\n  results.push({ json: { slot_id: slot.id, slot, photo_url: photo.original_url, upload_id: photo.id, client_id: data.client_id, client_slug: data.client_slug, batch_id: data.batch_id, batch_week: data.batch_week, scheduled_at: slot.scheduled_date + 'T' + slot.scheduled_time } });\n}\nreturn results.length > 0 ? results : [];"
+      }
+    },
+    {
+      "id": "sp09",
+      "name": "Split Story Slots",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [2240, 200],
+      "parameters": {
+        "batchSize": 1,
+        "options": {}
+      }
+    },
+    {
+      "id": "hr10",
+      "name": "Download Photo",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [2520, 200],
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $('Split Story Slots').first().json.photo_url }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "PLACEHOLDER_SUPABASE_KEY"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer PLACEHOLDER_SUPABASE_KEY"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file",
+              "outputPropertyName": "data"
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "cd11",
+      "name": "Build Sublimation Prompt",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2800, 200],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const item = $('Split Story Slots').first().json;\nconst slot = item.slot;\nconst brand = $('Fetch Brand Platform').first().json;\nconst p = 'Retouche legerement cette photo et incruste le texte suivant pour une story Instagram.\\n\\nCHARTE GRAPHIQUE :\\n- Couleur principale : ' + (brand.primary_color || '#000000') + '\\n- Couleurs secondaires : ' + ((brand.secondary_colors || []).join(', ')) + '\\n- Police principale : ' + (brand.font_primary || 'sans-serif moderne') + '\\n\\nDIRECTION VISUELLE :\\n' + (slot.visual_direction || 'Retouche legere.') + '\\n\\nTEXTE A INCRUSTER :\\n\"' + (slot.story_text || '') + '\"\\n\\nREGLES TEXTE :\\n- Police : ' + (brand.font_primary || 'sans-serif') + '\\n- Couleur : contraste fort\\n- Position : centre-bas\\n- Fond semi-transparent si necessaire\\n\\nMODE : Retouche legere. Dimensions : 1080x1920 (9:16).';\nreturn [{ json: { prompt: p, mode: 'light', model: 'gpt-image-1', slot_id: item.slot_id, upload_id: item.upload_id, client_id: item.client_id, client_slug: item.client_slug, batch_id: item.batch_id, batch_week: item.batch_week, scheduled_at: item.scheduled_at, fileName: 'story-' + item.slot_id.substring(0, 8) + '.png' }, binary: $input.first().binary }];"
+      }
+    },
+    {
+      "id": "oa12",
+      "name": "Agent DA Story",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 2.1,
+      "position": [3080, 200],
+      "parameters": {
+        "resource": "image",
+        "operation": "edit",
+        "model": {
+          "__rl": true,
+          "mode": "id",
+          "value": "gpt-image-1"
+        },
+        "binaryPropertyName": "data",
+        "prompt": "={{ $json.prompt }}",
+        "options": {
+          "quality": "medium",
+          "n": 1
+        }
+      },
+      "credentials": {
+        "openAiApi": {
+          "id": "PLACEHOLDER",
+          "name": "OpenAI"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "hr13",
+      "name": "Upload Story Image",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [3360, 200],
+      "parameters": {
+        "method": "POST",
+        "url": "=PLACEHOLDER_SUPABASE_URL/storage/v1/object/social-engine/{{ $('Build Sublimation Prompt').first().json.client_slug }}/sublimated/{{ $('Build Sublimation Prompt').first().json.fileName }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "PLACEHOLDER_SUPABASE_KEY"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer PLACEHOLDER_SUPABASE_KEY"
+            },
+            {
+              "name": "Content-Type",
+              "value": "image/png"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "binaryData",
+        "inputDataFieldName": "data",
+        "options": {}
+      }
+    },
+    {
+      "id": "cd14",
+      "name": "Build Caption Prompt",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [3640, 200],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const httpRequest = globalThis.helpers.httpRequest;\nconst SB_URL = 'PLACEHOLDER_SUPABASE_URL';\nconst SB_KEY = 'PLACEHOLDER_SUPABASE_KEY';\nconst item = $('Split Story Slots').first().json;\nconst slot = item.slot;\nconst brand = $('Fetch Brand Platform').first().json;\nconst client = $('Split Clients').first().json;\nconst h = { apikey: SB_KEY, Authorization: 'Bearer ' + SB_KEY };\nlet recent = [];\ntry { recent = await httpRequest({ method: 'GET', url: SB_URL + '/rest/v1/content_queue?client_id=eq.' + item.client_id + '&status=eq.published&content_type=eq.story&order=created_at.desc&limit=10&select=caption,cta', headers: h }); } catch(e) {}\nconst caps = (recent || []).map((c, i) => (i+1) + '. ' + (c.caption || '').substring(0, 80)).join('\\n');\nconst systemPrompt = 'Tu es un redacteur social media expert en stories Instagram.\\nCaption courte (20-40 mots), percutante, directe.\\nJSON : { \"caption\": \"string\", \"cta\": \"string\" }\\nCoherente avec le texte image : \"' + (slot.story_text || '') + '\"\\nStyle : ' + (slot.caption_style || 'exclamatif') + '\\nEmojis : 1-2 max';\nconst userPrompt = 'Marque : ' + client.name + '\\nTon : ' + (brand.tone_of_voice || '') + '\\nTheme : ' + (slot.theme || '') + '\\nAngle : ' + (slot.angle || '') + '\\nStyle : ' + (slot.caption_style || '') + '\\nTexte story : \"' + (slot.story_text || '') + '\"\\n\\nDernieres captions :\\n' + (caps || 'Premiere.') + '\\n\\nCaption story (20-40 mots). JSON : { \"caption\", \"cta\" }';\nreturn [{ json: { systemPrompt, userPrompt, client_id: item.client_id } }];"
+      }
+    },
+    {
+      "id": "ag15",
+      "name": "Agent Redacteur Story",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [3920, 200],
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.userPrompt }}",
+        "hasOutputParser": true,
+        "options": {
+          "systemMessage": "={{ $json.systemPrompt }}",
+          "maxIterations": 3
+        }
+      }
+    },
+    {
+      "id": "lm15a",
+      "name": "OpenAI Chat Model Redacteur",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [3820, 500],
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "id",
+          "value": "gpt-4o"
+        },
+        "options": {
+          "temperature": 0.85,
+          "maxTokens": 300
+        }
+      },
+      "credentials": {
+        "openAiApi": {
+          "id": "PLACEHOLDER",
+          "name": "OpenAI"
+        }
+      }
+    },
+    {
+      "id": "op15b",
+      "name": "Structured Output Parser Story",
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [4020, 500],
+      "parameters": {
+        "schemaType": "fromJson",
+        "jsonSchemaExample": "{\n  \"caption\": \"Caption courte story\",\n  \"cta\": \"Action rapide\"\n}",
+        "autoFix": true
+      }
+    },
+    {
+      "id": "lm15c",
+      "name": "OpenAI Chat Model AutoFix",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [4020, 700],
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "id",
+          "value": "gpt-4o-mini"
+        },
+        "options": {
+          "temperature": 0
+        }
+      },
+      "credentials": {
+        "openAiApi": {
+          "id": "PLACEHOLDER",
+          "name": "OpenAI"
+        }
+      }
+    },
+    {
+      "id": "sb16",
+      "name": "Insert Content Queue",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [4200, 200],
+      "parameters": {
+        "resource": "row",
+        "operation": "create",
+        "tableId": "content_queue",
+        "dataToSend": "defineBelow",
+        "fieldsUi": {
+          "fieldValues": [
+            { "fieldId": "client_id", "fieldValue": "={{ $('Build Caption Prompt').first().json.client_id }}" },
+            { "fieldId": "slot_id", "fieldValue": "={{ $('Split Story Slots').first().json.slot_id }}" },
+            { "fieldId": "upload_id", "fieldValue": "={{ $('Split Story Slots').first().json.upload_id }}" },
+            { "fieldId": "content_type", "fieldValue": "story" },
+            { "fieldId": "sublimated_url", "fieldValue": "={{ 'PLACEHOLDER_SUPABASE_URL/storage/v1/object/public/social-engine/' + $('Build Sublimation Prompt').first().json.client_slug + '/sublimated/' + $('Build Sublimation Prompt').first().json.fileName }}" },
+            { "fieldId": "sublimation_prompt", "fieldValue": "={{ $('Build Sublimation Prompt').first().json.prompt }}" },
+            { "fieldId": "sublimation_model", "fieldValue": "gpt-image-1" },
+            { "fieldId": "caption", "fieldValue": "={{ ($json.output || {}).caption || $json.caption || '' }}" },
+            { "fieldId": "cta", "fieldValue": "={{ ($json.output || {}).cta || $json.cta || '' }}" },
+            { "fieldId": "caption_model", "fieldValue": "gpt-4o" },
+            { "fieldId": "status", "fieldValue": "pending_review" },
+            { "fieldId": "batch_id", "fieldValue": "={{ $('Split Story Slots').first().json.batch_id }}" },
+            { "fieldId": "batch_week", "fieldValue": "={{ $('Split Story Slots').first().json.batch_week }}" },
+            { "fieldId": "scheduled_at", "fieldValue": "={{ $('Split Story Slots').first().json.scheduled_at }}" }
+          ]
+        }
+      },
+      "credentials": {
+        "supabaseApi": {
+          "id": "PLACEHOLDER",
+          "name": "Supabase Social Engine"
+        }
+      }
+    },
+    {
+      "id": "cd17",
+      "name": "Update Uploads Status",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2520, 600],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const httpRequest = globalThis.helpers.httpRequest;\nconst SB_URL = 'PLACEHOLDER_SUPABASE_URL';\nconst SB_KEY = 'PLACEHOLDER_SUPABASE_KEY';\nconst h = { apikey: SB_KEY, Authorization: 'Bearer ' + SB_KEY, 'Content-Type': 'application/json', Prefer: 'return=minimal' };\nconst items = $('Assign Photos to Slots').all();\nconst ids = [...new Set(items.map(i => i.json.upload_id).filter(Boolean))];\nfor (const uid of ids) {\n  try { await httpRequest({ method: 'PATCH', url: SB_URL + '/rest/v1/uploads?id=eq.' + uid, headers: h, body: JSON.stringify({ status: 'processed' }) }); } catch(e) {}\n}\nreturn [{ json: { updated: ids.length } }];"
+      }
+    },
+    {
+      "id": "sb18",
+      "name": "Log Execution",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [2800, 600],
+      "parameters": {
+        "resource": "row",
+        "operation": "create",
+        "tableId": "workflow_logs",
+        "dataToSend": "defineBelow",
+        "fieldsUi": {
+          "fieldValues": [
+            { "fieldId": "workflow_name", "fieldValue": "wf03-story-batch" },
+            { "fieldId": "status", "fieldValue": "success" },
+            { "fieldId": "message", "fieldValue": "Story batch complete" }
+          ]
+        }
+      },
+      "credentials": {
+        "supabaseApi": {
+          "id": "PLACEHOLDER",
+          "name": "Supabase Social Engine"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Schedule Trigger": {
+      "main": [[{ "node": "Fetch Active Clients", "type": "main", "index": 0 }]]
+    },
+    "Fetch Active Clients": {
+      "main": [[{ "node": "Split Clients", "type": "main", "index": 0 }]]
+    },
+    "Split Clients": {
+      "main": [
+        [{ "node": "Log Execution", "type": "main", "index": 0 }],
+        [{ "node": "Calculate Week Range", "type": "main", "index": 0 }]
+      ]
+    },
+    "Calculate Week Range": {
+      "main": [[{ "node": "Fetch Story Slots", "type": "main", "index": 0 }]]
+    },
+    "Fetch Story Slots": {
+      "main": [[{ "node": "IF Slots Found", "type": "main", "index": 0 }]]
+    },
+    "IF Slots Found": {
+      "main": [
+        [{ "node": "Fetch Brand Platform", "type": "main", "index": 0 }],
+        [{ "node": "Split Clients", "type": "main", "index": 0 }]
+      ]
+    },
+    "Fetch Brand Platform": {
+      "main": [[{ "node": "Assign Photos to Slots", "type": "main", "index": 0 }]]
+    },
+    "Assign Photos to Slots": {
+      "main": [[{ "node": "Split Story Slots", "type": "main", "index": 0 }]]
+    },
+    "Split Story Slots": {
+      "main": [
+        [{ "node": "Update Uploads Status", "type": "main", "index": 0 }],
+        [{ "node": "Download Photo", "type": "main", "index": 0 }]
+      ]
+    },
+    "Download Photo": {
+      "main": [[{ "node": "Build Sublimation Prompt", "type": "main", "index": 0 }]]
+    },
+    "Build Sublimation Prompt": {
+      "main": [[{ "node": "Agent DA Story", "type": "main", "index": 0 }]]
+    },
+    "Agent DA Story": {
+      "main": [[{ "node": "Upload Story Image", "type": "main", "index": 0 }]]
+    },
+    "Upload Story Image": {
+      "main": [[{ "node": "Build Caption Prompt", "type": "main", "index": 0 }]]
+    },
+    "Build Caption Prompt": {
+      "main": [[{ "node": "Agent Redacteur Story", "type": "main", "index": 0 }]]
+    },
+    "Agent Redacteur Story": {
+      "main": [[{ "node": "Insert Content Queue", "type": "main", "index": 0 }]]
+    },
+    "Insert Content Queue": {
+      "main": [[{ "node": "Split Story Slots", "type": "main", "index": 0 }]]
+    },
+    "Update Uploads Status": {
+      "main": [[{ "node": "Log Execution", "type": "main", "index": 0 }]]
+    },
+    "Log Execution": {
+      "main": [[{ "node": "Split Clients", "type": "main", "index": 0 }]]
+    },
+    "OpenAI Chat Model Redacteur": {
+      "ai_languageModel": [[{ "node": "Agent Redacteur Story", "type": "ai_languageModel", "index": 0 }]]
+    },
+    "Structured Output Parser Story": {
+      "ai_outputParser": [[{ "node": "Agent Redacteur Story", "type": "ai_outputParser", "index": 0 }]]
+    },
+    "OpenAI Chat Model AutoFix": {
+      "ai_languageModel": [[{ "node": "Structured Output Parser Story", "type": "ai_languageModel", "index": 0 }]]
+    }
+  }
+}
