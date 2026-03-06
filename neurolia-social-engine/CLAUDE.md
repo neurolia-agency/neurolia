@@ -109,7 +109,7 @@ WF05 Metriques + Erreurs
 
 ### Nommage des noeuds — FRANCAIS obligatoire
 
-Tous les workflows de ce projet suivent la convention francaise. Voir `../.claude/rules/n8n-naming-conventions.md`.
+Tous les workflows de ce projet suivent la convention francaise. Voir `../../.claude/rules/n8n-naming-conventions.md`.
 
 **Regles cles** :
 - Noms de noeuds en francais (`Charger Clients Actifs`, pas `Fetch Active Clients`)
@@ -145,7 +145,7 @@ Chaque workflow contient des sticky notes (type `stickyNote@1`) qui documentent 
 | Prompt specs | `pipeline/output/04-prompt-specs/` |
 | Prompts finaux | `prompts/` |
 | Workflows n8n | `workflows/` |
-| Skills n8n | `../n8n-consultant/` (boite a outils) |
+| Skills n8n | `../../.claude/skills/n8n-consultant/` (boite a outils) |
 
 ## Structure
 
