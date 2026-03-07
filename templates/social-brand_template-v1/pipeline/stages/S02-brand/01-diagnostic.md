@@ -14,9 +14,8 @@
    - **Formulaire brand-platform fourni** → Diagnostic pre-alimente, confirmer/enrichir avec les frameworks
 4. **Analyser la presence social media** :
    - Plateformes actives et metriques (depuis 00-brief.md)
-   - Posts existants analyses (patterns, ton, hashtags, CTAs)
    - Comptes concurrents et benchmark sectoriel
-   - Style de contenu existant vs. ambition creatif social
+   - Style de contenu vs. ambition creatif social
 5. **Identifier les gaps** entre l'etat actuel et l'ambition sociale du client
 
 ## Output attendu

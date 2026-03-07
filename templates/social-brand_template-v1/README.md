@@ -33,7 +33,6 @@ cd mon-projet-social/
 - Editer `CLAUDE.md` (remplacer les `[PLACEHOLDERS]`)
 - Remplir `pipeline/input/brief-client.md`
 - Deposer les formulaires externes dans `pipeline/input/forms/` avec leur manifest (si disponibles)
-- Deposer les posts existants dans `pipeline/input/existing-posts/` (si disponibles)
 
 ### 3. Executer le workflow
 
@@ -59,9 +58,7 @@ social-brand_template-v1/
 │   │   │   ├── brand-platform-manifest.md
 │   │   │   └── .gitkeep
 │   │   ├── assets/                # Logo, images fournies
-│   │   ├── content/               # Textes fournis par le client
-│   │   └── existing-posts/        # Posts existants pour anti-repetition
-│   │       └── README.md
+│   │   └── content/               # Textes fournis par le client
 │   │
 │   ├── output/                    # Artifacts generes
 │   │   ├── 00-brief.md            # S01
@@ -126,7 +123,6 @@ social-brand_template-v1/
 - Comportement Social par persona dans personas.md
 - Potentiel Social par categorie dans services.md
 - Design system fusionne (colors + typography) avec guidelines mobile/social
-- Dossier existing-posts/ pour bootstrap anti-repetition (#57-63)
 
 ## Regles
 

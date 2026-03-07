@@ -16,8 +16,7 @@
 - Comportement Social par persona dans personas.md
 - Potentiel Social par categorie dans services.md
 - Design system fusionne (colors + typo) en HEX — pas d'OKLCH ni CSS
-- Dossier existing-posts/ pour bootstrap anti-repetition (#57-63)
-- Couverture WF00 input map : 64/64 champs
+- Couverture WF00 input map : 57/64 champs (#57-63 couverts par le workflow creatif)
 
 ### Retire vs v2
 - Phase B entiere (coding React/Next.js)

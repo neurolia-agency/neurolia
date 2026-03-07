@@ -7,7 +7,6 @@ Matrice des inputs/outputs du pipeline social brand.
 ```
 pipeline/input/brief-client.md
 pipeline/input/forms/*.csv (optionnel)
-pipeline/input/existing-posts/ (optionnel)
         |
         v
 +------------------+
@@ -30,7 +29,7 @@ pipeline/input/existing-posts/ (optionnel)
 
 | Etape | Stage | Inputs Requis | Outputs | Depend de |
 |-------|-------|---------------|---------|-----------|
-| **S01** | `S01-init.md` | `pipeline/input/brief-client.md`, `pipeline/input/forms/*` (optionnel), `pipeline/input/existing-posts/` (optionnel) | `pipeline/output/00-brief.md` | — |
+| **S01** | `S01-init.md` | `pipeline/input/brief-client.md`, `pipeline/input/forms/*` (optionnel) | `pipeline/output/00-brief.md` | — |
 | **S02** | `S02-brand/` | `00-brief.md`, `pipeline/input/forms/*` (si reference dans Sources Externes) | `pipeline/output/01-brand/` (8 fichiers) | S01 |
 
 ## Output S02 — 8 fichiers
@@ -78,9 +77,8 @@ S02-brand/04-validation.md    (verification 8 fichiers)
 | OBJECTIFS (#47-49) | objectives_primary, objectives_secondary, kpis | objectifs.md |
 | ETENDU (#50) | personas[], example_phrases[], product_categories, brand_key, kapferer, color_system | Repartis sur les 8 fichiers |
 | ASSETS (#51-56) | logo, photos | input/assets/ (collecte manuelle) |
-| CONTENU EXISTANT (#57-63) | posts existants (anti-repetition) | input/existing-posts/ |
 
-**Resultat : 64/64 champs couverts.**
+**Resultat : 57/64 champs couverts (champs #57-63 couverts par le workflow creatif, hors scope de ce template).**
 
 ---
 

@@ -9,11 +9,9 @@ input/
 ├── brief-client.md          # Questionnaire client rempli (OBLIGATOIRE)
 ├── assets/                  # Logo, images fournies
 ├── content/                 # Textes rediges par le client
-├── forms/                   # Formulaires externes (CSV + manifests) — OPTIONNEL
-│   ├── brand-platform-manifest.md
-│   └── [type]-responses.csv
-└── existing-posts/          # Posts social media existants (anti-repetition)
-    └── README.md
+└── forms/                   # Formulaires externes (CSV + manifests) — OPTIONNEL
+    ├── brand-platform-manifest.md
+    └── [type]-responses.csv
 ```
 
 ## Fichiers Detailles
@@ -60,10 +58,6 @@ Formulaires clients remplis en amont (Google Forms, Typeform, etc.). Chaque form
 
 **Regle de priorite** : `brief-client.md` prevaut en cas de contradiction avec un CSV.
 
-### existing-posts/ (OPTIONNEL)
-
-Posts social media existants du client pour le bootstrap anti-repetition. Voir `existing-posts/README.md` pour le format attendu.
-
 ## Regles
 
 1. **Ne jamais modifier** les fichiers input/ pendant le pipeline
@@ -75,7 +69,6 @@ Posts social media existants du client pour le bootstrap anti-repetition. Voir `
 
 - [ ] `brief-client.md` rempli et valide par le client
 - [ ] Logo fourni dans `assets/` (si existant)
-- [ ] Posts existants deposes dans `existing-posts/` (si disponibles)
 - [ ] Formulaires externes deposes dans `forms/` avec manifest (si disponibles)
 
 > **Minimum absolu** : Seul `brief-client.md` est strictement obligatoire.

@@ -11,7 +11,6 @@ Transformer le brief client et toutes les sources disponibles en un **document s
 - `input/brief-client.md` (questionnaire rempli)
 - `input/` (tous les assets fournis : logos, images)
 - `input/forms/` (reponses de formulaires externes — si disponibles)
-- `input/existing-posts/` (posts existants — si disponibles)
 - Conversation avec le client (si informations complementaires)
 - Sources internes (analyses, audits, donnees existantes)
 
@@ -23,15 +22,11 @@ Transformer le brief client et toutes les sources disponibles en un **document s
    b. Extraire uniquement les donnees mappees vers S01
    c. Croiser avec brief-client.md (le brief prevaut en cas de contradiction)
    d. Signaler si CSV sans manifest (dans "Elements Manquants")
-3. **Analyser** les posts existants dans `input/existing-posts/` — si presents :
-   a. Detecter les patterns (hashtags recurrents, ton, CTAs, types de contenu)
-   b. Identifier ce qui fonctionne vs. ce qui ne fonctionne pas
-   c. Extraire le style de caption dominant
-4. **Analyser** les assets fournis (logos, contenus existants) — en extraire les informations exploitables
-5. **Identifier** le positionnement et les differenciateurs
-6. **Rechercher** le contexte concurrentiel social media (comptes concurrents, benchmarks secteur)
-7. **Rediger** le brief structure selon le template ci-dessous
-8. **Lister** explicitement les elements manquants avec leur impact sur le pipeline
+3. **Analyser** les assets fournis (logos, contenus existants) — en extraire les informations exploitables
+4. **Identifier** le positionnement et les differenciateurs
+5. **Rechercher** le contexte concurrentiel social media (comptes concurrents, benchmarks secteur)
+6. **Rediger** le brief structure selon le template ci-dessous
+7. **Lister** explicitement les elements manquants avec leur impact sur le pipeline
 
 > **Principe** : Mieux vaut documenter une information comme "A confirmer" que de l'omettre. Le brief doit cartographier tout ce qu'on sait ET tout ce qu'on ne sait pas encore.
 
@@ -145,19 +140,6 @@ Creer `output/00-brief.md` :
 | TikTok | [Oui/Non] | [nombre] | [freq] | [type] |
 | LinkedIn | [Oui/Non] | [nombre] | [freq] | [type] |
 
-### Analyse Posts Existants (si existing-posts/ fourni)
-
-- **Nombre de posts analyses** : [X]
-- **Periode couverte** : [Date debut — Date fin]
-- **Hashtags recurrents** : [liste]
-- **Ton detecte** : [description]
-- **CTAs utilises** : [liste]
-- **Style de caption dominant** : [description]
-- **Ce qui fonctionne** : [patterns identifies]
-- **Ce qui ne fonctionne pas** : [patterns identifies]
-
-> Si aucun post existant : noter "Aucun historique — creation ex nihilo".
-
 ## Ambition Creatif Social
 
 - **Style photo** : [Lifestyle / Studio / UGC / Mix]
@@ -200,7 +182,6 @@ Creer `output/00-brief.md` :
 - [ ] Identite visuelle documentee (existante ou "A creer")
 - [ ] Plateformes actives listees avec metriques
 - [ ] Ambition creatif social definie (style photo/video, 3 mots, anti-modeles)
-- [ ] Posts existants analyses (ou "Aucun historique")
 - [ ] Elements manquants listes avec impact
 - [ ] Sources externes listees (formulaires dans input/forms/)
 ```
