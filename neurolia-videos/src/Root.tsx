@@ -4,6 +4,8 @@ import { PlaceholderVideo, placeholderVideoSchema } from './compositions/Placeho
 import { HeroMotion, heroMotionSchema } from './compositions/HeroMotion';
 import { HeroLogoReveal, heroLogoRevealSchema } from './compositions/HeroLogoReveal';
 import { AgencyShowcase, agencyShowcaseSchema } from './compositions/AgencyShowcase';
+import { FeatureFlash, featureFlashSchema } from './templates/FeatureFlash';
+import { StatReveal, statRevealSchema } from './templates/StatReveal';
 
 export const RemotionRoot: React.FC = () => {
   return (
@@ -189,7 +191,84 @@ export const RemotionRoot: React.FC = () => {
       </Folder>
 
       {/* ============================================
-          TEMPLATES - Reusable video templates
+          DASHBOARD MARKETING - Data-driven templates
+          ============================================ */}
+      <Folder name="Dashboard-Marketing">
+        {/* FeatureFlash — Workhorse short-form (15-30s) */}
+        <Composition
+          id="FeatureFlashReel"
+          component={FeatureFlash}
+          schema={featureFlashSchema}
+          durationInFrames={30 * 25}
+          fps={videoFormats.reel.fps}
+          width={videoFormats.reel.width}
+          height={videoFormats.reel.height}
+          defaultProps={{
+            videoId: 'V-2026-W13-02',
+            platform: 'reel',
+            hook: {
+              text: 'Vos prospects disparaissent dans un tableur ?',
+              accentWord: 'disparaissent',
+            },
+            feature: {
+              screenshot: 'screenshots/pipeline.png',
+              moduleName: 'Pipeline',
+              description: 'Kanban visuel, drag-and-drop',
+            },
+            cta: { text: 'Lien en bio', url: 'neurolia.fr' },
+            durationSeconds: 25,
+          }}
+        />
+        <Composition
+          id="FeatureFlashTikTok"
+          component={FeatureFlash}
+          schema={featureFlashSchema}
+          durationInFrames={30 * 25}
+          fps={videoFormats.tiktok.fps}
+          width={videoFormats.tiktok.width}
+          height={videoFormats.tiktok.height}
+          defaultProps={{
+            videoId: 'V-2026-W13-02',
+            platform: 'tiktok',
+            hook: {
+              text: 'Vos prospects disparaissent dans un tableur ?',
+              accentWord: 'disparaissent',
+            },
+            feature: {
+              screenshot: 'screenshots/pipeline.png',
+              moduleName: 'Pipeline',
+              description: 'Kanban visuel, drag-and-drop',
+            },
+            cta: { text: 'Lien en bio', url: 'neurolia.fr' },
+            durationSeconds: 25,
+          }}
+        />
+
+        {/* StatReveal — Animated number (15-20s) */}
+        <Composition
+          id="StatRevealReel"
+          component={StatReveal}
+          schema={statRevealSchema}
+          durationInFrames={30 * 18}
+          fps={videoFormats.reel.fps}
+          width={videoFormats.reel.width}
+          height={videoFormats.reel.height}
+          defaultProps={{
+            videoId: 'V-2026-W13-04',
+            platform: 'reel',
+            hook: {
+              text: 'Donnees reelles. Pas de mock.',
+              accentWord: 'reelles',
+            },
+            stat: { value: 12, suffix: 'modules', context: 'Tous connectes. Tous en donnees reelles.' },
+            cta: { text: 'Decouvrez le dashboard', url: 'neurolia.fr' },
+            durationSeconds: 18,
+          }}
+        />
+      </Folder>
+
+      {/* ============================================
+          TEMPLATES - Legacy reusable video templates
           ============================================ */}
       <Folder name="Templates">
         <Composition

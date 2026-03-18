@@ -11,6 +11,12 @@
     "render:linkedin": "remotion render src/index.ts LinkedIn out/linkedin.mp4",
     "render:hero": "remotion render src/index.ts HeroBackground out/hero.webm",
     "render:all": "npm run render:reel && npm run render:post && npm run render:linkedin",
+    "render:feature-flash": "remotion render src/index.ts FeatureFlashReel out/feature-flash-reel.mp4",
+    "render:stat-reveal": "remotion render src/index.ts StatRevealReel out/stat-reveal-reel.mp4",
+    "render:batch": "npx tsx scripts/render-video.ts",
+    "capture-screenshots": "npx tsx scripts/capture-screenshots.ts",
+    "voiceover": "npx tsx scripts/generate-voiceover.ts",
+    "captions": "npx tsx scripts/generate-captions.ts",
     "upgrade": "remotion upgrade"
   },
   "keywords": [

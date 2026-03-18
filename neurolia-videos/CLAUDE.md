@@ -48,6 +48,8 @@ Unlike the website (which follows strict brand constraints), video content is wh
 |-------|-------|----------|
 | `/remotion-best-practices` | Consult before writing any Remotion code | **Yes** |
 | `/apex` | Structure video creation workflow | **Yes** |
+| `/video-scriptwriter` | Generate structured video scripts (Hook-Body-CTA) | Phase 2 |
+| `/video-storyboard` | Translate script → frame-by-frame storyboard for Remotion | Phase 2 |
 
 ## Commands
 
@@ -156,20 +158,66 @@ neurolia-videos/
 │   ├── Root.tsx                    # Composition registry
 │   ├── styles/
 │   │   └── neurolia-tokens.ts      # Design tokens
-│   └── compositions/
-│       ├── PlaceholderVideo.tsx    # Base template
-│       ├── HeroMotion.tsx          # Hero background
-│       └── HeroLogoReveal.tsx      # Cinematic logo reveal
+│   ├── compositions/               # Original compositions (website + agency)
+│   │   ├── AgencyShowcase.tsx      # Agency promo (7 scenes, 30s)
+│   │   ├── HeroLogoReveal.tsx      # Cinematic logo animation
+│   │   ├── HeroMotion.tsx          # Hero background
+│   │   └── PlaceholderVideo.tsx    # Base template
+│   ├── components/                  # Reusable components (extracted)
+│   │   ├── backgrounds/            # AnimatedBackground
+│   │   ├── typography/             # AnimatedText, StatCounter
+│   │   ├── ui/                     # AnimatedBar, FloatingIcon, DeviceMockup, CTAButton
+│   │   ├── scenes/                 # HookScene, FeatureScene, StatRevealScene, CTAScene
+│   │   └── overlays/              # LogoOverlay
+│   ├── templates/                   # Data-driven video templates
+│   │   ├── FeatureFlash.tsx        # Workhorse short-form (15-30s)
+│   │   └── StatReveal.tsx          # Animated number (15-20s)
+│   └── data/                        # Video configs (videos = data, not code)
+│       ├── types.ts                # SceneConfig, VideoConfig, CaptionEntry
+│       └── videos/                 # One TS config per video
+├── scripts/
+│   ├── capture-screenshots.ts      # Playwright → dashboard screenshots
+│   ├── generate-voiceover.ts       # ElevenLabs API wrapper
+│   ├── render-video.ts             # Multi-format batch render
+│   └── generate-captions.ts        # SRT from script + timestamps
+├── content/
+│   ├── calendar.md                 # Editorial calendar
+│   └── scripts/                    # Video scripts (markdown)
 ├── public/
-│   └── neurolia/                   # Shared assets
-│       ├── logo_neurolia.svg
-│       ├── logo_neurolia_light.svg
-│       ├── project-*.webp
-│       └── team/
+│   ├── neurolia/                   # Shared assets (logos, team, projects)
+│   ├── screenshots/                # Dashboard module screenshots
+│   └── audio/                      # voiceover/ + music/ + sfx/
 ├── out/                            # Rendered videos
 ├── remotion.config.ts
 ├── tsconfig.json
 └── package.json
+```
+
+## Video Pipeline Architecture
+
+**Videos are DATA, not code.** Each video = 1 TS config file → template → multi-format render.
+
+### Workflow
+```
+/video-scriptwriter → script.md
+/video-storyboard → storyboard.md
+/voice-producer → voiceover.mp3
+/remotion-coder → composition (or use existing template)
+/video-caption-overlay → captions
+Render: npx tsx scripts/render-video.ts --id=CompositionId --platforms=reel,tiktok
+```
+
+### Data-driven approach
+```typescript
+// src/data/videos/V-2026-W13-02.ts
+export const video: FeatureFlashConfig = {
+  id: 'V-2026-W13-02',
+  template: 'FeatureFlash',
+  platforms: ['reel', 'tiktok'],
+  hook: { text: 'Vos prospects disparaissent', accentWord: 'disparaissent' },
+  feature: { screenshot: 'screenshots/pipeline.png', moduleName: 'Pipeline' },
+  cta: { text: 'Lien en bio', url: 'neurolia.fr' },
+};
 ```
 
 ## Key Remotion Concepts
