@@ -140,14 +140,28 @@ CREATE TABLE brand_platforms (
   -- Identite
   mission TEXT,                        -- mission de la marque
   vision TEXT,                         -- vision long terme
-  values TEXT[],                       -- valeurs (array)
+  brand_values JSONB DEFAULT '[]',     -- valeurs enrichies [{name, definition, implique, exclut}]
   personality TEXT,                    -- personnalite de marque
-  archetype TEXT,                      -- archetype (ex: "Explorer", "Creator")
+  archetype JSONB,                    -- archetype enrichi {principal, secondaire, manifestation: {ton, comportement, visuel}}
+  -- Positionnement
+  key_insight TEXT,                    -- insight cle de la marque (00-platform.md)
+  purpose TEXT,                       -- raison d'etre (00-platform.md)
+  brand_promise TEXT,                 -- promesse de marque (00-platform.md)
+  brand_essence TEXT,                 -- essence de marque / nord star (Brand Key)
+  tagline TEXT,                       -- tagline (positioning.md)
+  baseline TEXT,                      -- baseline (positioning.md)
+  slogan TEXT,                        -- slogan (about.md)
+  usps JSONB DEFAULT '[]',           -- USPs structures (positioning.md)
+  proof_points TEXT[] DEFAULT '{}',   -- preuves tangibles (00-platform.md)
+  key_figures TEXT[] DEFAULT '{}',    -- chiffres cles (about.md)
+  discriminator TEXT,                 -- element differenciateur principal (00-platform.md)
   -- Voix
   tone_of_voice TEXT,                  -- description du ton
   vocabulary_do TEXT[],                -- mots/expressions a utiliser
   vocabulary_dont TEXT[],              -- mots/expressions interdits
   writing_rules TEXT,                  -- regles redactionnelles specifiques
+  formality_level SMALLINT DEFAULT 3,  -- niveau de formalite (1=tres informel, 5=tres formel)
+  tu_vous TEXT DEFAULT 'vouvoiement',  -- tutoiement ou vouvoiement
   -- Visuel
   primary_color TEXT,                  -- couleur principale (hex)
   secondary_colors TEXT[],             -- couleurs secondaires
@@ -168,10 +182,14 @@ CREATE TABLE brand_platforms (
   objectives_primary TEXT,             -- objectif principal
   objectives_secondary TEXT[],         -- objectifs secondaires
   kpis TEXT[],                         -- KPIs a suivre
+  -- Etendu (plateforme de marque complete)
+  brand_extended JSONB DEFAULT '{}',   -- donnees etendues : brand_key_unilever, kapferer, personas, example_phrases, section_messages, product_categories, color_system, differentiation_long
   --
   created_at TIMESTAMPTZ DEFAULT now(),
   updated_at TIMESTAMPTZ DEFAULT now(),
-  UNIQUE(client_id)                    -- 1 brand platform par client
+  UNIQUE(client_id),                   -- 1 brand platform par client
+  CONSTRAINT chk_tu_vous CHECK (tu_vous IN ('tutoiement', 'vouvoiement')),
+  CONSTRAINT chk_formality CHECK (formality_level BETWEEN 1 AND 5)
 );
 ```
 
@@ -260,6 +278,7 @@ CREATE TABLE editorial_slots (
   visual_direction TEXT,               -- ex: "fond sombre, focus ingredients, vapeur"
   sublimation_mode sublimation_mode DEFAULT 'creative',
   story_text TEXT,                     -- texte a incruster (stories uniquement)
+  compositing_context TEXT,            -- description scene compositing (nullable, rempli par WF01 Agent 2)
   -- Liens
   source_slot_id UUID REFERENCES editorial_slots(id), -- story liee a un post
   -- WF1.5 Demande Photos
@@ -501,4 +520,48 @@ CREATE POLICY client_read_own ON editorial_calendars
 
 ---
 
-*Redige le 2026-03-05 — A02 Data Model*
+---
+
+## Migration SQL (tables existantes)
+
+Script de migration non-destructif pour les tables Supabase existantes :
+
+```sql
+-- 1. Nouvelles colonnes dedicees
+ALTER TABLE brand_platforms
+  ADD COLUMN IF NOT EXISTS key_insight TEXT,
+  ADD COLUMN IF NOT EXISTS purpose TEXT,
+  ADD COLUMN IF NOT EXISTS brand_promise TEXT,
+  ADD COLUMN IF NOT EXISTS brand_essence TEXT,
+  ADD COLUMN IF NOT EXISTS tagline TEXT,
+  ADD COLUMN IF NOT EXISTS baseline TEXT,
+  ADD COLUMN IF NOT EXISTS slogan TEXT,
+  ADD COLUMN IF NOT EXISTS usps JSONB DEFAULT '[]',
+  ADD COLUMN IF NOT EXISTS proof_points TEXT[] DEFAULT '{}',
+  ADD COLUMN IF NOT EXISTS key_figures TEXT[] DEFAULT '{}',
+  ADD COLUMN IF NOT EXISTS discriminator TEXT,
+  ADD COLUMN IF NOT EXISTS formality_level SMALLINT DEFAULT 3,
+  ADD COLUMN IF NOT EXISTS tu_vous TEXT DEFAULT 'vouvoiement',
+  ADD COLUMN IF NOT EXISTS brand_extended JSONB DEFAULT '{}';
+
+-- 2. Renommer values (reserved word) -> brand_values
+ALTER TABLE brand_platforms RENAME COLUMN "values" TO brand_values;
+
+-- 3. Upgrader brand_values TEXT[] -> JSONB
+ALTER TABLE brand_platforms
+  ALTER COLUMN brand_values TYPE JSONB USING to_jsonb(brand_values);
+
+-- 4. Upgrader archetype TEXT -> JSONB
+ALTER TABLE brand_platforms
+  ALTER COLUMN archetype TYPE JSONB
+  USING jsonb_build_object('principal', archetype);
+
+-- 5. Contraintes
+ALTER TABLE brand_platforms
+  ADD CONSTRAINT chk_tu_vous CHECK (tu_vous IN ('tutoiement', 'vouvoiement')),
+  ADD CONSTRAINT chk_formality CHECK (formality_level BETWEEN 1 AND 5);
+```
+
+> **Note** : Les etapes 2-4 sont destructives si des donnees existent deja. Verifier/sauvegarder les donnees `values` et `archetype` avant execution.
+
+*Redige le 2026-03-05 — A02 Data Model — MAJ 2026-03-06 enrichissement brand_platforms*

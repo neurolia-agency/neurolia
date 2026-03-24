@@ -6,6 +6,8 @@ import { HeroLogoReveal, heroLogoRevealSchema } from './compositions/HeroLogoRev
 import { AgencyShowcase, agencyShowcaseSchema } from './compositions/AgencyShowcase';
 import { FeatureFlash, featureFlashSchema } from './templates/FeatureFlash';
 import { StatReveal, statRevealSchema } from './templates/StatReveal';
+import { DotServicesReel, dotServicesReelSchema } from './compositions/DotServices/DotServicesReel';
+import { DotBrandReel, dotBrandReelSchema } from './compositions/DotBrandReel';
 
 export const RemotionRoot: React.FC = () => {
   return (
@@ -14,6 +16,30 @@ export const RemotionRoot: React.FC = () => {
           SOCIAL MEDIA - Promotional videos
           ============================================ */}
       <Folder name="Social-Media">
+        {/* Dot Brand Reel — Brand identity reel */}
+        <Composition
+          id="DotBrandReel"
+          component={DotBrandReel}
+          schema={dotBrandReelSchema}
+          durationInFrames={1188}
+          fps={30}
+          width={1080}
+          height={1920}
+          defaultProps={{}}
+        />
+
+        {/* Dot Services — Light theme, The Dot concept */}
+        <Composition
+          id="DotServicesReel"
+          component={DotServicesReel}
+          schema={dotServicesReelSchema}
+          durationInFrames={1110}
+          fps={30}
+          width={1080}
+          height={1920}
+          defaultProps={{}}
+        />
+
         {/* Agency Showcase - Automatisation & IA (Impactant) */}
         <Composition
           id="AgencyShowcaseReel"

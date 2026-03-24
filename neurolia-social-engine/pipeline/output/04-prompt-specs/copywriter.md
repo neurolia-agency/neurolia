@@ -60,6 +60,11 @@ INTERDICTIONS :
 - Pas de hashtags dans le corps de la caption.
 - Pas de liens (les liens ne sont pas cliquables dans les captions Instagram).
 - Pas d'emojis si emoji_usage=none.
+
+REGLES DE MARQUE :
+- Tu DOIS utiliser le {tu_vous} systematiquement (tutoiement ou vouvoiement).
+- Chaque caption doit servir la promesse de marque.
+- En style factuel, cite des proof_points reels — jamais de chiffres inventes.
 ```
 
 ---
@@ -85,6 +90,18 @@ Hashtags de marque : {hashtags_branded_csv}
 Hashtags de niche : {hashtags_niche_csv}
 CTA favoris : {cta_preferred_csv}
 Audience cible : {target_audience}
+Tu/Vous : {tu_vous}
+Formalite (1-5) : {formality_level}
+Essence de marque : {brand_essence}
+
+# ANCRAGE STRATEGIQUE
+
+Insight cle : {key_insight}
+Promesse de marque : {brand_promise}
+Tagline : {tagline}
+USPs :
+{usps_formatted}
+Proof points : {proof_points_csv}
 
 # COUCHE 2 — DIRECTIVE EDITORIALE
 
@@ -105,6 +122,14 @@ CTA souhaite : {slot_cta}
 Voici les 15 dernieres captions publiees. NE REPRENDS PAS les memes accroches, structures ou formules :
 
 {anti_repetition_block}
+
+# EXEMPLES DE PHRASES
+
+A faire :
+{example_phrases_do}
+
+A eviter :
+{example_phrases_dont}
 
 # INSTRUCTIONS
 
@@ -352,8 +377,8 @@ Marque : ${$('Fetch Client Data').first().json.name}
 Secteur : ${$('Fetch Client Data').first().json.industry || 'Non precise'}
 Ton de voix : ${brand.tone_of_voice || ''}
 Personnalite : ${brand.personality || ''}
-Archetype : ${brand.archetype || ''}
-Valeurs : ${(brand.values || []).join(', ')}
+Archetype : ${(brand.archetype && typeof brand.archetype === 'object' ? brand.archetype.principal : brand.archetype) || ''}
+Valeurs : ${(brand.brand_values || []).map(v => typeof v === 'object' ? v.name : v).join(', ')}
 Vocabulaire a utiliser : ${(brand.vocabulary_do || []).join(', ')}
 Vocabulaire interdit : ${(brand.vocabulary_dont || []).join(', ')}
 Regles redactionnelles : ${brand.writing_rules || 'Aucune regle specifique'}
@@ -361,7 +386,19 @@ Emojis : ${brand.emoji_usage || 'moderate'}
 Hashtags de marque : ${(brand.hashtags_branded || []).join(', ')}
 Hashtags de niche : ${(brand.hashtags_niche || []).join(', ')}
 CTA favoris : ${(brand.cta_preferred || []).join(', ')}
-Audience cible : ${brand.target_audience || ''}`;
+Audience cible : ${brand.target_audience || ''}
+Tu/Vous : ${brand.tu_vous || 'vouvoiement'}
+Formalite (1-5) : ${brand.formality_level || 3}
+Essence de marque : ${brand.brand_essence || ''}`;
+
+const ancrage = `# ANCRAGE STRATEGIQUE
+
+Insight cle : ${brand.key_insight || ''}
+Promesse de marque : ${brand.brand_promise || ''}
+Tagline : ${brand.tagline || ''}
+USPs :
+${(brand.usps || []).map((u, i) => (i+1) + '. ' + (typeof u === 'object' ? u.title || u.name || JSON.stringify(u) : u)).join('\n')}
+Proof points : ${(brand.proof_points || []).join(', ')}`;
 
 // --- COUCHE 2 : Directive editoriale ---
 const layer2 = `# COUCHE 2 — DIRECTIVE EDITORIALE
@@ -418,14 +455,48 @@ Voici les 15 dernieres captions publiees. NE REPRENDS PAS les memes accroches, s
 ${captionsBlock || 'Aucune caption publiee encore (premiere publication).'}
 ${antiRepInstructions}`;
 
+const exPhrases = brand.brand_extended?.example_phrases;
+const examplesBlock = exPhrases ? `# EXEMPLES DE PHRASES
+
+A faire :
+${(exPhrases.do || []).slice(0, 3).map(p => '- ' + p).join('\n')}
+
+A eviter :
+${(exPhrases.dont || []).slice(0, 3).map(p => '- ' + p).join('\n')}` : '';
+
+// Section messages
+const sectionMsgs = brand.brand_extended?.section_messages || {};
+const slotTheme = (slot.theme || '').toLowerCase();
+let sectionRef = '';
+for (const [key, msg] of Object.entries(sectionMsgs)) {
+  if (slotTheme.includes(key.toLowerCase())) {
+    sectionRef = `\nMessage de reference pour ce theme : ${msg}`;
+    break;
+  }
+}
+
+// Product categories
+let productRef = '';
+if (slot.category === 'produit' && brand.brand_extended?.product_categories) {
+  const cats = brand.brand_extended.product_categories;
+  const matchCat = cats.find(c => slotTheme.includes((c.name || '').toLowerCase()));
+  if (matchCat) {
+    productRef = `\nCategorie produit : ${matchCat.name} — ${matchCat.tagline || ''}\n${matchCat.description || ''}`;
+  }
+}
+
 // --- Assemblage ---
 const userPrompt = `${layer1}
 
-${layer2}
+${ancrage}
+
+${layer2}${sectionRef}${productRef}
 
 ${layer3}
 
 ${layer4}
+
+${examplesBlock}
 
 # INSTRUCTIONS
 
@@ -466,7 +537,12 @@ INTERDICTIONS :
 - Pas de "Et vous, qu'en pensez-vous ?" (sauf question_directe)
 - Pas de hashtags dans le corps
 - Pas de liens
-- Emojis : ${brand.emoji_usage || 'moderate'} (none=0, moderate=3-5, frequent=8-12)`;
+- Emojis : ${brand.emoji_usage || 'moderate'} (none=0, moderate=3-5, frequent=8-12)
+
+REGLES DE MARQUE :
+- Tu DOIS utiliser le ${brand.tu_vous || 'vouvoiement'} systematiquement.
+- Chaque caption doit servir la promesse de marque.
+- En style factuel, cite des proof_points reels — jamais de chiffres inventes.`;
 
 return [{
   json: {
@@ -576,4 +652,4 @@ Si le retry echoue aussi, le contenu est cree avec `status: 'generation_failed'`
 
 ---
 
-*Reecrit le 2026-03-05 — R3 Remediation nodes natifs*
+*Reecrit le 2026-03-06 — Enrichissement brand platform (ancrage strategique, exemples, section messages, product categories)*

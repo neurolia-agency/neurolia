@@ -1,0 +1,622 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Rapport Onboarding — {{client_name}} | Neurolia Social Engine</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://api.fontshare.com/v2/css?f[]=satoshi@500,700,900&display=swap">
+  <link rel="stylesheet" href="design-system.css">
+</head>
+<body>
+
+  <!-- ============================================
+       NAVIGATION
+       ============================================ -->
+  <nav class="nav" id="nav">
+    <div class="nav-inner">
+      <div class="nav-logo">Neurolia <span>&times;</span> {{client_name}}</div>
+      <button class="nav-toggle" id="navToggle" aria-label="Menu">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="3" y1="6" x2="21" y2="6"/>
+          <line x1="3" y1="12" x2="21" y2="12"/>
+          <line x1="3" y1="18" x2="21" y2="18"/>
+        </svg>
+      </button>
+      <ul class="nav-links" id="navLinks">
+        <li><a href="#resume">Resume</a></li>
+        <li><a href="#identite">Identite</a></li>
+        <li><a href="#marque">Marque</a></li>
+        <li><a href="#strategie">Strategie</a></li>
+        <li><a href="#assets">Assets</a></li>
+        <li><a href="#verification">Verification</a></li>
+      </ul>
+    </div>
+    <div class="nav-progress" id="navProgress"></div>
+  </nav>
+
+  <!-- ============================================
+       HERO
+       ============================================ -->
+  <section class="hero section" id="resume">
+    <div class="container">
+      <div class="reveal">
+        <p class="hero-label">WF00 — Rapport d'Onboarding</p>
+        <h1>{{client_name}}</h1>
+        <p class="hero-subtitle">Voici ce que le Social Engine a compris de vos fichiers brand et strategie.</p>
+      </div>
+
+      <!-- Summary: 4 blocs -->
+      <div class="summary-cards" style="grid-template-columns: repeat(4, 1fr); max-width: 1100px;">
+
+        <div class="summary-card reveal reveal-delay-1" data-accent="1">
+          <p class="summary-card-label">Client</p>
+          <p class="summary-card-title" style="font-size:18px;">{{client_name}}</p>
+          <p>{{industry}}</p>
+        </div>
+
+        <div class="summary-card reveal reveal-delay-2" data-accent="2">
+          <p class="summary-card-label">Brand Platform</p>
+          <p class="summary-card-title" style="font-size:18px;">{{brand_fields_count}} champs</p>
+          <p>Parses depuis {{brand_files_count}} fichiers</p>
+        </div>
+
+        <div class="summary-card reveal reveal-delay-3" data-accent="3">
+          <p class="summary-card-label">Strategie</p>
+          <p class="summary-card-title" style="font-size:18px;">{{pillars_count}} piliers</p>
+          <p>{{periods_count}} periodes &middot; {{weeks_count}} semaines</p>
+        </div>
+
+        <div class="summary-card reveal reveal-delay-4" data-accent="4">
+          <p class="summary-card-label">Assets</p>
+          <p class="summary-card-title" style="font-size:18px;">{{assets_count}} fichiers</p>
+          <p>Logo + contexte + contenu existant</p>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================
+       1. IDENTITE CLIENT
+       ============================================ -->
+  <section class="section section-elevated" id="identite" data-accent="1">
+    <div class="container">
+      <div class="section-header-centered reveal">
+        <h2>Identite Client</h2>
+        <p>Informations extraites et enregistrees dans la table <code>clients</code>.</p>
+      </div>
+
+      <div class="reveal" style="max-width: 700px; margin: 0 auto;">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th style="width:200px;">Champ</th>
+              <th>Valeur parsee</th>
+            </tr>
+          </thead>
+          <tbody>
+            <!-- {{#client_fields}} -->
+            <tr>
+              <td>Nom</td>
+              <td>{{client_name}} <span class="tag tag-success" style="margin-left:8px;">OK</span></td>
+            </tr>
+            <tr>
+              <td>Slug</td>
+              <td><code>{{client_slug}}</code></td>
+            </tr>
+            <tr>
+              <td>Secteur</td>
+              <td>{{industry}}</td>
+            </tr>
+            <tr>
+              <td>Site web</td>
+              <td><a href="{{website_url}}" style="color:var(--accent-2);">{{website_url}}</a></td>
+            </tr>
+            <tr>
+              <td>Instagram</td>
+              <td>{{instagram_handle}}</td>
+            </tr>
+            <tr>
+              <td>Facebook</td>
+              <td>{{facebook_page_url}}</td>
+            </tr>
+            <tr>
+              <td>Drive Folder ID</td>
+              <td><code>{{drive_folder_id}}</code></td>
+            </tr>
+            <!-- {{/client_fields}} -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================
+       2. PLATEFORME DE MARQUE
+       ============================================ -->
+  <section class="section" id="marque" data-accent="2">
+    <div class="container">
+      <div class="section-header reveal">
+        <div class="section-header-top">
+          <div class="section-number">01</div>
+          <div>
+            <h2>Plateforme de Marque</h2>
+            <p class="section-header-subtitle">39 champs extraits des fichiers brand via GPT-4o. Table <code>brand_platforms</code>.</p>
+            <div class="meta-badges">
+              <span class="meta-badge">{{brand_files_count}} fichiers parses</span>
+              <span class="meta-badge">GPT-4o &middot; temp 0.1</span>
+              <span class="meta-badge">{{brand_fields_filled}}/39 champs remplis</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 2A. Fondation & Identite -->
+      <h3 class="kpi-section-title reveal">Fondation &amp; Identite</h3>
+      <div class="steps-grid reveal">
+        <div class="step-card">
+          <div class="step-card-header">
+            <span class="step-card-title">Mission</span>
+          </div>
+          <p style="font-size:14px; color:var(--text-muted); line-height:1.7;">{{mission}}</p>
+        </div>
+        <div class="step-card">
+          <div class="step-card-header">
+            <span class="step-card-title">Vision</span>
+          </div>
+          <p style="font-size:14px; color:var(--text-muted); line-height:1.7;">{{vision}}</p>
+        </div>
+        <div class="step-card">
+          <div class="step-card-header">
+            <span class="step-card-title">Purpose</span>
+          </div>
+          <p style="font-size:14px; color:var(--text-muted); line-height:1.7;">{{purpose}}</p>
+        </div>
+        <div class="step-card">
+          <div class="step-card-header">
+            <span class="step-card-title">Personnalite</span>
+            <span class="step-card-badge">{{archetype_principal}}</span>
+          </div>
+          <p style="font-size:14px; color:var(--text-muted); line-height:1.7;">{{personality}}</p>
+        </div>
+      </div>
+
+      <!-- 2B. Valeurs -->
+      <h3 class="kpi-section-title reveal">Valeurs de Marque</h3>
+      <div class="steps-grid reveal">
+        <!-- {{#brand_values}} -->
+        <div class="step-card">
+          <div class="step-card-header">
+            <span class="step-card-title">{{value_name}}</span>
+          </div>
+          <ul class="step-card-list">
+            <li>{{value_definition}}</li>
+            <li><strong>Implique :</strong> {{value_implique}}</li>
+            <li><strong>Exclut :</strong> {{value_exclut}}</li>
+          </ul>
+        </div>
+        <!-- {{/brand_values}} -->
+      </div>
+
+      <!-- 2C. Positionnement -->
+      <h3 class="kpi-section-title reveal">Positionnement</h3>
+      <div class="context-banner reveal">
+        <p><strong style="color:var(--text-primary);">Promesse :</strong> {{brand_promise}}</p>
+        <p><strong style="color:var(--text-primary);">Insight cle :</strong> {{key_insight}}</p>
+        <p><strong style="color:var(--text-primary);">Differenciateur :</strong> {{discriminator}}</p>
+        <div class="context-chips">
+          <span class="context-chip">{{tagline}}</span>
+          <span class="context-chip">{{baseline}}</span>
+        </div>
+      </div>
+
+      <div class="steps-grid reveal">
+        <div class="step-card wide">
+          <div class="step-card-header">
+            <span class="step-card-title">USPs</span>
+          </div>
+          <ul class="step-card-list">
+            <!-- {{#usps}} -->
+            <li>{{usp_text}}</li>
+            <!-- {{/usps}} -->
+          </ul>
+          <div class="step-card-footer">
+            <p class="step-card-footer-label">Preuves tangibles</p>
+            <p>{{proof_points_joined}}</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- 2D. Voix & Ton -->
+      <h3 class="kpi-section-title reveal">Voix &amp; Ton</h3>
+      <div class="kpi-grid reveal" style="grid-template-columns: repeat(4, 1fr);">
+        <div class="kpi-card">
+          <div class="kpi-tag">Ton</div>
+          <div class="kpi-value" style="font-size:16px;">{{tone_of_voice}}</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-tag">Registre</div>
+          <div class="kpi-value" style="font-size:16px;">{{tu_vous}}</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-tag">Formalite</div>
+          <div class="kpi-value">{{formality_level}}/5</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-tag">Emojis</div>
+          <div class="kpi-value" style="font-size:16px;">{{emoji_usage}}</div>
+        </div>
+      </div>
+
+      <div class="steps-grid reveal">
+        <div class="step-card">
+          <div class="step-card-header">
+            <span class="step-card-title">Vocabulaire recommande</span>
+            <span class="tag tag-success">DO</span>
+          </div>
+          <ul class="step-card-list">
+            <!-- {{#vocabulary_do}} -->
+            <li>{{word}}</li>
+            <!-- {{/vocabulary_do}} -->
+          </ul>
+        </div>
+        <div class="step-card">
+          <div class="step-card-header">
+            <span class="step-card-title">Vocabulaire interdit</span>
+            <span class="tag tag-error">DON'T</span>
+          </div>
+          <ul class="step-card-list">
+            <!-- {{#vocabulary_dont}} -->
+            <li>{{word}}</li>
+            <!-- {{/vocabulary_dont}} -->
+          </ul>
+        </div>
+      </div>
+
+      <!-- 2E. Identite Visuelle -->
+      <h3 class="kpi-section-title reveal">Identite Visuelle</h3>
+      <div class="steps-grid reveal">
+        <div class="step-card">
+          <div class="step-card-header">
+            <span class="step-card-title">Palette</span>
+          </div>
+          <div style="display:flex; gap:12px; flex-wrap:wrap; margin-bottom:16px;">
+            <!-- {{#colors}} -->
+            <div style="display:flex; align-items:center; gap:8px;">
+              <div style="width:32px; height:32px; border-radius:6px; background:{{color_hex}}; border:1px solid var(--border);"></div>
+              <div>
+                <div style="font-size:12px; color:var(--text-primary); font-weight:600;">{{color_name}}</div>
+                <div style="font-size:11px; color:var(--text-subtle);">{{color_hex}}</div>
+              </div>
+            </div>
+            <!-- {{/colors}} -->
+          </div>
+        </div>
+        <div class="step-card">
+          <div class="step-card-header">
+            <span class="step-card-title">Typographies</span>
+          </div>
+          <div style="margin-bottom:12px;">
+            <span style="font-size:11px; color:var(--text-subtle); text-transform:uppercase; letter-spacing:1px;">Display / Titres</span>
+            <p style="font-size:20px; color:var(--text-primary); font-weight:700; margin-top:4px;">{{font_primary}}</p>
+          </div>
+          <div>
+            <span style="font-size:11px; color:var(--text-subtle); text-transform:uppercase; letter-spacing:1px;">Body</span>
+            <p style="font-size:20px; color:var(--text-primary); font-weight:700; margin-top:4px;">{{font_secondary}}</p>
+          </div>
+        </div>
+        <div class="step-card wide">
+          <div class="step-card-header">
+            <span class="step-card-title">Style visuel &amp; photo</span>
+          </div>
+          <p style="font-size:14px; color:var(--text-muted); line-height:1.7; margin-bottom:8px;"><strong style="color:var(--text-secondary);">Style visuel :</strong> {{visual_style}}</p>
+          <p style="font-size:14px; color:var(--text-muted); line-height:1.7;"><strong style="color:var(--text-secondary);">Style photo :</strong> {{photo_style}}</p>
+        </div>
+      </div>
+
+      <!-- 2F. Social -->
+      <h3 class="kpi-section-title reveal">Configuration Social</h3>
+      <div class="steps-grid reveal">
+        <div class="step-card">
+          <div class="step-card-header">
+            <span class="step-card-title">Hashtags branded</span>
+          </div>
+          <div style="display:flex; flex-wrap:wrap; gap:6px;">
+            <!-- {{#hashtags_branded}} -->
+            <span class="tag tag-accent">{{hashtag}}</span>
+            <!-- {{/hashtags_branded}} -->
+          </div>
+        </div>
+        <div class="step-card">
+          <div class="step-card-header">
+            <span class="step-card-title">Hashtags niche</span>
+          </div>
+          <div style="display:flex; flex-wrap:wrap; gap:6px;">
+            <!-- {{#hashtags_niche}} -->
+            <span class="tag tag-accent-2">{{hashtag}}</span>
+            <!-- {{/hashtags_niche}} -->
+          </div>
+        </div>
+        <div class="step-card wide">
+          <div class="step-card-header">
+            <span class="step-card-title">CTA preferes</span>
+          </div>
+          <div style="display:flex; flex-wrap:wrap; gap:8px;">
+            <!-- {{#cta_preferred}} -->
+            <span class="meta-badge">{{cta}}</span>
+            <!-- {{/cta_preferred}} -->
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================
+       3. STRATEGIE CONTENU
+       ============================================ -->
+  <section class="section section-elevated" id="strategie" data-accent="3">
+    <div class="container">
+      <div class="section-header reveal">
+        <div class="section-header-top">
+          <div class="section-number">02</div>
+          <div>
+            <h2>Strategie de Contenu</h2>
+            <p class="section-header-subtitle">Structure editoriale extraite du fichier strategie. Table <code>content_strategy</code>.</p>
+            <div class="meta-badges">
+              <span class="meta-badge">{{pillars_count}} piliers</span>
+              <span class="meta-badge">{{periods_count}} periodes</span>
+              <span class="meta-badge">Calendrier hebdomadaire</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 3A. Distribution Piliers -->
+      <h3 class="kpi-section-title reveal">Piliers editoriaux</h3>
+
+      <div class="reveal" style="margin-bottom:var(--space-2xl);">
+        <div class="pillar-bar">
+          <!-- {{#pillars_bar}} — flex: proportionnel au % -->
+          <div class="pillar-bar-segment" style="flex: {{pillar_pct}}; background: {{pillar_color}};">{{pillar_pct}}%</div>
+          <!-- {{/pillars_bar}} -->
+        </div>
+        <div class="pillar-bar-legend">
+          <!-- {{#pillars_legend}} -->
+          <div class="pillar-bar-legend-item">
+            <div class="pillar-bar-legend-dot" style="background: {{pillar_color}};"></div>
+            <span>{{pillar_name}} ({{pillar_pct}}% &middot; ~{{pillar_posts_month}} posts/mois)</span>
+          </div>
+          <!-- {{/pillars_legend}} -->
+        </div>
+      </div>
+
+      <div class="steps-grid reveal">
+        <!-- {{#pillars}} — Un step-card par pilier -->
+        <div class="step-card">
+          <div class="step-card-header">
+            <span class="step-card-number">{{pillar_index}}</span>
+            <span class="step-card-title">{{pillar_name}}</span>
+            <span class="step-card-badge">{{pillar_pct}}%</span>
+          </div>
+          <p style="font-size:13px; color:var(--text-subtle); margin-bottom:12px;">{{pillar_subtitle}}</p>
+          <ul class="step-card-list">
+            <!-- {{#pillar_content_types}} -->
+            <li>{{content_type}}</li>
+            <!-- {{/pillar_content_types}} -->
+          </ul>
+          <div class="step-card-footer">
+            <p class="step-card-footer-label">Creative Dial</p>
+            <p>{{pillar_creative_dial}}</p>
+          </div>
+        </div>
+        <!-- {{/pillars}} -->
+      </div>
+
+      <!-- 3B. Periodes -->
+      <h3 class="kpi-section-title reveal">Periodes</h3>
+      <div class="summary-cards reveal" style="max-width:100%;">
+        <!-- {{#periods}} -->
+        <div class="summary-card" data-accent="{{period_accent}}">
+          <p class="summary-card-label">Periode {{period_number}}</p>
+          <p class="summary-card-meta">{{period_date_start}} &rarr; {{period_date_end}}</p>
+          <p class="summary-card-title" style="font-size:18px;">{{period_name}}</p>
+          <p>{{period_mission}}</p>
+        </div>
+        <!-- {{/periods}} -->
+      </div>
+
+      <!-- 3C. Calendrier hebdo type -->
+      <h3 class="kpi-section-title reveal" style="margin-top:var(--space-2xl);">Calendrier semaine type</h3>
+      <div class="reveal" style="max-width:800px;">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Jour</th>
+              <th>Pilier</th>
+              <th>Format privilegie</th>
+            </tr>
+          </thead>
+          <tbody>
+            <!-- {{#weekly_calendar}} -->
+            <tr>
+              <td>{{day}}</td>
+              <td><span class="tag" style="background:{{day_pillar_color}}20; color:{{day_pillar_color}};">{{day_pillar}}</span></td>
+              <td>{{day_format}}</td>
+            </tr>
+            <!-- {{/weekly_calendar}} -->
+          </tbody>
+        </table>
+      </div>
+
+      <!-- 3D. Guidelines -->
+      <h3 class="kpi-section-title reveal" style="margin-top:var(--space-2xl);">Guidelines extraites</h3>
+      <div class="steps-grid reveal">
+        <div class="step-card">
+          <div class="step-card-header">
+            <span class="step-card-title">Stories</span>
+          </div>
+          <ul class="step-card-list">
+            <!-- {{#stories_guidelines}} -->
+            <li>{{guideline}}</li>
+            <!-- {{/stories_guidelines}} -->
+          </ul>
+        </div>
+        <div class="step-card">
+          <div class="step-card-header">
+            <span class="step-card-title">Captions</span>
+          </div>
+          <ul class="step-card-list">
+            <!-- {{#caption_rules}} -->
+            <li>{{rule}}</li>
+            <!-- {{/caption_rules}} -->
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================
+       4. ASSETS DETECTES
+       ============================================ -->
+  <section class="section" id="assets" data-accent="4">
+    <div class="container">
+      <div class="section-header reveal">
+        <div class="section-header-top">
+          <div class="section-number">03</div>
+          <div>
+            <h2>Assets Detectes</h2>
+            <p class="section-header-subtitle">Fichiers trouves dans le dossier Drive et importes. Table <code>brand_assets</code>.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="kpi-grid reveal" style="grid-template-columns: repeat(3, 1fr); margin-bottom:var(--space-2xl);">
+        <div class="kpi-card">
+          <div class="kpi-tag">Logo</div>
+          <div class="kpi-value">{{logo_count}}</div>
+          <div class="kpi-label">fichier(s) logo detecte(s)</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-tag">Photos Contexte</div>
+          <div class="kpi-value">{{context_photos_count}}</div>
+          <div class="kpi-label">backgrounds / moodboard / style</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-tag">Contenu Existant</div>
+          <div class="kpi-value">{{existing_content_count}}</div>
+          <div class="kpi-label">publications importees (anti-repetition)</div>
+        </div>
+      </div>
+
+      <div class="reveal">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Nom</th>
+              <th>Type</th>
+              <th>Format</th>
+              <th>Statut</th>
+            </tr>
+          </thead>
+          <tbody>
+            <!-- {{#assets}} -->
+            <tr>
+              <td>{{asset_name}}</td>
+              <td><span class="tag tag-accent-2">{{asset_type}}</span></td>
+              <td>{{asset_format}}</td>
+              <td><span class="status-dot status-dot-success"></span>Importe</td>
+            </tr>
+            <!-- {{/assets}} -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================
+       5. VERIFICATION & ANOMALIES
+       ============================================ -->
+  <section class="section section-elevated" id="verification" data-accent="5">
+    <div class="container">
+      <div class="section-header reveal">
+        <div class="section-header-top">
+          <div class="section-number">04</div>
+          <div>
+            <h2>Verification</h2>
+            <p class="section-header-subtitle">Controle de coherence et anomalies detectees lors du parsing.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Checks OK -->
+      <h3 class="kpi-section-title reveal">Controles passes</h3>
+      <div class="steps-grid reveal" style="grid-template-columns: 1fr;">
+        <!-- {{#checks_passed}} -->
+        <div class="step-card" style="padding:16px 24px;">
+          <div style="display:flex; align-items:center; gap:12px;">
+            <span class="status-dot status-dot-success"></span>
+            <span style="font-size:14px; color:var(--text-secondary);">{{check_label}}</span>
+            <span class="tag tag-success" style="margin-left:auto;">OK</span>
+          </div>
+        </div>
+        <!-- {{/checks_passed}} -->
+      </div>
+
+      <!-- Warnings -->
+      <h3 class="kpi-section-title reveal" style="margin-top:var(--space-xl);">Avertissements</h3>
+      <div class="steps-grid reveal" style="grid-template-columns: 1fr;">
+        <!-- {{#warnings}} — peut etre vide -->
+        <div class="step-card" style="padding:16px 24px;">
+          <div style="display:flex; align-items:center; gap:12px;">
+            <span class="status-dot status-dot-warning"></span>
+            <span style="font-size:14px; color:var(--text-secondary);">{{warning_label}}</span>
+            <span class="tag tag-warning" style="margin-left:auto;">A verifier</span>
+          </div>
+          <p style="font-size:13px; color:var(--text-subtle); margin-top:8px; padding-left:20px;">{{warning_detail}}</p>
+        </div>
+        <!-- {{/warnings}} -->
+      </div>
+
+      <!-- Errors -->
+      <!-- {{#has_errors}} -->
+      <h3 class="kpi-section-title reveal" style="margin-top:var(--space-xl);">Erreurs</h3>
+      <div class="steps-grid reveal" style="grid-template-columns: 1fr;">
+        <!-- {{#errors}} -->
+        <div class="step-card" style="padding:16px 24px; border-color:rgba(239,68,68,0.2);">
+          <div style="display:flex; align-items:center; gap:12px;">
+            <span class="status-dot status-dot-error"></span>
+            <span style="font-size:14px; color:var(--text-secondary);">{{error_label}}</span>
+            <span class="tag tag-error" style="margin-left:auto;">Erreur</span>
+          </div>
+          <p style="font-size:13px; color:var(--text-subtle); margin-top:8px; padding-left:20px;">{{error_detail}}</p>
+        </div>
+        <!-- {{/errors}} -->
+      </div>
+      <!-- {{/has_errors}} -->
+
+      <!-- Resume final -->
+      <div class="info-box reveal" style="margin-top:var(--space-2xl);">
+        <p class="info-box-label">Bilan Onboarding</p>
+        <h4>{{onboarding_status_label}}</h4>
+        <p>{{onboarding_summary}}</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================
+       FOOTER
+       ============================================ -->
+  <footer class="footer">
+    <div class="container">
+      <p class="footer-brand">Neurolia Social Engine</p>
+      <p class="footer-tagline">Rapport WF00 &mdash; Onboarding {{client_name}}</p>
+      <p class="footer-date">{{report_date}} &middot; Confidentiel</p>
+    </div>
+  </footer>
+
+  <script src="report-utils.js"></script>
+</body>
+</html>

@@ -2,21 +2,8 @@
   "id": "lseu1WhVn7c29EEj",
   "name": "SE-WF03 — Story Batch",
   "active": false,
-  "settings": {
-    "executionOrder": "v1",
-    "timezone": "Europe/Paris",
-    "saveDataErrorExecution": "all",
-    "saveDataSuccessExecution": "all",
-    "callerPolicy": "workflowsFromSameOwner",
-    "availableInMCP": false
-  },
   "nodes": [
     {
-      "id": "sch01",
-      "name": "Schedule Trigger",
-      "type": "n8n-nodes-base.scheduleTrigger",
-      "typeVersion": 1.2,
-      "position": [0, 300],
       "parameters": {
         "rule": {
           "interval": [
@@ -26,20 +13,21 @@
             }
           ]
         }
-      }
+      },
+      "id": "sch01",
+      "name": "Declencheur Planifie",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        704
+      ]
     },
     {
-      "id": "sb02",
-      "name": "Fetch Active Clients",
-      "type": "n8n-nodes-base.supabase",
-      "typeVersion": 1,
-      "position": [280, 300],
       "parameters": {
-        "resource": "row",
         "operation": "getAll",
         "tableId": "clients",
         "returnAll": true,
-        "filterType": "manual",
         "matchType": "allFilters",
         "filters": {
           "conditions": [
@@ -51,52 +39,61 @@
           ]
         }
       },
+      "id": "sb02",
+      "name": "Charger Clients Actifs",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        224,
+        704
+      ],
       "credentials": {
         "supabaseApi": {
-          "id": "PLACEHOLDER",
-          "name": "Supabase Social Engine"
+          "id": "3MfRNEiX8JttZZ8Z",
+          "name": "Supabase Neurolia Social"
         }
       }
     },
     {
+      "parameters": {
+        "options": {}
+      },
       "id": "sp03",
-      "name": "Split Clients",
+      "name": "Boucle Clients",
       "type": "n8n-nodes-base.splitInBatches",
       "typeVersion": 3,
-      "position": [560, 300],
-      "parameters": {
-        "batchSize": 1,
-        "options": {}
-      }
+      "position": [
+        448,
+        704
+      ]
     },
     {
+      "parameters": {
+        "jsCode": "const staticData = $getWorkflowStaticData('global');\nstaticData.batchCaptions = [];\nconst c = $json;\nconst now = new Date();\nconst day = now.getDay();\nconst dM = day === 0 ? 1 : (8 - day);\nconst mon = new Date(now.getFullYear(), now.getMonth(), now.getDate() + dM);\nconst sun = new Date(mon.getFullYear(), mon.getMonth(), mon.getDate() + 6);\nconst fmt = d => d.toISOString().split('T')[0];\nreturn [{ json: { client_id: c.id, client_slug: c.slug, client_name: c.name, next_monday: fmt(mon), next_sunday: fmt(sun), batch_id: 'batch-' + Date.now() + '-' + Math.random().toString(36).substring(2,8), batch_week: fmt(mon) } }];"
+      },
       "id": "cd04",
-      "name": "Calculate Week Range",
+      "name": "Calculer Plage Semaine",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [840, 300],
-      "parameters": {
-        "mode": "runOnceForAllItems",
-        "jsCode": "const c = $json;\nconst now = new Date();\nconst day = now.getDay();\nconst dM = day === 0 ? 1 : (8 - day);\nconst mon = new Date(now.getFullYear(), now.getMonth(), now.getDate() + dM);\nconst sun = new Date(mon.getFullYear(), mon.getMonth(), mon.getDate() + 6);\nconst fmt = d => d.toISOString().split('T')[0];\nreturn [{ json: { client_id: c.id, client_slug: c.slug, client_name: c.name, next_monday: fmt(mon), next_sunday: fmt(sun), batch_id: 'batch-' + Date.now() + '-' + Math.random().toString(36).substring(2,8), batch_week: fmt(mon) } }];"
-      }
+      "position": [
+        656,
+        880
+      ]
     },
     {
+      "parameters": {
+        "jsCode": "const httpRequest = this.helpers.httpRequest;\nconst SB_URL = 'https://abbtnownnraylaylswqk.supabase.co';\nconst SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFiYnRub3dubnJheWxheWxzd3FrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI3OTM0MTYsImV4cCI6MjA4ODM2OTQxNn0.OkRpMcaNgZDGSDLOxWP32F50iOZa3mhcRxSMH-5UlaM';\nconst wr = $json;\nconst h = { apikey: SB_KEY, Authorization: 'Bearer ' + SB_KEY };\nlet slots = [];\ntry {\n  slots = await httpRequest({ method: 'GET', url: SB_URL + '/rest/v1/editorial_slots?client_id=eq.' + wr.client_id + '&content_type=eq.story&scheduled_date=gte.' + wr.next_monday + '&scheduled_date=lte.' + wr.next_sunday + '&order=scheduled_date.asc,scheduled_time.asc', headers: h });\n} catch(e) {}\nif (!Array.isArray(slots) || slots.length === 0) return [{ json: { _noData: true } }];\nreturn [{ json: { _noData: false, slots, slotsCount: slots.length, client_id: wr.client_id, client_slug: wr.client_slug, batch_id: wr.batch_id, batch_week: wr.batch_week } }];"
+      },
       "id": "cd05",
-      "name": "Fetch Story Slots",
+      "name": "Charger Creneaux Stories",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1120, 300],
-      "parameters": {
-        "mode": "runOnceForAllItems",
-        "jsCode": "const httpRequest = globalThis.helpers.httpRequest;\nconst SB_URL = 'PLACEHOLDER_SUPABASE_URL';\nconst SB_KEY = 'PLACEHOLDER_SUPABASE_KEY';\nconst wr = $json;\nconst h = { apikey: SB_KEY, Authorization: 'Bearer ' + SB_KEY };\nlet slots = [];\ntry {\n  slots = await httpRequest({ method: 'GET', url: SB_URL + '/rest/v1/editorial_slots?client_id=eq.' + wr.client_id + '&content_type=eq.story&scheduled_date=gte.' + wr.next_monday + '&scheduled_date=lte.' + wr.next_sunday + '&order=scheduled_date.asc,scheduled_time.asc', headers: h });\n} catch(e) {}\nif (!Array.isArray(slots) || slots.length === 0) return [{ json: { _noData: true } }];\nreturn [{ json: { _noData: false, slots, slotsCount: slots.length, client_id: wr.client_id, client_slug: wr.client_slug, batch_id: wr.batch_id, batch_week: wr.batch_week } }];"
-      }
+      "position": [
+        880,
+        880
+      ]
     },
     {
-      "id": "if06",
-      "name": "IF Slots Found",
-      "type": "n8n-nodes-base.if",
-      "typeVersion": 2.2,
-      "position": [1400, 300],
       "parameters": {
         "conditions": {
           "options": {
@@ -120,20 +117,21 @@
           "combinator": "and"
         },
         "options": {}
-      }
+      },
+      "id": "if06",
+      "name": "SI — Creneaux Trouves",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1104,
+        880
+      ]
     },
     {
-      "id": "sb07",
-      "name": "Fetch Brand Platform",
-      "type": "n8n-nodes-base.supabase",
-      "typeVersion": 1,
-      "position": [1680, 200],
       "parameters": {
-        "resource": "row",
         "operation": "getAll",
         "tableId": "brand_platforms",
         "returnAll": true,
-        "filterType": "manual",
         "matchType": "allFilters",
         "filters": {
           "conditions": [
@@ -145,84 +143,94 @@
           ]
         }
       },
+      "id": "sb07",
+      "name": "Charger Plateforme Marque",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        1328,
+        944
+      ],
       "credentials": {
         "supabaseApi": {
-          "id": "PLACEHOLDER",
-          "name": "Supabase Social Engine"
+          "id": "3MfRNEiX8JttZZ8Z",
+          "name": "Supabase Neurolia Social"
         }
       }
     },
     {
+      "parameters": {
+        "jsCode": "const httpRequest = this.helpers.httpRequest;\nconst SB_URL = 'https://abbtnownnraylaylswqk.supabase.co';\nconst SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFiYnRub3dubnJheWxheWxzd3FrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI3OTM0MTYsImV4cCI6MjA4ODM2OTQxNn0.OkRpMcaNgZDGSDLOxWP32F50iOZa3mhcRxSMH-5UlaM';\nconst data = $('Valider Plan Stories').first().json;\nconst h = { apikey: SB_KEY, Authorization: 'Bearer ' + SB_KEY };\n\n// Charger les uploads prepares par WF02 (status = ready_for_story)\nlet photos = [];\ntry {\n  photos = await httpRequest({ method: 'GET', url: SB_URL + '/rest/v1/uploads?client_id=eq.' + data.client_id + '&status=eq.ready_for_story&select=id,slot_id,original_url,filename', headers: h });\n} catch(e) {}\nif (!photos || photos.length === 0) return [];\n\nconst slots = data.slots || [];\nconst results = [];\nfor (let i = 0; i < slots.length; i++) {\n  const slot = slots[i];\n  // Match par slot_id (WF02 a assigne l'upload au bon slot)\n  let photo = photos.find(p => p.slot_id === slot.id);\n  if (!photo) continue; // Pas de photo prete pour ce slot, skip\n  results.push({ json: { slot_id: slot.id, slot, photo_url: photo.original_url, upload_id: photo.id, client_id: data.client_id, client_slug: data.client_slug, batch_id: data.batch_id, batch_week: data.batch_week, scheduled_at: slot.scheduled_date + 'T' + slot.scheduled_time } });\n}\nreturn results.length > 0 ? results : [];"
+      },
       "id": "cd08",
-      "name": "Assign Photos to Slots",
+      "name": "Assigner Photos aux Creneaux",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1960, 200],
-      "parameters": {
-        "mode": "runOnceForAllItems",
-        "jsCode": "const httpRequest = globalThis.helpers.httpRequest;\nconst SB_URL = 'PLACEHOLDER_SUPABASE_URL';\nconst SB_KEY = 'PLACEHOLDER_SUPABASE_KEY';\nconst data = $('Fetch Story Slots').first().json;\nconst h = { apikey: SB_KEY, Authorization: 'Bearer ' + SB_KEY };\nlet photos = [];\ntry {\n  photos = await httpRequest({ method: 'GET', url: SB_URL + '/rest/v1/uploads?client_id=eq.' + data.client_id + '&status=in.(new,assigned)', headers: h });\n} catch(e) {}\nif (!photos || photos.length === 0) return [];\nconst slots = data.slots || [];\nconst results = [];\nfor (let i = 0; i < slots.length; i++) {\n  const slot = slots[i];\n  let photo = photos.find(p => p.slot_id === slot.id);\n  if (!photo) photo = photos[i % photos.length];\n  results.push({ json: { slot_id: slot.id, slot, photo_url: photo.original_url, upload_id: photo.id, client_id: data.client_id, client_slug: data.client_slug, batch_id: data.batch_id, batch_week: data.batch_week, scheduled_at: slot.scheduled_date + 'T' + slot.scheduled_time } });\n}\nreturn results.length > 0 ? results : [];"
-      }
+      "position": [
+        2288,
+        944
+      ]
     },
     {
+      "parameters": {
+        "options": {}
+      },
       "id": "sp09",
-      "name": "Split Story Slots",
+      "name": "Boucle Creneaux Stories",
       "type": "n8n-nodes-base.splitInBatches",
       "typeVersion": 3,
-      "position": [2240, 200],
-      "parameters": {
-        "batchSize": 1,
-        "options": {}
-      }
+      "position": [
+        2608,
+        944
+      ]
     },
     {
-      "id": "hr10",
-      "name": "Download Photo",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
-      "position": [2520, 200],
       "parameters": {
-        "method": "GET",
-        "url": "={{ $('Split Story Slots').first().json.photo_url }}",
+        "url": "={{ $('Boucle Creneaux Stories').first().json.photo_url }}",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
             {
               "name": "apikey",
-              "value": "PLACEHOLDER_SUPABASE_KEY"
+              "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFiYnRub3dubnJheWxheWxzd3FrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI3OTM0MTYsImV4cCI6MjA4ODM2OTQxNn0.OkRpMcaNgZDGSDLOxWP32F50iOZa3mhcRxSMH-5UlaM"
             },
             {
               "name": "Authorization",
-              "value": "Bearer PLACEHOLDER_SUPABASE_KEY"
+              "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFiYnRub3dubnJheWxheWxzd3FrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI3OTM0MTYsImV4cCI6MjA4ODM2OTQxNn0.OkRpMcaNgZDGSDLOxWP32F50iOZa3mhcRxSMH-5UlaM"
             }
           ]
         },
         "options": {
           "response": {
             "response": {
-              "responseFormat": "file",
-              "outputPropertyName": "data"
+              "responseFormat": "file"
             }
           }
         }
-      }
+      },
+      "id": "hr10",
+      "name": "Telecharger Photo",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2928,
+        1168
+      ]
     },
     {
+      "parameters": {
+        "jsCode": "const item = $('Boucle Creneaux Stories').first().json;\nconst slot = item.slot;\nconst brand = $('Charger Plateforme Marque').first().json;\nconst p = 'Retouche legerement cette photo et incruste le texte suivant pour une story Instagram.\\n\\nCHARTE GRAPHIQUE :\\n- Couleur principale : ' + (brand.primary_color || '#000000') + '\\n- Couleurs secondaires : ' + ((brand.secondary_colors || []).join(', ')) + '\\n- Police principale : ' + (brand.font_primary || 'sans-serif moderne') + '\\n- Police secondaire : ' + (brand.font_secondary || '') + '\\n\\nDIRECTION VISUELLE :\\n' + (slot.visual_direction || 'Retouche legere, ambiance coherente avec la marque.') + '\\n\\nTEXTE A INCRUSTER :\\n\"' + (slot.story_text || '') + '\"\\n\\nREGLES TEXTE :\\n- Police : ' + (brand.font_primary || 'sans-serif moderne') + ' (ou sans-serif moderne si non disponible)\\n- Couleur : contraste fort avec le fond (preferer ' + (brand.primary_color || 'blanc') + ' ou blanc)\\n- Position : centre-bas (zone safe stories)\\n- Fond semi-transparent si necessaire pour la lisibilite\\n- Taille : lisible sur mobile sans zoom\\n\\nMODE : Retouche legere uniquement (luminosite, contraste, couleurs).\\nDimensions : 1080x1920 (ratio 9:16).';\nreturn [{ json: { prompt: p, mode: 'light', model: 'gpt-image-1', slot_id: item.slot_id, upload_id: item.upload_id, client_id: item.client_id, client_slug: item.client_slug, batch_id: item.batch_id, batch_week: item.batch_week, scheduled_at: item.scheduled_at, fileName: 'story-' + item.slot_id.substring(0, 8) + '.png' }, binary: $input.first().binary }];"
+      },
       "id": "cd11",
-      "name": "Build Sublimation Prompt",
+      "name": "Construire Prompt Sublimation",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [2800, 200],
-      "parameters": {
-        "mode": "runOnceForAllItems",
-        "jsCode": "const item = $('Split Story Slots').first().json;\nconst slot = item.slot;\nconst brand = $('Fetch Brand Platform').first().json;\nconst p = 'Retouche legerement cette photo et incruste le texte suivant pour une story Instagram.\\n\\nCHARTE GRAPHIQUE :\\n- Couleur principale : ' + (brand.primary_color || '#000000') + '\\n- Couleurs secondaires : ' + ((brand.secondary_colors || []).join(', ')) + '\\n- Police principale : ' + (brand.font_primary || 'sans-serif moderne') + '\\n\\nDIRECTION VISUELLE :\\n' + (slot.visual_direction || 'Retouche legere.') + '\\n\\nTEXTE A INCRUSTER :\\n\"' + (slot.story_text || '') + '\"\\n\\nREGLES TEXTE :\\n- Police : ' + (brand.font_primary || 'sans-serif') + '\\n- Couleur : contraste fort\\n- Position : centre-bas\\n- Fond semi-transparent si necessaire\\n\\nMODE : Retouche legere. Dimensions : 1080x1920 (9:16).';\nreturn [{ json: { prompt: p, mode: 'light', model: 'gpt-image-1', slot_id: item.slot_id, upload_id: item.upload_id, client_id: item.client_id, client_slug: item.client_slug, batch_id: item.batch_id, batch_week: item.batch_week, scheduled_at: item.scheduled_at, fileName: 'story-' + item.slot_id.substring(0, 8) + '.png' }, binary: $input.first().binary }];"
-      }
+      "position": [
+        3152,
+        1168
+      ]
     },
     {
-      "id": "oa12",
-      "name": "Agent DA Story",
-      "type": "@n8n/n8n-nodes-langchain.openAi",
-      "typeVersion": 2.1,
-      "position": [3080, 200],
       "parameters": {
         "resource": "image",
         "operation": "edit",
@@ -231,13 +239,22 @@
           "mode": "id",
           "value": "gpt-image-1"
         },
-        "binaryPropertyName": "data",
         "prompt": "={{ $json.prompt }}",
-        "options": {
-          "quality": "medium",
-          "n": 1
-        }
+        "images": {
+          "values": [
+            {}
+          ]
+        },
+        "options": {}
       },
+      "id": "oa12",
+      "name": "Agent DA Story",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 2.1,
+      "position": [
+        3376,
+        1168
+      ],
       "credentials": {
         "openAiApi": {
           "id": "PLACEHOLDER",
@@ -247,24 +264,19 @@
       "onError": "continueRegularOutput"
     },
     {
-      "id": "hr13",
-      "name": "Upload Story Image",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
-      "position": [3360, 200],
       "parameters": {
         "method": "POST",
-        "url": "=PLACEHOLDER_SUPABASE_URL/storage/v1/object/social-engine/{{ $('Build Sublimation Prompt').first().json.client_slug }}/sublimated/{{ $('Build Sublimation Prompt').first().json.fileName }}",
+        "url": "=https://abbtnownnraylaylswqk.supabase.co/storage/v1/object/social-engine/{{ $('Construire Prompt Sublimation').first().json.client_slug }}/sublimated/{{ $('Construire Prompt Sublimation').first().json.fileName }}",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
             {
               "name": "apikey",
-              "value": "PLACEHOLDER_SUPABASE_KEY"
+              "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFiYnRub3dubnJheWxheWxzd3FrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI3OTM0MTYsImV4cCI6MjA4ODM2OTQxNn0.OkRpMcaNgZDGSDLOxWP32F50iOZa3mhcRxSMH-5UlaM"
             },
             {
               "name": "Authorization",
-              "value": "Bearer PLACEHOLDER_SUPABASE_KEY"
+              "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFiYnRub3dubnJheWxheWxzd3FrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI3OTM0MTYsImV4cCI6MjA4ODM2OTQxNn0.OkRpMcaNgZDGSDLOxWP32F50iOZa3mhcRxSMH-5UlaM"
             },
             {
               "name": "Content-Type",
@@ -276,87 +288,66 @@
         "contentType": "binaryData",
         "inputDataFieldName": "data",
         "options": {}
-      }
+      },
+      "id": "hr13",
+      "name": "Upload Image Story",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        3600,
+        1168
+      ]
     },
     {
+      "parameters": {
+        "jsCode": "const httpRequest = this.helpers.httpRequest;\nconst SB_URL = 'https://abbtnownnraylaylswqk.supabase.co';\nconst SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFiYnRub3dubnJheWxheWxzd3FrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI3OTM0MTYsImV4cCI6MjA4ODM2OTQxNn0.OkRpMcaNgZDGSDLOxWP32F50iOZa3mhcRxSMH-5UlaM';\nconst item = $('Boucle Creneaux Stories').first().json;\nconst slot = item.slot;\nconst brand = $('Charger Plateforme Marque').first().json;\nconst client = $('Boucle Clients').first().json;\nconst h = { apikey: SB_KEY, Authorization: 'Bearer ' + SB_KEY };\n\n// Anti-repetition captions\nlet recent = [];\ntry { recent = await httpRequest({ method: 'GET', url: SB_URL + '/rest/v1/content_queue?client_id=eq.' + item.client_id + '&status=eq.published&content_type=eq.story&order=created_at.desc&limit=10&select=caption,cta', headers: h }); } catch(e) {}\nconst caps = (recent || []).map((c, i) => (i+1) + '. ' + (c.caption || '').substring(0, 80)).join('\\n');\n\n// Brand fields\nconst tuVous = brand.tu_vous || 'vouvoiement';\nconst formalityLevel = brand.formality_level || 3;\nconst personality = brand.personality || '';\nconst toneOfVoice = brand.tone_of_voice || '';\nconst keyInsight = brand.key_insight || '';\nconst brandPromise = brand.brand_promise || '';\nconst tagline = brand.tagline || '';\nconst brandEssence = brand.brand_essence || '';\nconst vocabDo = (brand.vocabulary_do || []).slice(0, 8).join(', ');\nconst vocabDont = (brand.vocabulary_dont || []).slice(0, 8).join(', ');\nconst brandValues = (brand.brand_values || []).map(v => typeof v === 'object' ? v.name : v).join(', ');\nconst archetypePrincipal = (brand.archetype && typeof brand.archetype === 'object' ? brand.archetype.principal : brand.archetype) || '';\nconst emojiUsage = brand.emoji_usage || 'moderate';\n\n// Anti-repetition analysis\nconst firstWords = (recent || []).map(c => (c.caption || '').split(/\\s+/)[0]?.toLowerCase()).filter(Boolean);\nconst wordCounts = {};\nfirstWords.forEach(w => { wordCounts[w] = (wordCounts[w] || 0) + 1; });\nconst overusedWords = Object.entries(wordCounts).filter(([_, count]) => count >= 2).map(([word]) => word);\nlet antiRepInstr = '';\nif (overusedWords.length > 0) {\n  antiRepInstr = '\\nNE COMMENCE PAS ta caption par : ' + overusedWords.join(', ') + ' (deja utilises recemment).';\n}\n\n// Accumulateur intra-batch\nconst staticData = $getWorkflowStaticData('global');\nif (!staticData.batchCaptions) staticData.batchCaptions = [];\nconst batchCaps = staticData.batchCaptions.length > 0\n  ? '\\nCaptions DEJA GENEREES dans ce batch (NE PAS reprendre) :\\n' + staticData.batchCaptions.map((c, i) => (i+1) + '. ' + c).join('\\n')\n  : '';\n\n// Brief du planificateur hebdo (3B)\nconst brief = slot._brief;\nlet briefBlock = '';\nif (brief) {\n  briefBlock = '\\n\\n<planning_brief>\\nType d\\'accroche impose : ' + brief.accroche_type + '\\nAngle enrichi : ' + brief.angle_enrichi + '\\nTon cible : ' + brief.ton_cible + '\\nDifferentiation vs post du jour : ' + brief.differentiation + '\\nMots interdits (en plus des anti-repetition) : ' + (brief.mots_interdits || []).join(', ') + '\\n</planning_brief>';\n}\n\n// System prompt\nconst systemPrompt = '<role>\\nTu es un redacteur social media expert specialise dans les stories Instagram.\\nTu ecris des captions courtes (20-40 mots), percutantes et directes qui captent l\\'attention en moins de 2 secondes.\\n</role>\\n\\n<rules>\\n- Tu DOIS utiliser le ' + tuVous + ' systematiquement.\\n- Niveau de formalite : ' + formalityLevel + '/5.\\n- Personnalite de marque : ' + personality + '.\\n- Ton de voix : ' + toneOfVoice + '.\\n- La caption DOIT etre coherente avec le texte incruste sur l\\'image story.\\n- Emojis : 1-2 maximum (policy marque : ' + emojiUsage + ').\\n- Vocabulaire recommande : ' + vocabDo + '.\\n- Vocabulaire interdit : ' + vocabDont + '.\\n</rules>\\n\\n<constraints>\\n- 20 a 40 mots MAXIMUM — pas un mot de plus.\\n- UNE seule idee par caption.\\n- Pas de \\\"N\\'hesitez pas a...\\\" ni \\\"Decouvrez notre...\\\" — formules bannies.\\n- Pas de hashtags dans la caption.\\n- Pas de liens.\\n- Ne repete JAMAIS une accroche des captions precedentes.\\n</constraints>\\n\\n<output_format>\\nReponds UNIQUEMENT avec un JSON valide, sans markdown, sans commentaire :\\n{ \\\"caption\\\": \\\"string\\\", \\\"cta\\\": \\\"string\\\" }\\n- caption : texte complet (20-40 mots)\\n- cta : call to action rapide (swipe, vote, DM, tap)\\n</output_format>\\n\\n<quality_checklist>\\nAvant de repondre, verifie mentalement :\\n1. La caption fait entre 20 et 40 mots ?\\n2. Elle utilise le ' + tuVous + ' ?\\n3. Elle est coherente avec le texte story ?\\n4. Elle ne reprend PAS une accroche des captions precedentes ?\\n5. Le CTA est naturel et adapte au format story ?\\n6. Le JSON est valide ?\\n7. Si un brief de planification est fourni, le type d\\'accroche et le ton sont respectes ?\\n</quality_checklist>';\n\n// User prompt\nconst userPrompt = '<brand_identity>\\nMarque : ' + client.name + '\\nSecteur : ' + (client.industry || '') + '\\nPersonnalite : ' + personality + '\\nArchetype : ' + archetypePrincipal + '\\nValeurs : ' + brandValues + '\\nTon de voix : ' + toneOfVoice + '\\nTu/Vous : ' + tuVous + '\\nEssence : ' + brandEssence + '\\nPromesse : ' + brandPromise + '\\n</brand_identity>\\n\\n<strategic_anchoring>\\nInsight cle : ' + keyInsight + '\\nTagline : ' + tagline + '\\n</strategic_anchoring>\\n\\n<story_directive>\\nTheme : ' + (slot.theme || '') + '\\nAngle : ' + (slot.angle || '') + '\\nStyle caption : ' + (slot.caption_style || 'exclamatif') + '\\nObjectif : ' + (slot.objective || 'engagement') + '\\nTexte incruste sur l\\'image : \\\"' + (slot.story_text || '') + '\\\"\\n</story_directive>' + briefBlock + '\\n\\n<anti_repetition>\\nDernieres captions stories publiees (NE PAS reprendre les memes accroches) :\\n' + (caps || 'Premiere story — aucune contrainte.') + antiRepInstr + batchCaps + '\\n</anti_repetition>\\n\\n<thinking>\\nAvant d\\'ecrire, reflechis :\\n1. Quel mot d\\'accroche est le plus percutant pour \\\"' + (slot.theme || '') + '\\\" en style \\\"' + (slot.caption_style || 'exclamatif') + '\\\" ?\\n2. Comment rester coherent avec le texte image sans le repeter ?\\n3. Quel CTA s\\'adapte le mieux a une story ?\\n</thinking>\\n\\n<example>\\nTheme: \\\"Burger signature\\\" | Style: exclamatif | Texte image: \\\"Le Classic est de retour !\\\"\\n{ \\\"caption\\\": \\\"Il est la, il est chaud, il est LEGENDAIRE ! Notre Classic revient avec encore plus de saveur.\\\", \\\"cta\\\": \\\"Commandez-le maintenant !\\\" }\\n</example>\\n\\n<instruction>\\nEcris une caption story (20-40 mots) en style \\\"' + (slot.caption_style || 'exclamatif') + '\\\" pour le theme \\\"' + (slot.theme || '') + '\\\".\\nReponds avec le JSON :\\n{ \\\"caption\\\": \\\"string\\\", \\\"cta\\\": \\\"string\\\" }\\n</instruction>';\n\nreturn [{ json: { systemPrompt, userPrompt, client_id: item.client_id } }];"
+      },
       "id": "cd14",
-      "name": "Build Caption Prompt",
+      "name": "Construire Prompt Caption",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [3640, 200],
-      "parameters": {
-        "mode": "runOnceForAllItems",
-        "jsCode": "const httpRequest = globalThis.helpers.httpRequest;\nconst SB_URL = 'PLACEHOLDER_SUPABASE_URL';\nconst SB_KEY = 'PLACEHOLDER_SUPABASE_KEY';\nconst item = $('Split Story Slots').first().json;\nconst slot = item.slot;\nconst brand = $('Fetch Brand Platform').first().json;\nconst client = $('Split Clients').first().json;\nconst h = { apikey: SB_KEY, Authorization: 'Bearer ' + SB_KEY };\nlet recent = [];\ntry { recent = await httpRequest({ method: 'GET', url: SB_URL + '/rest/v1/content_queue?client_id=eq.' + item.client_id + '&status=eq.published&content_type=eq.story&order=created_at.desc&limit=10&select=caption,cta', headers: h }); } catch(e) {}\nconst caps = (recent || []).map((c, i) => (i+1) + '. ' + (c.caption || '').substring(0, 80)).join('\\n');\nconst systemPrompt = 'Tu es un redacteur social media expert en stories Instagram.\\nCaption courte (20-40 mots), percutante, directe.\\nJSON : { \"caption\": \"string\", \"cta\": \"string\" }\\nCoherente avec le texte image : \"' + (slot.story_text || '') + '\"\\nStyle : ' + (slot.caption_style || 'exclamatif') + '\\nEmojis : 1-2 max';\nconst userPrompt = 'Marque : ' + client.name + '\\nTon : ' + (brand.tone_of_voice || '') + '\\nTheme : ' + (slot.theme || '') + '\\nAngle : ' + (slot.angle || '') + '\\nStyle : ' + (slot.caption_style || '') + '\\nTexte story : \"' + (slot.story_text || '') + '\"\\n\\nDernieres captions :\\n' + (caps || 'Premiere.') + '\\n\\nCaption story (20-40 mots). JSON : { \"caption\", \"cta\" }';\nreturn [{ json: { systemPrompt, userPrompt, client_id: item.client_id } }];"
-      }
+      "position": [
+        3824,
+        1168
+      ]
     },
     {
-      "id": "ag15",
-      "name": "Agent Redacteur Story",
-      "type": "@n8n/n8n-nodes-langchain.agent",
-      "typeVersion": 3.1,
-      "position": [3920, 200],
       "parameters": {
-        "promptType": "define",
-        "text": "={{ $json.userPrompt }}",
-        "hasOutputParser": true,
         "options": {
           "systemMessage": "={{ $json.systemPrompt }}",
           "maxIterations": 3
         }
-      }
+      },
+      "id": "ag15",
+      "name": "Agent Redacteur Story",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        4080,
+        1168
+      ]
     },
     {
-      "id": "lm15a",
-      "name": "OpenAI Chat Model Redacteur",
-      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
-      "typeVersion": 1.3,
-      "position": [3820, 500],
       "parameters": {
         "model": {
           "__rl": true,
           "mode": "id",
           "value": "gpt-4o"
         },
+        "builtInTools": {},
         "options": {
-          "temperature": 0.85,
-          "maxTokens": 300
+          "maxTokens": 300,
+          "temperature": 0.85
         }
       },
-      "credentials": {
-        "openAiApi": {
-          "id": "PLACEHOLDER",
-          "name": "OpenAI"
-        }
-      }
-    },
-    {
-      "id": "op15b",
-      "name": "Structured Output Parser Story",
-      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
-      "typeVersion": 1.3,
-      "position": [4020, 500],
-      "parameters": {
-        "schemaType": "fromJson",
-        "jsonSchemaExample": "{\n  \"caption\": \"Caption courte story\",\n  \"cta\": \"Action rapide\"\n}",
-        "autoFix": true
-      }
-    },
-    {
-      "id": "lm15c",
-      "name": "OpenAI Chat Model AutoFix",
+      "id": "lm15a",
+      "name": "Modele OpenAI — Redacteur",
       "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
       "typeVersion": 1.3,
-      "position": [4020, 700],
-      "parameters": {
-        "model": {
-          "__rl": true,
-          "mode": "id",
-          "value": "gpt-4o-mini"
-        },
-        "options": {
-          "temperature": 0
-        }
-      },
+      "position": [
+        4048,
+        1392
+      ],
       "credentials": {
         "openAiApi": {
           "id": "PLACEHOLDER",
@@ -365,152 +356,574 @@
       }
     },
     {
-      "id": "sb16",
-      "name": "Insert Content Queue",
-      "type": "n8n-nodes-base.supabase",
-      "typeVersion": 1,
-      "position": [4200, 200],
       "parameters": {
-        "resource": "row",
-        "operation": "create",
         "tableId": "content_queue",
-        "dataToSend": "defineBelow",
         "fieldsUi": {
           "fieldValues": [
-            { "fieldId": "client_id", "fieldValue": "={{ $('Build Caption Prompt').first().json.client_id }}" },
-            { "fieldId": "slot_id", "fieldValue": "={{ $('Split Story Slots').first().json.slot_id }}" },
-            { "fieldId": "upload_id", "fieldValue": "={{ $('Split Story Slots').first().json.upload_id }}" },
-            { "fieldId": "content_type", "fieldValue": "story" },
-            { "fieldId": "sublimated_url", "fieldValue": "={{ 'PLACEHOLDER_SUPABASE_URL/storage/v1/object/public/social-engine/' + $('Build Sublimation Prompt').first().json.client_slug + '/sublimated/' + $('Build Sublimation Prompt').first().json.fileName }}" },
-            { "fieldId": "sublimation_prompt", "fieldValue": "={{ $('Build Sublimation Prompt').first().json.prompt }}" },
-            { "fieldId": "sublimation_model", "fieldValue": "gpt-image-1" },
-            { "fieldId": "caption", "fieldValue": "={{ ($json.output || {}).caption || $json.caption || '' }}" },
-            { "fieldId": "cta", "fieldValue": "={{ ($json.output || {}).cta || $json.cta || '' }}" },
-            { "fieldId": "caption_model", "fieldValue": "gpt-4o" },
-            { "fieldId": "status", "fieldValue": "pending_review" },
-            { "fieldId": "batch_id", "fieldValue": "={{ $('Split Story Slots').first().json.batch_id }}" },
-            { "fieldId": "batch_week", "fieldValue": "={{ $('Split Story Slots').first().json.batch_week }}" },
-            { "fieldId": "scheduled_at", "fieldValue": "={{ $('Split Story Slots').first().json.scheduled_at }}" }
+            {
+              "fieldId": "client_id",
+              "fieldValue": "={{ $('Construire Prompt Caption').first().json.client_id }}"
+            },
+            {
+              "fieldId": "slot_id",
+              "fieldValue": "={{ $('Boucle Creneaux Stories').first().json.slot_id }}"
+            },
+            {
+              "fieldId": "upload_id",
+              "fieldValue": "={{ $('Boucle Creneaux Stories').first().json.upload_id }}"
+            },
+            {
+              "fieldId": "content_type",
+              "fieldValue": "story"
+            },
+            {
+              "fieldId": "sublimated_url",
+              "fieldValue": "={{ 'https://abbtnownnraylaylswqk.supabase.co/storage/v1/object/public/social-engine/' + $('Construire Prompt Sublimation').first().json.client_slug + '/sublimated/' + $('Construire Prompt Sublimation').first().json.fileName }}"
+            },
+            {
+              "fieldId": "sublimation_prompt",
+              "fieldValue": "={{ $('Construire Prompt Sublimation').first().json.prompt }}"
+            },
+            {
+              "fieldId": "sublimation_model",
+              "fieldValue": "gpt-image-1"
+            },
+            {
+              "fieldId": "caption",
+              "fieldValue": "={{ $json.caption || '' }}"
+            },
+            {
+              "fieldId": "cta",
+              "fieldValue": "={{ $json.cta || '' }}"
+            },
+            {
+              "fieldId": "caption_model",
+              "fieldValue": "gpt-4o"
+            },
+            {
+              "fieldId": "status",
+              "fieldValue": "pending_review"
+            },
+            {
+              "fieldId": "batch_id",
+              "fieldValue": "={{ $('Boucle Creneaux Stories').first().json.batch_id }}"
+            },
+            {
+              "fieldId": "batch_week",
+              "fieldValue": "={{ $('Boucle Creneaux Stories').first().json.batch_week }}"
+            },
+            {
+              "fieldId": "scheduled_at",
+              "fieldValue": "={{ $('Boucle Creneaux Stories').first().json.scheduled_at }}"
+            }
           ]
         }
       },
+      "id": "sb16",
+      "name": "Inserer File Contenu",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        4544,
+        1328
+      ],
       "credentials": {
         "supabaseApi": {
-          "id": "PLACEHOLDER",
-          "name": "Supabase Social Engine"
+          "id": "3MfRNEiX8JttZZ8Z",
+          "name": "Supabase Neurolia Social"
         }
       }
     },
     {
+      "parameters": {
+        "jsCode": "const httpRequest = this.helpers.httpRequest;\nconst SB_URL = 'https://abbtnownnraylaylswqk.supabase.co';\nconst SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFiYnRub3dubnJheWxheWxzd3FrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI3OTM0MTYsImV4cCI6MjA4ODM2OTQxNn0.OkRpMcaNgZDGSDLOxWP32F50iOZa3mhcRxSMH-5UlaM';\nconst h = { apikey: SB_KEY, Authorization: 'Bearer ' + SB_KEY, 'Content-Type': 'application/json', Prefer: 'return=minimal' };\nconst items = $('Assigner Photos aux Creneaux').all();\nconst ids = [...new Set(items.map(i => i.json.upload_id).filter(Boolean))];\nfor (const uid of ids) {\n  try { await httpRequest({ method: 'PATCH', url: SB_URL + '/rest/v1/uploads?id=eq.' + uid, headers: h, body: JSON.stringify({ status: 'processed' }) }); } catch(e) {}\n}\nreturn [{ json: { updated: ids.length } }];"
+      },
       "id": "cd17",
-      "name": "Update Uploads Status",
+      "name": "MAJ Statut Uploads",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [2520, 600],
-      "parameters": {
-        "mode": "runOnceForAllItems",
-        "jsCode": "const httpRequest = globalThis.helpers.httpRequest;\nconst SB_URL = 'PLACEHOLDER_SUPABASE_URL';\nconst SB_KEY = 'PLACEHOLDER_SUPABASE_KEY';\nconst h = { apikey: SB_KEY, Authorization: 'Bearer ' + SB_KEY, 'Content-Type': 'application/json', Prefer: 'return=minimal' };\nconst items = $('Assign Photos to Slots').all();\nconst ids = [...new Set(items.map(i => i.json.upload_id).filter(Boolean))];\nfor (const uid of ids) {\n  try { await httpRequest({ method: 'PATCH', url: SB_URL + '/rest/v1/uploads?id=eq.' + uid, headers: h, body: JSON.stringify({ status: 'processed' }) }); } catch(e) {}\n}\nreturn [{ json: { updated: ids.length } }];"
-      }
+      "position": [
+        2992,
+        688
+      ]
     },
     {
-      "id": "sb18",
-      "name": "Log Execution",
-      "type": "n8n-nodes-base.supabase",
-      "typeVersion": 1,
-      "position": [2800, 600],
       "parameters": {
-        "resource": "row",
-        "operation": "create",
         "tableId": "workflow_logs",
-        "dataToSend": "defineBelow",
         "fieldsUi": {
           "fieldValues": [
-            { "fieldId": "workflow_name", "fieldValue": "wf03-story-batch" },
-            { "fieldId": "status", "fieldValue": "success" },
-            { "fieldId": "message", "fieldValue": "Story batch complete" }
+            {
+              "fieldId": "workflow_name",
+              "fieldValue": "wf03-story-batch"
+            },
+            {
+              "fieldId": "status",
+              "fieldValue": "success"
+            },
+            {
+              "fieldId": "message",
+              "fieldValue": "Story batch complete"
+            }
           ]
         }
       },
+      "id": "sb18",
+      "name": "Journal Execution",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        3216,
+        688
+      ],
       "credentials": {
         "supabaseApi": {
-          "id": "PLACEHOLDER",
-          "name": "Supabase Social Engine"
+          "id": "3MfRNEiX8JttZZ8Z",
+          "name": "Supabase Neurolia Social"
         }
       }
+    },
+    {
+      "parameters": {
+        "content": "## 1. CHARGEMENT CLIENTS\nDeclencheur chaque dimanche 20h.\nCharge les clients actifs pour preparer le batch stories de la semaine suivante.",
+        "height": 120,
+        "width": 620
+      },
+      "id": "sn01",
+      "name": "Sticky Note sn01",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -80,
+        480
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## 2. PLANNING SEMAINE\nCalcule la plage lundi-dimanche de la semaine prochaine.\nRecupere les creneaux stories planifies pour cette semaine.",
+        "height": 120,
+        "width": 620
+      },
+      "id": "sn02",
+      "name": "Sticky Note sn02",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        576,
+        640
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## 3. PREPARATION + PLANIFICATION BATCH\nCharge la charte marque, planifie les stories de la semaine (GPT-4o-mini),\npuis assigne les photos aux creneaux.",
+        "height": 120,
+        "width": 1400
+      },
+      "id": "sn03",
+      "name": "Sticky Note sn03",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        1280,
+        720
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## 4. SUBLIMATION STORY\nTelecharge la photo, construit le prompt visuel.\nAgent DA retouche via gpt-image-1 (mode light, 1080x1920).\nUpload vers Storage.",
+        "height": 120,
+        "width": 850
+      },
+      "id": "sn04",
+      "name": "Sticky Note sn04",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        2848,
+        944
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## 5. REDACTION CAPTION STORY\nAgent Redacteur Story ecrit caption courte (20-40 mots) + CTA.\nAnti-repetition sur les dernieres stories publiees.",
+        "height": 120,
+        "width": 660
+      },
+      "id": "sn05",
+      "name": "Sticky Note sn05",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        3744,
+        944
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## 6. ENREGISTREMENT + FINALISATION\nInsere dans content_queue (pending_review) avec batch_id.\nMAJ statut uploads et log execution.",
+        "height": 120,
+        "width": 620
+      },
+      "id": "sn06",
+      "name": "Sticky Note sn06",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        2912,
+        464
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const raw = typeof $json.output === 'string' ? $json.output : JSON.stringify($json.output || '');\nlet parsed;\ntry {\n  const jsonMatch = raw.match(/\\{[\\s\\S]*\\}/);\n  if (jsonMatch) {\n    parsed = JSON.parse(jsonMatch[0]);\n  } else {\n    throw new Error('No JSON found');\n  }\n} catch(e) {\n  parsed = { caption: raw.substring(0, 200), cta: '' };\n}\nif (!parsed.caption) parsed.caption = '';\nif (!parsed.cta) parsed.cta = '';\nconst staticData = $getWorkflowStaticData('global');\nif (!staticData.batchCaptions) staticData.batchCaptions = [];\nstaticData.batchCaptions.push(parsed.caption.split('\\n')[0]);\nreturn [{ json: parsed }];"
+      },
+      "id": "cd15a",
+      "name": "Valider Sortie Story",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        4320,
+        1168
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const httpRequest = this.helpers.httpRequest;\nconst SB_URL = 'https://abbtnownnraylaylswqk.supabase.co';\nconst SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFiYnRub3dubnJheWxheWxzd3FrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI3OTM0MTYsImV4cCI6MjA4ODM2OTQxNn0.OkRpMcaNgZDGSDLOxWP32F50iOZa3mhcRxSMH-5UlaM';\nconst weekData = $('Calculer Plage Semaine').first().json;\nconst storySlots = $('Charger Creneaux Stories').first().json.slots || [];\nconst brand = $('Charger Plateforme Marque').first().json;\nconst client = $('Boucle Clients').first().json;\nconst h = { apikey: SB_KEY, Authorization: 'Bearer ' + SB_KEY };\nlet weekPosts = [];\ntry {\n  weekPosts = await httpRequest({\n    method: 'GET',\n    url: SB_URL + '/rest/v1/editorial_slots?client_id=eq.' + weekData.client_id + '&content_type=eq.post&scheduled_date=gte.' + weekData.next_monday + '&scheduled_date=lte.' + weekData.next_sunday + '&select=scheduled_date,theme,angle,tone,caption_style,objective',\n    headers: h\n  });\n} catch (e) {}\nconst brandSummary = {\n  name: client.name,\n  tone: brand.tone_of_voice,\n  personality: brand.personality,\n  values: (brand.brand_values || []).map(v => typeof v === 'object' ? v.name : v).join(', '),\n  essence: brand.brand_essence,\n  tu_vous: brand.tu_vous\n};\nconst slotsSummary = storySlots.map((s, i) => ({\n  index: i, id: s.id, date: s.scheduled_date, time: s.scheduled_time,\n  theme: s.theme, angle: s.angle || '', category: s.category,\n  caption_style: s.caption_style || '', story_text: s.story_text || '',\n  visual_direction: s.visual_direction || ''\n}));\nconst postsSummary = weekPosts.map(p => ({\n  date: p.scheduled_date, theme: p.theme, angle: p.angle || '',\n  caption_style: p.caption_style || ''\n}));\nconst prompt = 'Tu es un planificateur editorial specialise dans les stories Instagram.\\n\\n<context>\\nMarque : ' + brandSummary.name + '\\nTon : ' + (brandSummary.tone || '') + '\\nPersonnalite : ' + (brandSummary.personality || '') + '\\nValeurs : ' + brandSummary.values + '\\nEssence : ' + (brandSummary.essence || '') + '\\nAdresse : ' + (brandSummary.tu_vous || '') + '\\n</context>\\n\\n<posts_semaine>\\n' + (postsSummary.length > 0 ? JSON.stringify(postsSummary, null, 2) : 'Aucun post cette semaine.') + '\\n</posts_semaine>\\n\\n<stories_a_planifier>\\n' + JSON.stringify(slotsSummary, null, 2) + '\\n</stories_a_planifier>\\n\\n<task>\\nPour chaque story (index 0 a ' + (slotsSummary.length - 1) + '), produis un brief qui garantit :\\n1. VARIETE DES ACCROCHES : aucune story consecutive n\\'utilise le meme type d\\'accroche (question, exclamation, fait, mystere, conseil, citation)\\n2. COMPLEMENTARITE POSTS : les stories du meme jour qu\\'un post doivent completer le post (angle different, pas de repetition du message)\\n3. VARIETE DE TON : alterner entre ludique, informatif, intimiste, energique sur la semaine\\n4. PAS DE REPETITION : chaque story a un angle unique, meme si le theme est proche\\n</task>\\n\\n<output_format>\\nReponds UNIQUEMENT en JSON valide :\\n{\\n  \"briefs\": [\\n    {\\n      \"index\": 0,\\n      \"accroche_type\": \"question|exclamation|fait|mystere|conseil|citation|interpellation\",\\n      \"angle_enrichi\": \"angle specifique pour cette story (1 phrase)\",\\n      \"ton_cible\": \"ludique|informatif|intimiste|energique|provocateur|celebratoire\",\\n      \"differentiation\": \"en quoi cette story se differencie du post du meme jour (ou \\'pas de post ce jour\\')\",\\n      \"mots_interdits\": [\"mot1\", \"mot2\"]\\n    }\\n  ]\\n}\\n</output_format>';\nreturn [{ json: { prompt, slotsCount: slotsSummary.length, client_id: weekData.client_id } }];"
+      },
+      "id": "cd08a",
+      "name": "Preparer Contexte Planification",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1504,
+        944
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.openai.com/v1/chat/completions",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "openAiApi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ model: 'gpt-4o-mini', temperature: 0.7, max_tokens: 1500, messages: [{ role: 'user', content: $json.prompt }] }) }}",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "hr08b",
+      "name": "Planifier Stories Hebdo",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1712,
+        944
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "wVJ0Gr269Fhtq1ro",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const response = $('Planifier Stories Hebdo').first().json;\nconst storyData = $('Charger Creneaux Stories').first().json;\nconst slots = storyData.slots || [];\nconst content = response.choices && response.choices[0] && response.choices[0].message ? response.choices[0].message.content : '';\nlet plan;\ntry {\n  plan = JSON.parse(content);\n} catch (e) {\n  const match = content.match(/\\{[\\s\\S]*\\}/);\n  if (match) {\n    try { plan = JSON.parse(match[0]); } catch (e2) {}\n  }\n}\nif (!plan || !plan.briefs || !Array.isArray(plan.briefs)) {\n  return [{ json: { ...storyData, _planningFailed: true } }];\n}\nconst enrichedSlots = slots.map((slot, i) => {\n  const brief = plan.briefs.find(b => b.index === i);\n  if (!brief) return slot;\n  return {\n    ...slot,\n    _brief: {\n      accroche_type: brief.accroche_type || '',\n      angle_enrichi: brief.angle_enrichi || '',\n      ton_cible: brief.ton_cible || '',\n      differentiation: brief.differentiation || '',\n      mots_interdits: brief.mots_interdits || []\n    }\n  };\n});\nreturn [{ json: { ...storyData, slots: enrichedSlots } }];"
+      },
+      "id": "cd08c",
+      "name": "Valider Plan Stories",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1936,
+        944
+      ]
     }
   ],
   "connections": {
-    "Schedule Trigger": {
-      "main": [[{ "node": "Fetch Active Clients", "type": "main", "index": 0 }]]
-    },
-    "Fetch Active Clients": {
-      "main": [[{ "node": "Split Clients", "type": "main", "index": 0 }]]
-    },
-    "Split Clients": {
+    "Declencheur Planifie": {
       "main": [
-        [{ "node": "Log Execution", "type": "main", "index": 0 }],
-        [{ "node": "Calculate Week Range", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "Charger Clients Actifs",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
-    "Calculate Week Range": {
-      "main": [[{ "node": "Fetch Story Slots", "type": "main", "index": 0 }]]
-    },
-    "Fetch Story Slots": {
-      "main": [[{ "node": "IF Slots Found", "type": "main", "index": 0 }]]
-    },
-    "IF Slots Found": {
+    "Charger Clients Actifs": {
       "main": [
-        [{ "node": "Fetch Brand Platform", "type": "main", "index": 0 }],
-        [{ "node": "Split Clients", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "Boucle Clients",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
-    "Fetch Brand Platform": {
-      "main": [[{ "node": "Assign Photos to Slots", "type": "main", "index": 0 }]]
-    },
-    "Assign Photos to Slots": {
-      "main": [[{ "node": "Split Story Slots", "type": "main", "index": 0 }]]
-    },
-    "Split Story Slots": {
+    "Boucle Clients": {
       "main": [
-        [{ "node": "Update Uploads Status", "type": "main", "index": 0 }],
-        [{ "node": "Download Photo", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "Journal Execution",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Calculer Plage Semaine",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
-    "Download Photo": {
-      "main": [[{ "node": "Build Sublimation Prompt", "type": "main", "index": 0 }]]
+    "Calculer Plage Semaine": {
+      "main": [
+        [
+          {
+            "node": "Charger Creneaux Stories",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
-    "Build Sublimation Prompt": {
-      "main": [[{ "node": "Agent DA Story", "type": "main", "index": 0 }]]
+    "Charger Creneaux Stories": {
+      "main": [
+        [
+          {
+            "node": "SI — Creneaux Trouves",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "SI — Creneaux Trouves": {
+      "main": [
+        [
+          {
+            "node": "Charger Plateforme Marque",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Boucle Clients",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Assigner Photos aux Creneaux": {
+      "main": [
+        [
+          {
+            "node": "Boucle Creneaux Stories",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Boucle Creneaux Stories": {
+      "main": [
+        [
+          {
+            "node": "MAJ Statut Uploads",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Telecharger Photo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Telecharger Photo": {
+      "main": [
+        [
+          {
+            "node": "Construire Prompt Sublimation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Construire Prompt Sublimation": {
+      "main": [
+        [
+          {
+            "node": "Agent DA Story",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Agent DA Story": {
-      "main": [[{ "node": "Upload Story Image", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Upload Image Story",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
-    "Upload Story Image": {
-      "main": [[{ "node": "Build Caption Prompt", "type": "main", "index": 0 }]]
+    "Upload Image Story": {
+      "main": [
+        [
+          {
+            "node": "Construire Prompt Caption",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
-    "Build Caption Prompt": {
-      "main": [[{ "node": "Agent Redacteur Story", "type": "main", "index": 0 }]]
+    "Construire Prompt Caption": {
+      "main": [
+        [
+          {
+            "node": "Agent Redacteur Story",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Inserer File Contenu": {
+      "main": [
+        [
+          {
+            "node": "Boucle Creneaux Stories",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MAJ Statut Uploads": {
+      "main": [
+        [
+          {
+            "node": "Journal Execution",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Journal Execution": {
+      "main": [
+        [
+          {
+            "node": "Boucle Clients",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Modele OpenAI — Redacteur": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Agent Redacteur Story",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Agent Redacteur Story": {
-      "main": [[{ "node": "Insert Content Queue", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Valider Sortie Story",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
-    "Insert Content Queue": {
-      "main": [[{ "node": "Split Story Slots", "type": "main", "index": 0 }]]
+    "Valider Sortie Story": {
+      "main": [
+        [
+          {
+            "node": "Inserer File Contenu",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
-    "Update Uploads Status": {
-      "main": [[{ "node": "Log Execution", "type": "main", "index": 0 }]]
+    "Charger Plateforme Marque": {
+      "main": [
+        [
+          {
+            "node": "Preparer Contexte Planification",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
-    "Log Execution": {
-      "main": [[{ "node": "Split Clients", "type": "main", "index": 0 }]]
+    "Preparer Contexte Planification": {
+      "main": [
+        [
+          {
+            "node": "Planifier Stories Hebdo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
-    "OpenAI Chat Model Redacteur": {
-      "ai_languageModel": [[{ "node": "Agent Redacteur Story", "type": "ai_languageModel", "index": 0 }]]
+    "Planifier Stories Hebdo": {
+      "main": [
+        [
+          {
+            "node": "Valider Plan Stories",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
-    "Structured Output Parser Story": {
-      "ai_outputParser": [[{ "node": "Agent Redacteur Story", "type": "ai_outputParser", "index": 0 }]]
-    },
-    "OpenAI Chat Model AutoFix": {
-      "ai_languageModel": [[{ "node": "Structured Output Parser Story", "type": "ai_languageModel", "index": 0 }]]
+    "Valider Plan Stories": {
+      "main": [
+        [
+          {
+            "node": "Assigner Photos aux Creneaux",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     }
-  }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "Europe/Paris",
+    "saveDataErrorExecution": "all",
+    "saveDataSuccessExecution": "all",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": false
+  },
+  "meta": null,
+  "pinData": {}
 }

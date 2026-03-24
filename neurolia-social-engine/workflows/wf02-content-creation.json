@@ -1,83 +1,3124 @@
 {
+  "updatedAt": "2026-03-08T12:00:40.817Z",
+  "createdAt": "2026-03-05T18:44:04.993Z",
   "id": "9CjAn1p1fBvqICU2",
   "name": "SE-WF02 — Creation Contenu",
-  "active": false,
+  "description": null,
+  "active": true,
+  "isArchived": false,
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 10
+            }
+          ]
+        }
+      },
+      "id": "sch01",
+      "name": "Declencheur Planifie",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        376
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "clients",
+        "returnAll": true,
+        "matchType": "allFilters",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "is_active",
+              "condition": "eq",
+              "keyValue": "true"
+            }
+          ]
+        }
+      },
+      "id": "sb02",
+      "name": "Charger Clients Actifs",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        224,
+        376
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "3MfRNEiX8JttZZ8Z",
+          "name": "Supabase Neurolia Social"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\nconst filtered = items.filter(item => item.json.drive_folder_id);\nif (filtered.length === 0) return [];\nreturn filtered;"
+      },
+      "id": "cd03",
+      "name": "Filtrer Clients avec Drive",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        448,
+        376
+      ]
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "sp04",
+      "name": "Boucle Clients",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        672,
+        376
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const httpRequest = this.helpers.httpRequest;\nconst SUPABASE_URL = 'https://abbtnownnraylaylswqk.supabase.co';\nconst SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFiYnRub3dubnJheWxheWxzd3FrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI3OTM0MTYsImV4cCI6MjA4ODM2OTQxNn0.OkRpMcaNgZDGSDLOxWP32F50iOZa3mhcRxSMH-5UlaM';\nconst client = $('Boucle Clients').first().json;\nconst headers = { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` };\n\nlet slots = [];\ntry {\n  slots = await httpRequest({\n    method: 'GET',\n    url: `${SUPABASE_URL}/rest/v1/editorial_slots?client_id=eq.${client.id}&drive_subfolder_id=not.is.null&order=scheduled_date.asc,scheduled_time.asc&select=id,scheduled_date,scheduled_time,content_type,category,theme,angle,tone,visual_direction,sublimation_mode,caption_style,objective,drive_subfolder_id,compositing_context`,\n    headers\n  });\n} catch(e) {}\n\nif (!slots || slots.length === 0) return [{ json: { _noSlots: true } }];\n\n// Exclure slots deja dans content_queue\nlet covered = [];\ntry {\n  const ids = slots.map(s => s.id).join(',');\n  covered = await httpRequest({\n    method: 'GET',\n    url: `${SUPABASE_URL}/rest/v1/content_queue?slot_id=in.(${ids})&select=slot_id`,\n    headers\n  });\n} catch(e) {}\nconst coveredIds = new Set((covered || []).map(c => c.slot_id));\n\n// Exclure slots ayant DEJA un upload (idempotence — tout status confondu)\nlet uploaded = [];\ntry {\n  const ids = slots.map(s => s.id).join(',');\n  uploaded = await httpRequest({\n    method: 'GET',\n    url: `${SUPABASE_URL}/rest/v1/uploads?slot_id=in.(${ids})&select=slot_id`,\n    headers\n  });\n} catch(e) {}\nconst uploadedIds = new Set((uploaded || []).map(p => p.slot_id));\n\nconst ready = slots.filter(s => !coveredIds.has(s.id) && !uploadedIds.has(s.id));\nif (ready.length === 0) return [{ json: { _noSlots: true } }];\n\nreturn [{ json: { _noSlots: false, client_id: client.id, client_name: client.name, client_slug: client.slug, drive_folder_id: client.drive_folder_id, slots: ready } }];"
+      },
+      "id": "cd05",
+      "name": "Charger Slots Prets",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        896,
+        304
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "version": 2,
+            "leftValue": "",
+            "caseSensitive": true,
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "cond1",
+              "leftValue": "={{ $json._noSlots }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "false",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "if06",
+      "name": "SI — Slots a Traiter",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1120,
+        376
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const data = $input.first().json;\nreturn data.slots.map(s => ({\n  json: {\n    ...s,\n    client_id: data.client_id,\n    client_name: data.client_name,\n    client_slug: data.client_slug,\n    drive_folder_id: data.drive_folder_id\n  }\n}));"
+      },
+      "id": "cd07",
+      "name": "Preparer Slots",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1344,
+        376
+      ]
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "sp08",
+      "name": "Boucle Slots",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        1568,
+        448
+      ]
+    },
+    {
+      "parameters": {
+        "url": "https://www.googleapis.com/drive/v3/files",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleOAuth2Api",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "q",
+              "value": "={{ \"'\" + $json.drive_subfolder_id + \"' in parents AND trashed=false\" }}"
+            },
+            {
+              "name": "fields",
+              "value": "files(id,name,mimeType,createdTime)"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "hr09",
+      "name": "Lister Fichiers Sous-Dossier",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1792,
+        192
+      ],
+      "credentials": {
+        "googleOAuth2Api": {
+          "id": "hCRiI63ihlXygTyp",
+          "name": "Google account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const httpRequest = this.helpers.httpRequest;\nconst SUPABASE_URL = 'https://abbtnownnraylaylswqk.supabase.co';\nconst SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFiYnRub3dubnJheWxheWxzd3FrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI3OTM0MTYsImV4cCI6MjA4ODM2OTQxNn0.OkRpMcaNgZDGSDLOxWP32F50iOZa3mhcRxSMH-5UlaM';\nconst slot = $('Boucle Slots').first().json;\nconst driveResponse = $input.first().json;\nconst files = driveResponse.files || [];\n\nif (files.length === 0) return [{ json: { _noFile: true } }];\n\nconst headers = { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` };\nlet existing = [];\ntry {\n  existing = await httpRequest({\n    method: 'GET',\n    url: `${SUPABASE_URL}/rest/v1/uploads?client_id=eq.${slot.client_id}&select=drive_file_id`,\n    headers\n  });\n} catch(e) {}\nconst existingIds = new Set((existing || []).map(e => e.drive_file_id));\n\nconst newFile = files.find(f => !existingIds.has(f.id));\nif (!newFile) return [{ json: { _noFile: true } }];\n\nreturn [{ json: {\n  _noFile: false,\n  fileId: newFile.id,\n  fileName: newFile.name,\n  mimeType: newFile.mimeType,\n  client_id: slot.client_id,\n  client_slug: slot.client_slug,\n  drive_subfolder_id: slot.drive_subfolder_id,\n  slot_id: slot.id\n}}];"
+      },
+      "id": "cd10",
+      "name": "Identifier Nouveau Fichier",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2016,
+        192
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "version": 2,
+            "leftValue": "",
+            "caseSensitive": true,
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "cond1",
+              "leftValue": "={{ $json._noFile }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "false",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "if11",
+      "name": "SI — Fichier Trouve",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        2240,
+        192
+      ]
+    },
+    {
+      "parameters": {
+        "url": "=https://www.googleapis.com/drive/v3/files/{{ $json.fileId }}?alt=media",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleOAuth2Api",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file"
+            }
+          }
+        }
+      },
+      "id": "hr12",
+      "name": "Telecharger Fichier",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2464,
+        192
+      ],
+      "credentials": {
+        "googleOAuth2Api": {
+          "id": "hCRiI63ihlXygTyp",
+          "name": "Google account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://abbtnownnraylaylswqk.supabase.co/storage/v1/object/social-engine/{{ $('Identifier Nouveau Fichier').first().json.client_slug }}/originals/{{ $('Identifier Nouveau Fichier').first().json.fileName }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFiYnRub3dubnJheWxheWxzd3FrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI3OTM0MTYsImV4cCI6MjA4ODM2OTQxNn0.OkRpMcaNgZDGSDLOxWP32F50iOZa3mhcRxSMH-5UlaM"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFiYnRub3dubnJheWxheWxzd3FrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI3OTM0MTYsImV4cCI6MjA4ODM2OTQxNn0.OkRpMcaNgZDGSDLOxWP32F50iOZa3mhcRxSMH-5UlaM"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "binaryData",
+        "inputDataFieldName": "data",
+        "options": {}
+      },
+      "id": "hr13",
+      "name": "Upload vers Storage",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2688,
+        192
+      ]
+    },
+    {
+      "parameters": {
+        "tableId": "uploads",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "client_id",
+              "fieldValue": "={{ $('Identifier Nouveau Fichier').first().json.client_id }}"
+            },
+            {
+              "fieldId": "slot_id",
+              "fieldValue": "={{ $('Identifier Nouveau Fichier').first().json.slot_id }}"
+            },
+            {
+              "fieldId": "original_url",
+              "fieldValue": "={{ 'PLACEHOLDER_SUPABASE_URL/storage/v1/object/public/social-engine/' + $('Identifier Nouveau Fichier').first().json.client_slug + '/originals/' + $('Identifier Nouveau Fichier').first().json.fileName }}"
+            },
+            {
+              "fieldId": "original_path",
+              "fieldValue": "={{ $('Identifier Nouveau Fichier').first().json.client_slug + '/originals/' + $('Identifier Nouveau Fichier').first().json.fileName }}"
+            },
+            {
+              "fieldId": "filename",
+              "fieldValue": "={{ $('Identifier Nouveau Fichier').first().json.fileName }}"
+            },
+            {
+              "fieldId": "mime_type",
+              "fieldValue": "={{ $('Identifier Nouveau Fichier').first().json.mimeType }}"
+            },
+            {
+              "fieldId": "source",
+              "fieldValue": "drive"
+            },
+            {
+              "fieldId": "drive_file_id",
+              "fieldValue": "={{ $('Identifier Nouveau Fichier').first().json.fileId }}"
+            },
+            {
+              "fieldId": "status",
+              "fieldValue": "assigned"
+            }
+          ]
+        }
+      },
+      "id": "sb14",
+      "name": "Inserer Upload Assigne",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        2912,
+        192
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "3MfRNEiX8JttZZ8Z",
+          "name": "Supabase Neurolia Social"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "tableId": "editorial_slots",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "id",
+              "keyValue": "={{ $('Identifier Nouveau Fichier').first().json.slot_id }}"
+            }
+          ]
+        }
+      },
+      "id": "sb15",
+      "name": "Charger Direction Artistique",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        3136,
+        192
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "3MfRNEiX8JttZZ8Z",
+          "name": "Supabase Neurolia Social"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "brand_platforms",
+        "returnAll": true,
+        "matchType": "allFilters",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "client_id",
+              "condition": "eq",
+              "keyValue": "={{ $('Identifier Nouveau Fichier').first().json.client_id }}"
+            }
+          ]
+        }
+      },
+      "id": "sb16",
+      "name": "Charger Plateforme Marque",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        3360,
+        192
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "3MfRNEiX8JttZZ8Z",
+          "name": "Supabase Neurolia Social"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "=https://abbtnownnraylaylswqk.supabase.co/rest/v1/brand_assets?client_id=eq.{{ $('Identifier Nouveau Fichier').first().json.client_id }}&type=in.(background,photo_style,context)&select=name,file_url,metadata,type",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFiYnRub3dubnJheWxheWxzd3FrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI3OTM0MTYsImV4cCI6MjA4ODM2OTQxNn0.OkRpMcaNgZDGSDLOxWP32F50iOZa3mhcRxSMH-5UlaM"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFiYnRub3dubnJheWxheWxzd3FrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI3OTM0MTYsImV4cCI6MjA4ODM2OTQxNn0.OkRpMcaNgZDGSDLOxWP32F50iOZa3mhcRxSMH-5UlaM"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "hr17",
+      "name": "Charger Images Contexte",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        3584,
+        192
+      ],
+      "alwaysOutputData": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "url": "=https://abbtnownnraylaylswqk.supabase.co/storage/v1/object/social-engine/{{ $('Identifier Nouveau Fichier').first().json.client_slug }}/originals/{{ $('Identifier Nouveau Fichier').first().json.fileName }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFiYnRub3dubnJheWxheWxzd3FrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI3OTM0MTYsImV4cCI6MjA4ODM2OTQxNn0.OkRpMcaNgZDGSDLOxWP32F50iOZa3mhcRxSMH-5UlaM"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFiYnRub3dubnJheWxheWxzd3FrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI3OTM0MTYsImV4cCI6MjA4ODM2OTQxNn0.OkRpMcaNgZDGSDLOxWP32F50iOZa3mhcRxSMH-5UlaM"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file"
+            }
+          }
+        }
+      },
+      "id": "hr18",
+      "name": "Telecharger Original",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        3808,
+        192
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Construire Prompt Sublimation — cd19 (compositing + categories)\nconst slot = $('Charger Direction Artistique').first().json;\nconst brand = $('Charger Plateforme Marque').first().json;\nconst mode = (slot.content_type === 'story') ? 'light' : 'creative';\nconst fileData = $('Identifier Nouveau Fichier').first().json;\n\n// Donnees compositing (depuis garde-fou vision cd17d)\nconst compData = $('Valider Compatibilite Compositing').first().json;\nconst hasCompositing = compData.hasCompositing === true;\n\n// Construire les binaires de sortie\nconst binary = {};\nconst compBinary = $('Valider Compatibilite Compositing').first().binary || {};\nif (compBinary.data) {\n  binary.data = compBinary.data;\n}\nif (hasCompositing && compBinary.context) {\n  binary.context = compBinary.context;\n}\n\n// Directions par categorie (art-director.md §6)\nconst categoryDirections = {\n  creative: {\n    produit: 'Focus produit, fond epure ou contextuel, lumiere studio. Mise en valeur nette du sujet principal.',\n    coulisses: 'Style reportage, grain leger, authentique. Ambiance spontanee, lumiere naturelle.',\n    equipe: 'Portrait pro, fond flou (bokeh), lumiere flatteuse. Mise en valeur naturelle du sujet.',\n    engagement: 'Coloree, dynamique, interactive. Couleurs pop, energie, cadrage serre.',\n    saisonnier: 'Ambiance saisonniere marquee (couleurs, elements decoratifs). Atmosphere immersive.',\n    educatif: 'Clean, structure, espace pour le regard. Fond unifie, mise en page claire.',\n    temoignage: 'Chaleureux, fond doux, guillemets visuels. Ambiance intimiste et sincere.',\n    ambiance: 'Atmospherique, profondeur, mood. Jeu de lumieres, composition evocatrice.'\n  },\n  light: {\n    produit: 'Retouche couleurs, accentuer le produit. Contraste net sur le sujet.',\n    coulisses: 'Leger filtre documentaire, texte spontane. Authenticite preservee.',\n    equipe: 'Retouche portrait legere, texte nom/role. Naturel et professionnel.',\n    engagement: 'Contraste fort, texte question grande taille. Couleurs vives.',\n    saisonnier: 'Filtre saisonnier subtil, texte festif. Ambiance de saison.',\n    educatif: 'Fond unifie, texte lisible format tip. Structure claire.',\n    temoignage: 'Retouche portrait, texte citation. Fond doux et chaleureux.',\n    ambiance: 'Leger filtre ambiance, texte minimal. Atmosphere preservee.'\n  }\n};\n\nconst catDirection = (categoryDirections[mode] && categoryDirections[mode][slot.category]) || 'Sublimation standard, respecter la charte graphique.';\nconst archVisuel = (brand.archetype && typeof brand.archetype === 'object' && brand.archetype.manifestation) ? brand.archetype.manifestation.visuel || '' : '';\n\nlet prompt;\n\nif (hasCompositing && mode === 'creative') {\n  const compositingContext = compData.compositingContext || slot.compositing_context || '';\n\n  prompt = 'ROLE ET CONTEXTE :\\n'\n    + 'Tu es un directeur artistique specialise en photographie premium.\\n'\n    + 'Tu realises un compositing : integrer un sujet dans un decor reel.\\n\\n'\n    + 'IMAGES FOURNIES :\\n'\n    + '- Image 1 (SUJET) : La photo brute contenant le sujet principal.\\n'\n    + '- Image 2 (DECOR) : La photo de contexte servant de decor/fond.\\n\\n'\n    + 'OBJECTIF :\\n'\n    + 'Cree une image de qualite publicitaire professionnelle.\\n'\n    + 'Prends le sujet de l\\'Image 1 et integre-le naturellement dans le decor de l\\'Image 2.\\n\\n'\n    + 'TRAITEMENT DU SUJET :\\n'\n    + '- Preserve la structure, les proportions et l\\'identite du sujet.\\n'\n    + '- Le sujet doit paraitre sublime : plus attrayant, plus premium, mais toujours realiste.\\n'\n    + '- Conserve les textures naturelles, les imperfections subtiles, le caractere artisanal.\\n\\n'\n    + 'INTEGRATION DANS LE DECOR :\\n'\n    + '- Place le sujet naturellement dans l\\'environnement de l\\'Image 2.\\n'\n    + '- Le decor doit rester fidele a l\\'Image 2 : memes materiaux, meme atmosphere. Ne redesigne PAS l\\'espace.\\n'\n    + '- Le decor peut etre sublime : plus propre, plus elegant, mais toujours reconnaissable.\\n'\n    + '- Zone autour du sujet : epuree, maitrisee, visuellement premium.\\n\\n'\n    + 'SCENE SOUHAITEE : ' + compositingContext + '\\n'\n    + 'SUJET : ' + (slot.theme || '') + '\\n'\n    + 'ANGLE : ' + (slot.angle || '') + '\\n'\n    + 'AMBIANCE : ' + (slot.tone || brand.tone_of_voice || '') + '\\n\\n'\n    + 'CHARTE GRAPHIQUE :\\n'\n    + '- Couleur principale : ' + (brand.primary_color || '#000000') + '\\n'\n    + '- Couleurs secondaires : ' + (brand.secondary_colors || []).join(', ') + '\\n'\n    + '- Style visuel : ' + (brand.visual_style || '') + '\\n'\n    + '- Style photo : ' + (brand.photo_style || '') + '\\n\\n'\n    + 'IDENTITE DE MARQUE :\\n'\n    + '- Essence : ' + (brand.brand_essence || '') + '\\n'\n    + '- Registre visuel : ' + archVisuel + '\\n\\n'\n    + 'DIRECTION CATEGORIE (' + (slot.category || 'general') + ') :\\n'\n    + catDirection + '\\n\\n'\n    + 'DIRECTION VISUELLE DU SLOT :\\n'\n    + (slot.visual_direction || 'Sublimation premium coherente avec la marque.') + '\\n\\n'\n    + 'COMPOSITION :\\n'\n    + '- Format : 1080x1080 ou 1080x1350.\\n'\n    + '- Le sujet est le point focal principal, net et dominant dans le cadre.\\n'\n    + '- Espace de respiration suffisant autour du sujet.\\n'\n    + '- Separation nette sujet/arriere-plan, profondeur de champ realiste.\\n\\n'\n    + 'ECLAIRAGE :\\n'\n    + '- Eclairage professionnel integre naturellement a la scene.\\n'\n    + '- Lumiere principale douce sur le sujet, contraste directionnel subtil.\\n'\n    + '- Rendu des couleurs fidele, pas de reflet artificiel agressif.\\n\\n'\n    + 'STYLE ET REALISME :\\n'\n    + '- Photorealiste, ultra-realiste, qualite publicite haut de gamme.\\n'\n    + '- Textures naturelles, eclairage et ombres fideles, pas de rendu IA visible.\\n\\n'\n    + 'INTERDICTIONS ABSOLUES :\\n'\n    + '- Deformation du sujet (proportions, couleurs, textures)\\n'\n    + '- Modification de l\\'identite du produit/plat\\n'\n    + '- Rendu plastique, CGI, cartoon, symetrie exageree\\n'\n    + '- Elements flottants, geometrie fondue, doublons\\n'\n    + '- Texte, logo, watermark, branding\\n'\n    + '- Artefacts IA visibles\\n'\n    + '- Redesign du decor (inventer un autre lieu)\\n\\n'\n    + 'Dimensions : 1080x1080 ou 1080x1350.';\n\n} else if (mode === 'light') {\n  prompt = 'Retouche legerement cette photo pour une story Instagram.\\n\\n'\n    + 'CHARTE GRAPHIQUE :\\n'\n    + '- Couleur principale : ' + (brand.primary_color || '#000000') + '\\n'\n    + '- Couleurs secondaires : ' + (brand.secondary_colors || []).join(', ') + '\\n'\n    + '- Police principale : ' + (brand.font_primary || 'sans-serif') + '\\n'\n    + '- Police secondaire : ' + (brand.font_secondary || '') + '\\n\\n'\n    + 'IDENTITE DE MARQUE :\\n'\n    + '- Essence : ' + (brand.brand_essence || '') + '\\n'\n    + '- Registre visuel : ' + archVisuel + '\\n\\n'\n    + 'DIRECTION CATEGORIE (' + (slot.category || 'general') + ') :\\n'\n    + catDirection + '\\n\\n'\n    + 'DIRECTION VISUELLE DU SLOT :\\n'\n    + (slot.visual_direction || 'Retouche legere.') + '\\n\\n'\n    + 'TEXTE : \"' + (slot.story_text || '') + '\"\\n'\n    + 'Dimensions : 1080x1920.';\n\n} else {\n  prompt = 'Sublime cette photo pour un post Instagram feed.\\n\\n'\n    + 'CHARTE GRAPHIQUE :\\n'\n    + '- Couleur principale : ' + (brand.primary_color || '#000000') + '\\n'\n    + '- Couleurs secondaires : ' + (brand.secondary_colors || []).join(', ') + '\\n'\n    + '- Style visuel : ' + (brand.visual_style || '') + '\\n'\n    + '- Style photo : ' + (brand.photo_style || '') + '\\n\\n'\n    + 'IDENTITE DE MARQUE :\\n'\n    + '- Essence : ' + (brand.brand_essence || '') + '\\n'\n    + '- Registre visuel : ' + archVisuel + '\\n\\n'\n    + 'DIRECTION CATEGORIE (' + (slot.category || 'general') + ') :\\n'\n    + catDirection + '\\n\\n'\n    + 'DIRECTION VISUELLE DU SLOT :\\n'\n    + (slot.visual_direction || 'Sublimation creative, ambiance premium coherente avec la marque.') + '\\n\\n'\n    + 'MODE : Sublimation creative — transformation complete autorisee.\\n\\n'\n    + 'SUJET : ' + (slot.theme || '') + '\\n'\n    + 'ANGLE : ' + (slot.angle || '') + '\\n'\n    + 'AMBIANCE : ' + (slot.tone || brand.tone_of_voice || '') + '\\n\\n'\n    + 'Dimensions : 1080x1080 ou 1080x1350.';\n}\n\nreturn [{\n  json: {\n    prompt,\n    mode,\n    model: 'gpt-image-1',\n    hasCompositing,\n    upload_id: $('Inserer Upload Assigne').first().json.id,\n    slot_id: fileData.slot_id,\n    client_id: fileData.client_id,\n    client_slug: fileData.client_slug,\n    fileName: fileData.fileName\n  },\n  binary\n}];"
+      },
+      "id": "cd19",
+      "name": "Construire Prompt Sublimation",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        4704,
+        192
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "image",
+        "operation": "edit",
+        "prompt": "={{ $json.prompt }}",
+        "images": {
+          "values": [
+            {},
+            {
+              "binaryPropertyName": "={{ $json.hasCompositing ? 'context' : 'data' }}"
+            }
+          ]
+        },
+        "size": "auto",
+        "options": {
+          "inputFidelity": "high"
+        }
+      },
+      "id": "oa20",
+      "name": "Agent DA — Sublimation",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 2.1,
+      "position": [
+        4928,
+        192
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "wVJ0Gr269Fhtq1ro",
+          "name": "OpenAi account"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://abbtnownnraylaylswqk.supabase.co/storage/v1/object/social-engine/{{ $('Construire Prompt Sublimation').first().json.client_slug }}/sublimated/{{ $('Construire Prompt Sublimation').first().json.fileName }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFiYnRub3dubnJheWxheWxzd3FrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI3OTM0MTYsImV4cCI6MjA4ODM2OTQxNn0.OkRpMcaNgZDGSDLOxWP32F50iOZa3mhcRxSMH-5UlaM"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFiYnRub3dubnJheWxheWxzd3FrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI3OTM0MTYsImV4cCI6MjA4ODM2OTQxNn0.OkRpMcaNgZDGSDLOxWP32F50iOZa3mhcRxSMH-5UlaM"
+            },
+            {
+              "name": "Content-Type",
+              "value": "image/png"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "binaryData",
+        "inputDataFieldName": "data",
+        "options": {}
+      },
+      "id": "hr21",
+      "name": "Upload Image Sublimee",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        5152,
+        192
+      ]
+    },
+    {
+      "parameters": {
+        "url": "=https://abbtnownnraylaylswqk.supabase.co/rest/v1/content_queue?client_id=eq.{{ $('Construire Prompt Sublimation').first().json.client_id }}&status=eq.published&order=created_at.desc&limit=15&select=caption,hashtags,caption_style",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFiYnRub3dubnJheWxheWxzd3FrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI3OTM0MTYsImV4cCI6MjA4ODM2OTQxNn0.OkRpMcaNgZDGSDLOxWP32F50iOZa3mhcRxSMH-5UlaM"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFiYnRub3dubnJheWxheWxzd3FrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI3OTM0MTYsImV4cCI6MjA4ODM2OTQxNn0.OkRpMcaNgZDGSDLOxWP32F50iOZa3mhcRxSMH-5UlaM"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "hr22",
+      "name": "Charger Captions Anti-Repetition",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        5376,
+        192
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const slot = $('Charger Direction Artistique').first().json;\nconst brand = $('Charger Plateforme Marque').first().json;\nconst client = $('Boucle Clients').first().json;\nconst subData = $('Construire Prompt Sublimation').first().json;\nconst recentCaptions = $('Charger Captions Anti-Repetition').all();\nconst layer1 = '# COUCHE 1 — IDENTITE DE MARQUE\\nMarque : ' + client.name + '\\nSecteur : ' + (client.industry || '') + '\\nTon : ' + (brand.tone_of_voice || '') + '\\nPersonnalite : ' + (brand.personality || '') + '\\nValeurs : ' + (brand.brand_values || []).join(', ') + '\\nVocab DO : ' + (brand.vocabulary_do || []).join(', ') + '\\nVocab DONT : ' + (brand.vocabulary_dont || []).join(', ') + '\\nEmojis : ' + (brand.emoji_usage || 'moderate') + '\\nHashtags marque : ' + (brand.hashtags_branded || []).join(', ') + '\\nHashtags niche : ' + (brand.hashtags_niche || []).join(', ') + '\\nCTA favoris : ' + (brand.cta_preferred || []).join(', ') + '\\nAudience : ' + (brand.target_audience || '') + '\\nTu/Vous : ' + (brand.tu_vous || 'vouvoiement') + '\\nFormalite (1-5) : ' + (brand.formality_level || 3) + '\\nEssence de marque : ' + (brand.brand_essence || '');\nconst ancrage = '# ANCRAGE STRATEGIQUE\\nPromesse : ' + (brand.brand_promise || '') + '\\nUSPs : ' + (brand.unique_selling_points || []).join(', ');\nconst layer2 = '# COUCHE 2 — DIRECTIVE EDITORIALE\\nType : ' + slot.content_type + '\\nTheme : ' + slot.theme + '\\nAngle : ' + (slot.angle || 'Libre') + '\\nTon : ' + (slot.tone || 'Par defaut') + '\\nStyle : ' + slot.caption_style + '\\nObjectif : ' + slot.objective + '\\nCTA : ' + (slot.cta || 'Libre');\nconst layer3 = '# COUCHE 3 — CONTEXTE VISUEL\\nSublimation : ' + subData.prompt.substring(0, 300) + '\\nMode : ' + subData.mode + '\\nDirection : ' + (slot.visual_direction || '');\nconst caps = recentCaptions.filter(c => c.json.caption).map((c, i) => (i+1) + '. [' + (c.json.caption_style || '?') + '] ' + (c.json.caption || '').substring(0, 150)).join('\\n');\nlet antiRep = '';\nconst fw = recentCaptions.filter(c => c.json.caption).map(c => (c.json.caption || '').split('\\n')[0].split(/\\s+/)[0]?.toLowerCase()).filter(Boolean);\nconst wc = {}; fw.forEach(w => { wc[w] = (wc[w] || 0) + 1; });\nconst ov = Object.entries(wc).filter(([_, n]) => n >= 2).map(([w]) => w);\nif (ov.length > 0) antiRep += '\\nNE COMMENCE PAS par : ' + ov.join(', ');\nconst layer4 = '# COUCHE 4 — ANTI-REPETITION\\n' + (caps || 'Premiere publication.') + antiRep;\nconst exPhrases = (brand.brand_extended || {}).example_phrases;\nconst examplesBlock = exPhrases ? '# EXEMPLES DE PHRASES\\n\\nA faire :\\n' + (exPhrases.do || []).slice(0, 3).map(p => '- ' + p).join('\\n') + '\\n\\nA eviter :\\n' + (exPhrases.dont || []).slice(0, 3).map(p => '- ' + p).join('\\n') : '';\nconst sectionMsgs = (brand.brand_extended || {}).section_messages || {};\nconst slotThemeLower = (slot.theme || '').toLowerCase();\nlet sectionRef = '';\nfor (const [key, msg] of Object.entries(sectionMsgs)) {\n  if (slotThemeLower.includes(key.toLowerCase())) { sectionRef = '\\nMessage de reference : ' + msg; break; }\n}\nlet productRef = '';\nif (slot.category === 'produit' && (brand.brand_extended || {}).product_categories) {\n  const mc = (brand.brand_extended.product_categories || []).find(c => slotThemeLower.includes((c.name || '').toLowerCase()));\n  if (mc) { productRef = '\\nCategorie produit : ' + mc.name + ' — ' + (mc.tagline || '') + '\\n' + (mc.description || ''); }\n}\nconst userPrompt = layer1 + '\\n\\n' + ancrage + '\\n\\n' + layer2 + sectionRef + productRef + '\\n\\n' + layer3 + '\\n\\n' + layer4 + '\\n\\n' + examplesBlock + '\\n\\n# INSTRUCTIONS\\nEcris une caption ' + slot.content_type + ' style \"' + slot.caption_style + '\" theme \"' + slot.theme + '\". Objectif : ' + slot.objective + '. JSON : { \"caption\", \"hashtags\", \"cta\" }';\nconst systemPrompt = 'Tu es un redacteur social media expert.\\n\\n<rules>\\nREGLES FONDAMENTALES :\\n- Ton de marque (Couche 1) : respecte la voix, les valeurs et le vocabulaire.\\n- Directive editoriale (Couche 2) : theme, angle, ton, style de caption, CTA.\\n- Contexte visuel (Couche 3) : ta caption doit etre coherente avec l\\'image sublimee.\\n- Anti-repetition (Couche 4) : ne repete JAMAIS une structure, accroche ou formule des 15 dernieres captions.\\n</rules>\\n\\n<output_format>\\nJSON UNIQUEMENT — pas de texte avant/apres :\\n{\\n  \"caption\": \"string — texte complet de la caption\",\\n  \"hashtags\": [\"string — sans #, 10-15 max\"],\\n  \"cta\": \"string — call to action final\"\\n}\\n</output_format>\\n\\n<styles>\\nSTYLES DISPONIBLES : question_directe, storytelling_court, factuel, exclamatif, conseil, citation, liste, teaser\\n- question_directe : commence par une question qui interpelle\\n- storytelling_court : micro-histoire en 3-5 phrases\\n- factuel : chiffres reels, proof_points — jamais de donnees inventees\\n- exclamatif : energie, enthousiasme, ponctuation dynamique\\n- conseil : partage d\\'expertise, \"voici comment...\"\\n- citation : phrase inspirante liee au theme\\n- liste : enumeration structuree (3-5 points)\\n- teaser : suspense, curiosite, incite a lire la suite\\n</styles>\\n\\n<constraints>\\nLONGUEURS :\\n- Post : 150-300 mots, structure en paragraphes ou listes.\\n- Story : 20-40 mots, percutant et direct.\\n\\nINTERDITS ABSOLUS :\\n- \"N\\'hesitez pas\", \"Decouvrez notre\", \"profitez de\"\\n- Hashtags dans le corps de la caption\\n- Liens URL\\n- Chiffres inventes ou non-sourced\\n\\nEMOJIS : respecte le niveau emoji_usage de la marque.\\n</constraints>\\n\\n<quality_checklist>\\n1. La premiere ligne arrete le scroll ?\\n2. Le tu/vous est respecte partout ?\\n3. Aucune formule interdite ?\\n4. Le style demande est bien applique ?\\n5. Le JSON est valide et complet ?\\n6. Les hashtags sont pertinents et sans # ?\\n7. Le CTA est actionnable ?\\n</quality_checklist>\\n\\n<thinking>\\nAvant d\\'ecrire, analyse silencieusement :\\n1. Quel est le style demande ? Adapte ta structure.\\n2. Quels mots/accroches sont surrepresentes dans C4 ? Evite-les.\\n3. Quel CTA correspond au theme et a l\\'objectif ?\\nPuis redige ta caption.\\n</thinking>\\n\\nREGLES DE MARQUE :\\n- Tu DOIS utiliser le ' + (brand.tu_vous || 'vouvoiement') + ' systematiquement.\\n- Chaque caption doit servir la promesse de marque.\\n- En style factuel, cite des proof_points reels — jamais de chiffres inventes.';\nreturn [{ json: { systemPrompt, userPrompt, upload_id: subData.upload_id, slot_id: subData.slot_id, client_id: subData.client_id } }];"
+      },
+      "id": "cd23",
+      "name": "Construire Prompt Caption",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        5600,
+        192
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $('Construire Prompt Caption').first().json.userPrompt }}",
+        "hasOutputParser": false,
+        "options": {
+          "systemMessage": "={{ $('Construire Prompt Caption').first().json.systemPrompt }}",
+          "maxIterations": 3,
+          "passthroughBinaryImages": true
+        }
+      },
+      "id": "ag24",
+      "name": "Agent Redacteur",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        6080,
+        192
+      ]
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "id",
+          "value": "gpt-4o"
+        },
+        "builtInTools": {},
+        "options": {
+          "maxTokens": 1000,
+          "temperature": 0.85
+        }
+      },
+      "id": "lm24a",
+      "name": "Modele OpenAI — Redacteur",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        6048,
+        416
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "wVJ0Gr269Fhtq1ro",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "tableId": "content_queue",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "client_id",
+              "fieldValue": "={{ $('Construire Prompt Caption').first().json.client_id }}"
+            },
+            {
+              "fieldId": "slot_id",
+              "fieldValue": "={{ $('Construire Prompt Caption').first().json.slot_id }}"
+            },
+            {
+              "fieldId": "upload_id",
+              "fieldValue": "={{ $('Construire Prompt Caption').first().json.upload_id }}"
+            },
+            {
+              "fieldId": "content_type",
+              "fieldValue": "={{ $('Charger Direction Artistique').first().json.content_type || 'post' }}"
+            },
+            {
+              "fieldId": "sublimated_url",
+              "fieldValue": "={{ 'https://abbtnownnraylaylswqk.supabase.co/storage/v1/object/public/social-engine/' + $('Construire Prompt Sublimation').first().json.client_slug + '/sublimated/' + $('Construire Prompt Sublimation').first().json.fileName }}"
+            },
+            {
+              "fieldId": "sublimation_prompt",
+              "fieldValue": "={{ $('Construire Prompt Sublimation').first().json.prompt }}"
+            },
+            {
+              "fieldId": "sublimation_model",
+              "fieldValue": "gpt-image-1"
+            },
+            {
+              "fieldId": "caption",
+              "fieldValue": "={{ ($json.output || {}).caption || $json.caption || '' }}"
+            },
+            {
+              "fieldId": "hashtags",
+              "fieldValue": "={{ JSON.stringify(($json.output || {}).hashtags || $json.hashtags || []) }}"
+            },
+            {
+              "fieldId": "cta",
+              "fieldValue": "={{ ($json.output || {}).cta || $json.cta || '' }}"
+            },
+            {
+              "fieldId": "caption_model",
+              "fieldValue": "gpt-4o"
+            },
+            {
+              "fieldId": "status",
+              "fieldValue": "pending_review"
+            },
+            {
+              "fieldId": "scheduled_at",
+              "fieldValue": "={{ $('Charger Direction Artistique').first().json.scheduled_date + 'T' + $('Charger Direction Artistique').first().json.scheduled_time }}"
+            },
+            {
+              "fieldId": "pillar",
+              "fieldValue": "={{ $('Charger Direction Artistique').first().json.pillar || '' }}"
+            }
+          ]
+        }
+      },
+      "id": "sb25",
+      "name": "Inserer File Contenu",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        6544,
+        192
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "3MfRNEiX8JttZZ8Z",
+          "name": "Supabase Neurolia Social"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "tableId": "uploads",
+        "matchType": "allFilters",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "id",
+              "condition": "eq",
+              "keyValue": "={{ $('Construire Prompt Caption').first().json.upload_id }}"
+            }
+          ]
+        },
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "status",
+              "fieldValue": "processed"
+            }
+          ]
+        }
+      },
+      "id": "sb26",
+      "name": "MAJ Statut Upload",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        6768,
+        192
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "3MfRNEiX8JttZZ8Z",
+          "name": "Supabase Neurolia Social"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "=https://www.googleapis.com/drive/v3/files/{{ $('Identifier Nouveau Fichier').first().json.fileId }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleOAuth2Api",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "addParents",
+              "value": "={{ $('Boucle Clients').first().json.traites_folder_id || '' }}"
+            },
+            {
+              "name": "removeParents",
+              "value": "={{ $('Identifier Nouveau Fichier').first().json.drive_subfolder_id }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "hr27",
+      "name": "Deplacer Fichier Drive",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        6992,
+        368
+      ],
+      "credentials": {
+        "googleOAuth2Api": {
+          "id": "hCRiI63ihlXygTyp",
+          "name": "Google account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "tableId": "workflow_logs",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "workflow_name",
+              "fieldValue": "wf02-content-creation"
+            },
+            {
+              "fieldId": "status",
+              "fieldValue": "success"
+            },
+            {
+              "fieldId": "message",
+              "fieldValue": "Content creation batch complete"
+            }
+          ]
+        }
+      },
+      "id": "sb28",
+      "name": "Journal Execution",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        896,
+        112
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "3MfRNEiX8JttZZ8Z",
+          "name": "Supabase Neurolia Social"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "## 1. CHARGEMENT CLIENTS\nDeclencheur toutes les 10 min.\nCharge les clients actifs avec un dossier Google Drive configure.",
+        "height": 120,
+        "width": 800
+      },
+      "id": "sn01",
+      "name": "Sticky Note sn01",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -80,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## 2. ANALYSE PLANNING\nCharge les slots editoriaux avec sous-dossier Drive (crees par WF1.5).\nExclut ceux deja traites (content_queue ou upload processed).",
+        "height": 120,
+        "width": 560
+      },
+      "id": "sn02",
+      "name": "Sticky Note sn02",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        816,
+        512
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## 3. SCAN SOUS-DOSSIERS DRIVE\nPour chaque slot, liste les fichiers dans son sous-dossier Drive.\nIdentifie le premier fichier non encore traite.",
+        "height": 120,
+        "width": 584
+      },
+      "id": "sn03",
+      "name": "Sticky Note sn03",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        1792,
+        48
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## 4. TELECHARGEMENT + STOCKAGE\nTelecharge le fichier, upload vers Supabase Storage.\nInsere l'upload directement assigne au slot (pas de FIFO).",
+        "height": 120,
+        "width": 700
+      },
+      "id": "sn04",
+      "name": "Sticky Note sn04",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        2464,
+        -96
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## 5. CONTEXTE CREATIF + SUBLIMATION\nCharge direction artistique, charte marque et images contexte.\nSublime la photo via gpt-image-1 (mode post ou story).",
+        "height": 120,
+        "width": 1184
+      },
+      "id": "sn05",
+      "name": "Sticky Note sn05",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        3184,
+        -96
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## 6. REDACTION CAPTION\nCharge les dernieres captions pour anti-repetition.\nAgent Redacteur (GPT-4o) ecrit caption + hashtags + CTA en JSON.",
+        "height": 120,
+        "width": 900
+      },
+      "id": "sn06",
+      "name": "Sticky Note sn06",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        5104,
+        -80
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## 7. ENREGISTREMENT + ARCHIVAGE\nInsere dans content_queue (pending_review).\nMAJ statut upload, deplace le fichier Drive vers traites.",
+        "height": 120,
+        "width": 700
+      },
+      "id": "sn07",
+      "name": "Sticky Note sn07",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        6032,
+        -80
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Selectionner Photo Contexte — cd17b\nconst slot = $('Charger Direction Artistique').first().json;\nconst contextAssets = $('Charger Images Contexte').all();\nconst fileData = $('Identifier Nouveau Fichier').first().json;\n\nconst compositingContext = slot.compositing_context;\n\nif (!compositingContext || compositingContext.trim() === '') {\n  return [{\n    json: {\n      hasCompositing: false,\n      contextAssetUrl: null,\n      contextAssetDescription: null,\n      slot_id: fileData.slot_id,\n      client_id: fileData.client_id,\n      client_slug: fileData.client_slug,\n      fileName: fileData.fileName\n    }\n  }];\n}\n\nconst keywords = compositingContext.toLowerCase().split(/[\\s,\\u2014\\-]+/).filter(k => k.length > 2);\nlet bestMatch = null;\nlet bestScore = 0;\n\nfor (const asset of contextAssets) {\n  const a = asset.json;\n  if (!a || !a.file_url) continue;\n\n  const m = typeof a.metadata === 'string' ? JSON.parse(a.metadata) : (a.metadata || {});\n  const description = (m.description || '').toLowerCase();\n  const tags = (m.tags || []).map(t => t.toLowerCase());\n  const name = (a.name || '').toLowerCase();\n\n  let score = 0;\n  for (const kw of keywords) {\n    if (description.includes(kw)) score += 2;\n    if (tags.some(t => t.includes(kw))) score += 3;\n    if (name.includes(kw)) score += 1;\n  }\n\n  if (score > bestScore) {\n    bestScore = score;\n    bestMatch = { url: a.file_url, description: m.description || a.name, tags: m.tags || [] };\n  }\n}\n\nif (!bestMatch || bestScore === 0) {\n  return [{\n    json: {\n      hasCompositing: false,\n      contextAssetUrl: null,\n      contextAssetDescription: null,\n      _warning: 'compositing_context rempli mais aucune photo ne correspond: ' + compositingContext,\n      slot_id: fileData.slot_id,\n      client_id: fileData.client_id,\n      client_slug: fileData.client_slug,\n      fileName: fileData.fileName\n    }\n  }];\n}\n\nreturn [{\n  json: {\n    hasCompositing: true,\n    contextAssetUrl: bestMatch.url,\n    contextAssetDescription: bestMatch.description,\n    contextAssetTags: bestMatch.tags,\n    compositingContext: compositingContext,\n    slot_id: fileData.slot_id,\n    client_id: fileData.client_id,\n    client_slug: fileData.client_slug,\n    fileName: fileData.fileName\n  }\n}];"
+      },
+      "id": "cd17b",
+      "name": "Selectionner Photo Contexte",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        4032,
+        192
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Preparer Compositing — cd17c\nconst selectionData = $('Selectionner Photo Contexte').first().json;\nconst originalBinary = $('Telecharger Original').first().binary;\n\nif (!selectionData.hasCompositing) {\n  return [{\n    json: { ...selectionData },\n    binary: originalBinary || {}\n  }];\n}\n\nconst contextUrl = selectionData.contextAssetUrl;\nif (!contextUrl) {\n  return [{\n    json: { ...selectionData, hasCompositing: false, _warning: 'URL contexte manquante' },\n    binary: originalBinary || {}\n  }];\n}\n\ntry {\n  const buffer = await this.helpers.httpRequest({\n    method: 'GET',\n    url: contextUrl,\n    encoding: 'arraybuffer'\n  });\n\n  const contextBinaryData = await this.helpers.prepareBinaryData(\n    Buffer.from(buffer),\n    'context.jpg',\n    'image/jpeg'\n  );\n\n  return [{\n    json: { ...selectionData },\n    binary: {\n      data: (originalBinary || {}).data,\n      context: contextBinaryData\n    }\n  }];\n} catch (e) {\n  return [{\n    json: {\n      ...selectionData,\n      hasCompositing: false,\n      _warning: 'Echec telechargement contexte: ' + e.message\n    },\n    binary: originalBinary || {}\n  }];\n}"
+      },
+      "id": "cd17c",
+      "name": "Preparer Compositing",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        4256,
+        192
+      ]
+    },
+    {
+      "parameters": {
+        "url": "=https://abbtnownnraylaylswqk.supabase.co/storage/v1/object/public/social-engine/{{ $('Construire Prompt Sublimation').first().json.client_slug }}/sublimated/{{ $('Construire Prompt Sublimation').first().json.fileName }}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file"
+            }
+          }
+        }
+      },
+      "id": "hr23b",
+      "name": "Telecharger Image Sublimee",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        5824,
+        192
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Valider Compatibilite Compositing — cd17d\n// Garde-fou vision : verifie la compatibilite sujet/decor avant compositing\nconst compData = $('Preparer Compositing').first().json;\nconst slot = $('Charger Direction Artistique').first().json;\nconst binary = $('Preparer Compositing').first().binary || {};\n\n// Si pas de compositing, passer directement (pas d'appel API)\nif (!compData.hasCompositing) {\n  return [{ json: compData, binary }];\n}\n\n// Verifier que les 2 images binaires existent\nconst imgBrute = binary.data;\nconst imgContexte = binary.context;\n\nif (!imgBrute || !imgContexte) {\n  return [{ json: { ...compData, hasCompositing: false, _warning: 'Binaire manquant pour validation compositing' }, binary }];\n}\n\nconst mimeType1 = imgBrute.mimeType || 'image/jpeg';\nconst mimeType2 = imgContexte.mimeType || 'image/jpeg';\n\ntry {\n  const response = await this.helpers.httpRequestWithAuthentication('openAiApi', {\n    method: 'POST',\n    url: 'https://api.openai.com/v1/chat/completions',\n    body: {\n      model: 'gpt-4o-mini',\n      max_tokens: 200,\n      messages: [{\n        role: 'user',\n        content: [\n          {\n            type: 'text',\n            text: 'Image 1 = sujet (' + (slot.theme || 'produit') + ', categorie ' + (slot.category || 'produit') + ').\\nImage 2 = decor prevu pour le compositing.\\nCompositing demande : \"' + (compData.compositingContext || slot.compositing_context || '') + '\".\\n\\nCe compositing est-il visuellement coherent ? Le sujet peut-il etre integre naturellement dans ce decor ?\\nReponds UNIQUEMENT en JSON : { \"feasible\": true/false, \"reason\": \"explication courte\" }'\n          },\n          { type: 'image_url', image_url: { url: 'data:' + mimeType1 + ';base64,' + imgBrute.data } },\n          { type: 'image_url', image_url: { url: 'data:' + mimeType2 + ';base64,' + imgContexte.data } }\n        ]\n      }]\n    },\n    json: true\n  });\n\n  const content = (response.choices && response.choices[0] && response.choices[0].message && response.choices[0].message.content) || '';\n  let result;\n  try {\n    result = JSON.parse(content);\n  } catch (e) {\n    const match = content.match(/\\{[\\s\\S]*\\}/);\n    if (match) { try { result = JSON.parse(match[0]); } catch (e2) { /* ignore */ } }\n  }\n\n  if (result && result.feasible === false) {\n    return [{ json: {\n      ...compData,\n      hasCompositing: false,\n      _compositingRejected: true,\n      _rejectReason: result.reason || 'Compositing juge incoherent par le garde-fou vision'\n    }, binary }];\n  }\n\n  // Compositing valide\n  return [{ json: { ...compData, _compositingValidated: true }, binary }];\n\n} catch (e) {\n  // Erreur API — fallback sublimation simple (pas de blocage du pipeline)\n  return [{ json: {\n    ...compData,\n    hasCompositing: false,\n    _warning: 'Erreur garde-fou vision: ' + e.message\n  }, binary }];\n}"
+      },
+      "id": "cd17d",
+      "name": "Valider Compatibilite Compositing",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        4480,
+        192
+      ]
+    },
+    {
+      "id": "cd24b",
+      "name": "Valider Sortie Caption",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        6312,
+        192
+      ],
+      "parameters": {
+        "jsCode": "// Valider Sortie Caption — cd24b\n// Pattern aligne avec WF03 \"Valider Sortie Story\" (cd15a)\nconst raw = $('Agent Redacteur').first().json.output || $('Agent Redacteur').first().json.text || '';\nconst slot = $('Charger Direction Artistique').first().json;\nconst contentType = slot.content_type || 'post';\n\n// Parsing JSON robuste (meme pattern que WF01/WF03)\nlet parsed;\ntry {\n  parsed = typeof raw === 'object' ? raw : JSON.parse(raw);\n} catch (e) {\n  const match = raw.match(/```(?:json)?\\s*([\\s\\S]*?)```/);\n  if (match) {\n    try { parsed = JSON.parse(match[1].trim()); } catch (e2) {}\n  }\n  if (!parsed) {\n    const braceMatch = raw.match(/\\{[\\s\\S]*\\}/);\n    if (braceMatch) {\n      try { parsed = JSON.parse(braceMatch[0]); } catch (e3) {}\n    }\n  }\n}\n\nif (!parsed || !parsed.caption) {\n  throw new Error('Parsing caption echoue — output brut: ' + raw.substring(0, 200));\n}\n\n// Validation structure\nif (!parsed.hashtags || !Array.isArray(parsed.hashtags)) {\n  parsed.hashtags = [];\n}\nif (!parsed.cta) {\n  parsed.cta = '';\n}\n\n// Nettoyage hashtags (retirer # si present)\nparsed.hashtags = parsed.hashtags.map(h => h.replace(/^#/, ''));\n\n// Validation longueur\nconst wordCount = parsed.caption.split(/\\s+/).filter(Boolean).length;\nif (contentType === 'post' && (wordCount < 50 || wordCount > 400)) {\n  throw new Error(`Caption post: ${wordCount} mots (attendu 50-400)`);\n}\nif (contentType === 'story' && wordCount > 60) {\n  throw new Error(`Caption story: ${wordCount} mots (attendu < 60)`);\n}\n\n// Validation formules bannies\nconst banned = [\"n'hesitez pas\", 'decouvrez notre', 'decouvrez nos'];\nconst captionLower = parsed.caption.toLowerCase();\nfor (const formula of banned) {\n  if (captionLower.includes(formula)) {\n    throw new Error(`Formule bannie detectee: \\\"${formula}\\\"`);\n  }\n}\n\nreturn [{ json: {\n  caption: parsed.caption,\n  hashtags: parsed.hashtags,\n  cta: parsed.cta,\n  content_type: contentType,\n  word_count: wordCount,\n  validation: 'ok'\n}}];"
+      }
+    },
+    {
+      "id": "if14b",
+      "name": "SI — Type Post",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        3040,
+        192
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "version": 2,
+            "leftValue": "",
+            "caseSensitive": true,
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "cond_type",
+              "leftValue": "={{ $('Boucle Slots').first().json.content_type }}",
+              "rightValue": "post",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "cd14c",
+      "name": "MAJ Upload Story Pret",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3040,
+        480
+      ],
+      "parameters": {
+        "jsCode": "const httpRequest = this.helpers.httpRequest;\nconst SUPABASE_URL = 'https://abbtnownnraylaylswqk.supabase.co';\nconst SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFiYnRub3dubnJheWxheWxzd3FrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI3OTM0MTYsImV4cCI6MjA4ODM2OTQxNn0.OkRpMcaNgZDGSDLOxWP32F50iOZa3mhcRxSMH-5UlaM';\nconst fileData = $('Identifier Nouveau Fichier').first().json;\nconst headers = { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json', Prefer: 'return=minimal' };\n\n// Marquer l'upload comme pret pour WF03\ntry {\n  await httpRequest({\n    method: 'PATCH',\n    url: `${SUPABASE_URL}/rest/v1/uploads?slot_id=eq.${fileData.slot_id}`,\n    headers,\n    body: JSON.stringify({ status: 'ready_for_story' })\n  });\n} catch(e) {}\n\nreturn [{ json: { fileId: fileData.fileId, drive_subfolder_id: fileData.drive_subfolder_id, slot_id: fileData.slot_id } }];"
+      }
+    },
+    {
+      "id": "hr14d",
+      "name": "Deplacer Fichier Story",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        3280,
+        480
+      ],
+      "parameters": {
+        "method": "PATCH",
+        "url": "=https://www.googleapis.com/drive/v3/files/{{ $json.fileId }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleOAuth2Api",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "addParents",
+              "value": "={{ $('Boucle Clients').first().json.traites_folder_id || '' }}"
+            },
+            {
+              "name": "removeParents",
+              "value": "={{ $json.drive_subfolder_id }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "credentials": {
+        "googleOAuth2Api": {
+          "id": "hCRiI63ihlXygTyp",
+          "name": "Google account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Declencheur Planifie": {
+      "main": [
+        [
+          {
+            "node": "Charger Clients Actifs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Charger Clients Actifs": {
+      "main": [
+        [
+          {
+            "node": "Filtrer Clients avec Drive",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filtrer Clients avec Drive": {
+      "main": [
+        [
+          {
+            "node": "Boucle Clients",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Boucle Clients": {
+      "main": [
+        [
+          {
+            "node": "Journal Execution",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Charger Slots Prets",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Charger Slots Prets": {
+      "main": [
+        [
+          {
+            "node": "SI — Slots a Traiter",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "SI — Slots a Traiter": {
+      "main": [
+        [
+          {
+            "node": "Preparer Slots",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Boucle Clients",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparer Slots": {
+      "main": [
+        [
+          {
+            "node": "Boucle Slots",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Boucle Slots": {
+      "main": [
+        [
+          {
+            "node": "Boucle Clients",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Lister Fichiers Sous-Dossier",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Lister Fichiers Sous-Dossier": {
+      "main": [
+        [
+          {
+            "node": "Identifier Nouveau Fichier",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Identifier Nouveau Fichier": {
+      "main": [
+        [
+          {
+            "node": "SI — Fichier Trouve",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "SI — Fichier Trouve": {
+      "main": [
+        [
+          {
+            "node": "Telecharger Fichier",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Boucle Slots",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Telecharger Fichier": {
+      "main": [
+        [
+          {
+            "node": "Upload vers Storage",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upload vers Storage": {
+      "main": [
+        [
+          {
+            "node": "Inserer Upload Assigne",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Charger Direction Artistique": {
+      "main": [
+        [
+          {
+            "node": "Charger Plateforme Marque",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Charger Plateforme Marque": {
+      "main": [
+        [
+          {
+            "node": "Charger Images Contexte",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Charger Images Contexte": {
+      "main": [
+        [
+          {
+            "node": "Telecharger Original",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Construire Prompt Sublimation": {
+      "main": [
+        [
+          {
+            "node": "Agent DA — Sublimation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Agent DA — Sublimation": {
+      "main": [
+        [
+          {
+            "node": "Upload Image Sublimee",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upload Image Sublimee": {
+      "main": [
+        [
+          {
+            "node": "Charger Captions Anti-Repetition",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Charger Captions Anti-Repetition": {
+      "main": [
+        [
+          {
+            "node": "Construire Prompt Caption",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Inserer File Contenu": {
+      "main": [
+        [
+          {
+            "node": "MAJ Statut Upload",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MAJ Statut Upload": {
+      "main": [
+        [
+          {
+            "node": "Deplacer Fichier Drive",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Deplacer Fichier Drive": {
+      "main": [
+        [
+          {
+            "node": "Boucle Slots",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Modele OpenAI — Redacteur": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Agent Redacteur",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Telecharger Original": {
+      "main": [
+        [
+          {
+            "node": "Selectionner Photo Contexte",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Selectionner Photo Contexte": {
+      "main": [
+        [
+          {
+            "node": "Preparer Compositing",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Construire Prompt Caption": {
+      "main": [
+        [
+          {
+            "node": "Telecharger Image Sublimee",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Telecharger Image Sublimee": {
+      "main": [
+        [
+          {
+            "node": "Agent Redacteur",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparer Compositing": {
+      "main": [
+        [
+          {
+            "node": "Valider Compatibilite Compositing",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Valider Compatibilite Compositing": {
+      "main": [
+        [
+          {
+            "node": "Construire Prompt Sublimation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Agent Redacteur": {
+      "main": [
+        [
+          {
+            "node": "Valider Sortie Caption",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Valider Sortie Caption": {
+      "main": [
+        [
+          {
+            "node": "Inserer File Contenu",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Inserer Upload Assigne": {
+      "main": [
+        [
+          {
+            "node": "SI — Type Post",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "SI — Type Post": {
+      "main": [
+        [
+          {
+            "node": "Charger Direction Artistique",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "MAJ Upload Story Pret",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MAJ Upload Story Pret": {
+      "main": [
+        [
+          {
+            "node": "Deplacer Fichier Story",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Deplacer Fichier Story": {
+      "main": [
+        [
+          {
+            "node": "Boucle Slots",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
   "settings": {
     "executionOrder": "v1",
     "timezone": "Europe/Paris",
     "saveDataErrorExecution": "all",
-    "saveDataSuccessExecution": "all"
+    "saveDataSuccessExecution": "all",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": false
   },
-  "nodes": [
-    {"id": "sch01", "name": "Declencheur Planifie", "type": "n8n-nodes-base.scheduleTrigger", "typeVersion": 1.2, "position": [0, 512], "parameters": {"rule": {"interval": [{"field": "minutes", "minutesInterval": 10}]}}},
-    {"id": "sb02", "name": "Charger Clients Actifs", "type": "n8n-nodes-base.supabase", "typeVersion": 1, "position": [224, 512], "parameters": {"operation": "getAll", "tableId": "clients", "returnAll": true, "matchType": "allFilters", "filters": {"conditions": [{"keyName": "is_active", "condition": "eq", "keyValue": "true"}]}}, "credentials": {"supabaseApi": {"id": "PLACEHOLDER", "name": "Supabase Social Engine"}}},
-    {"id": "cd03", "name": "Filtrer Clients avec Drive", "type": "n8n-nodes-base.code", "typeVersion": 2, "position": [448, 512], "parameters": {"jsCode": "const items = $input.all();\nconst filtered = items.filter(item => item.json.drive_folder_id);\nif (filtered.length === 0) return [];\nreturn filtered;"}},
-    {"id": "sp04", "name": "Boucle Clients", "type": "n8n-nodes-base.splitInBatches", "typeVersion": 3, "position": [672, 512], "parameters": {"options": {}}},
-    {"id": "cd05", "name": "Charger Slots Prets", "type": "n8n-nodes-base.code", "typeVersion": 2, "position": [896, 704]},
-    {"id": "if06", "name": "SI — Slots a Traiter", "type": "n8n-nodes-base.if", "typeVersion": 2.2, "position": [1120, 704]},
-    {"id": "cd07", "name": "Preparer Slots", "type": "n8n-nodes-base.code", "typeVersion": 2, "position": [1344, 544]},
-    {"id": "sp08", "name": "Boucle Slots", "type": "n8n-nodes-base.splitInBatches", "typeVersion": 3, "position": [1568, 544], "parameters": {"options": {}}},
-    {"id": "hr09", "name": "Lister Fichiers Sous-Dossier", "type": "n8n-nodes-base.httpRequest", "typeVersion": 4.2, "position": [1792, 320]},
-    {"id": "cd10", "name": "Identifier Nouveau Fichier", "type": "n8n-nodes-base.code", "typeVersion": 2, "position": [2016, 320]},
-    {"id": "if11", "name": "SI — Fichier Trouve", "type": "n8n-nodes-base.if", "typeVersion": 2.2, "position": [2240, 320]},
-    {"id": "hr12", "name": "Telecharger Fichier", "type": "n8n-nodes-base.httpRequest", "typeVersion": 4.2, "position": [2464, 112]},
-    {"id": "hr13", "name": "Upload vers Storage", "type": "n8n-nodes-base.httpRequest", "typeVersion": 4.2, "position": [2688, 112]},
-    {"id": "sb14", "name": "Inserer Upload Assigne", "type": "n8n-nodes-base.supabase", "typeVersion": 1, "position": [2912, 112]},
-    {"id": "sb15", "name": "Charger Direction Artistique", "type": "n8n-nodes-base.supabase", "typeVersion": 1, "position": [3136, 112]},
-    {"id": "sb16", "name": "Charger Plateforme Marque", "type": "n8n-nodes-base.supabase", "typeVersion": 1, "position": [3360, 112]},
-    {"id": "hr17", "name": "Charger Images Contexte", "type": "n8n-nodes-base.httpRequest", "typeVersion": 4.2, "position": [3584, 112]},
-    {"id": "hr18", "name": "Telecharger Original", "type": "n8n-nodes-base.httpRequest", "typeVersion": 4.2, "position": [3808, 112]},
-    {"id": "cd19", "name": "Construire Prompt Sublimation", "type": "n8n-nodes-base.code", "typeVersion": 2, "position": [4032, 112]},
-    {"id": "oa20", "name": "Agent DA — Sublimation", "type": "@n8n/n8n-nodes-langchain.openAi", "typeVersion": 2.1, "position": [4256, 112]},
-    {"id": "hr21", "name": "Upload Image Sublimee", "type": "n8n-nodes-base.httpRequest", "typeVersion": 4.2, "position": [4480, 112]},
-    {"id": "hr22", "name": "Charger Captions Anti-Repetition", "type": "n8n-nodes-base.httpRequest", "typeVersion": 4.2, "position": [4704, 112]},
-    {"id": "cd23", "name": "Construire Prompt Caption", "type": "n8n-nodes-base.code", "typeVersion": 2, "position": [4928, 112]},
-    {"id": "ag24", "name": "Agent Redacteur", "type": "@n8n/n8n-nodes-langchain.agent", "typeVersion": 3.1, "position": [5184, 112]},
-    {"id": "lm24a", "name": "Modele OpenAI — Redacteur", "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi", "typeVersion": 1.3, "position": [5152, 336]},
-    {"id": "op24b", "name": "Parseur Sortie — Caption", "type": "@n8n/n8n-nodes-langchain.outputParserStructured", "typeVersion": 1.3, "position": [5280, 336]},
-    {"id": "lm24c", "name": "Modele OpenAI — AutoFix", "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi", "typeVersion": 1.3, "position": [5360, 544]},
-    {"id": "sb25", "name": "Inserer File Contenu", "type": "n8n-nodes-base.supabase", "typeVersion": 1, "position": [5648, 112]},
-    {"id": "sb26", "name": "MAJ Statut Upload", "type": "n8n-nodes-base.supabase", "typeVersion": 1, "position": [5872, 112]},
-    {"id": "hr27", "name": "Deplacer Fichier Drive", "type": "n8n-nodes-base.httpRequest", "typeVersion": 4.2, "position": [6128, 400]},
-    {"id": "sb28", "name": "Journal Execution", "type": "n8n-nodes-base.supabase", "typeVersion": 1, "position": [1040, 432]},
-    {"id": "sn01", "name": "Sticky Note sn01", "type": "n8n-nodes-base.stickyNote", "typeVersion": 1, "position": [-80, 320], "parameters": {"content": "## 1. CHARGEMENT CLIENTS\nDeclencheur toutes les 10 min.\nCharge les clients actifs avec un dossier Google Drive configure.", "height": 120, "width": 800}},
-    {"id": "sn02", "name": "Sticky Note sn02", "type": "n8n-nodes-base.stickyNote", "typeVersion": 1, "position": [816, 500], "parameters": {"content": "## 2. ANALYSE PLANNING\nCharge les slots editoriaux avec sous-dossier Drive (crees par WF1.5).\nExclut ceux deja traites (content_queue ou upload processed).", "height": 120, "width": 560}},
-    {"id": "sn03", "name": "Sticky Note sn03", "type": "n8n-nodes-base.stickyNote", "typeVersion": 1, "position": [1488, 120], "parameters": {"content": "## 3. SCAN SOUS-DOSSIERS DRIVE\nPour chaque slot, liste les fichiers dans son sous-dossier Drive.\nIdentifie le premier fichier non encore traite.", "height": 120, "width": 1000}},
-    {"id": "sn04", "name": "Sticky Note sn04", "type": "n8n-nodes-base.stickyNote", "typeVersion": 1, "position": [2384, -100], "parameters": {"content": "## 4. TELECHARGEMENT + STOCKAGE\nTelecharge le fichier, upload vers Supabase Storage.\nInsere l'upload directement assigne au slot (pas de FIFO).", "height": 120, "width": 780}},
-    {"id": "sn05", "name": "Sticky Note sn05", "type": "n8n-nodes-base.stickyNote", "typeVersion": 1, "position": [3056, -100], "parameters": {"content": "## 5. CONTEXTE CREATIF + SUBLIMATION\nCharge direction artistique, charte marque et images contexte.\nSublime la photo via gpt-image-1 (mode post ou story).", "height": 120, "width": 1520}},
-    {"id": "sn06", "name": "Sticky Note sn06", "type": "n8n-nodes-base.stickyNote", "typeVersion": 1, "position": [4624, -100], "parameters": {"content": "## 6. REDACTION CAPTION\nCharge les dernieres captions pour anti-repetition.\nAgent Redacteur (GPT-4o) ecrit caption + hashtags + CTA en JSON.", "height": 120, "width": 900}},
-    {"id": "sn07", "name": "Sticky Note sn07", "type": "n8n-nodes-base.stickyNote", "typeVersion": 1, "position": [5568, -100], "parameters": {"content": "## 7. ENREGISTREMENT + ARCHIVAGE\nInsere dans content_queue (pending_review).\nMAJ statut upload, deplace le fichier Drive vers traites.", "height": 120, "width": 700}}
+  "staticData": {
+    "node:Declencheur Planifie": {
+      "recurrenceRules": []
+    }
+  },
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "pinData": {},
+  "versionId": "b2a1c8d7-c8a4-426e-aa13-740de08f6f21",
+  "activeVersionId": "b2a1c8d7-c8a4-426e-aa13-740de08f6f21",
+  "versionCounter": 100,
+  "triggerCount": 1,
+  "shared": [
+    {
+      "updatedAt": "2026-03-05T18:44:04.995Z",
+      "createdAt": "2026-03-05T18:44:04.995Z",
+      "role": "workflow:owner",
+      "workflowId": "9CjAn1p1fBvqICU2",
+      "projectId": "lc05l94jXnd3xcML",
+      "project": {
+        "updatedAt": "2025-12-18T17:12:06.601Z",
+        "createdAt": "2025-12-18T14:47:13.737Z",
+        "id": "lc05l94jXnd3xcML",
+        "name": "Dorian Gustiez <dorian.gustiez@gmail.com>",
+        "type": "personal",
+        "icon": null,
+        "description": null,
+        "creatorId": "d67028b9-af92-4215-8935-96348dd29218"
+      }
+    }
   ],
-  "connections": {
-    "Declencheur Planifie": {"main": [[{"node": "Charger Clients Actifs", "type": "main", "index": 0}]]},
-    "Charger Clients Actifs": {"main": [[{"node": "Filtrer Clients avec Drive", "type": "main", "index": 0}]]},
-    "Filtrer Clients avec Drive": {"main": [[{"node": "Boucle Clients", "type": "main", "index": 0}]]},
-    "Boucle Clients": {"main": [[{"node": "Journal Execution", "type": "main", "index": 0}], [{"node": "Charger Slots Prets", "type": "main", "index": 0}]]},
-    "Charger Slots Prets": {"main": [[{"node": "SI \u2014 Slots a Traiter", "type": "main", "index": 0}]]},
-    "SI \u2014 Slots a Traiter": {"main": [[{"node": "Preparer Slots", "type": "main", "index": 0}], [{"node": "Boucle Clients", "type": "main", "index": 0}]]},
-    "Preparer Slots": {"main": [[{"node": "Boucle Slots", "type": "main", "index": 0}]]},
-    "Boucle Slots": {"main": [[{"node": "Boucle Clients", "type": "main", "index": 0}], [{"node": "Lister Fichiers Sous-Dossier", "type": "main", "index": 0}]]},
-    "Lister Fichiers Sous-Dossier": {"main": [[{"node": "Identifier Nouveau Fichier", "type": "main", "index": 0}]]},
-    "Identifier Nouveau Fichier": {"main": [[{"node": "SI \u2014 Fichier Trouve", "type": "main", "index": 0}]]},
-    "SI \u2014 Fichier Trouve": {"main": [[{"node": "Telecharger Fichier", "type": "main", "index": 0}], [{"node": "Boucle Slots", "type": "main", "index": 0}]]},
-    "Telecharger Fichier": {"main": [[{"node": "Upload vers Storage", "type": "main", "index": 0}]]},
-    "Upload vers Storage": {"main": [[{"node": "Inserer Upload Assigne", "type": "main", "index": 0}]]},
-    "Inserer Upload Assigne": {"main": [[{"node": "Charger Direction Artistique", "type": "main", "index": 0}]]},
-    "Charger Direction Artistique": {"main": [[{"node": "Charger Plateforme Marque", "type": "main", "index": 0}]]},
-    "Charger Plateforme Marque": {"main": [[{"node": "Charger Images Contexte", "type": "main", "index": 0}]]},
-    "Charger Images Contexte": {"main": [[{"node": "Telecharger Original", "type": "main", "index": 0}]]},
-    "Telecharger Original": {"main": [[{"node": "Construire Prompt Sublimation", "type": "main", "index": 0}]]},
-    "Construire Prompt Sublimation": {"main": [[{"node": "Agent DA \u2014 Sublimation", "type": "main", "index": 0}]]},
-    "Agent DA \u2014 Sublimation": {"main": [[{"node": "Upload Image Sublimee", "type": "main", "index": 0}]]},
-    "Upload Image Sublimee": {"main": [[{"node": "Charger Captions Anti-Repetition", "type": "main", "index": 0}]]},
-    "Charger Captions Anti-Repetition": {"main": [[{"node": "Construire Prompt Caption", "type": "main", "index": 0}]]},
-    "Construire Prompt Caption": {"main": [[{"node": "Agent Redacteur", "type": "main", "index": 0}]]},
-    "Agent Redacteur": {"main": [[{"node": "Inserer File Contenu", "type": "main", "index": 0}]]},
-    "Inserer File Contenu": {"main": [[{"node": "MAJ Statut Upload", "type": "main", "index": 0}]]},
-    "MAJ Statut Upload": {"main": [[{"node": "Deplacer Fichier Drive", "type": "main", "index": 0}]]},
-    "Deplacer Fichier Drive": {"main": [[{"node": "Boucle Slots", "type": "main", "index": 0}]]},
-    "Modele OpenAI \u2014 Redacteur": {"ai_languageModel": [[{"node": "Agent Redacteur", "type": "ai_languageModel", "index": 0}]]},
-    "Parseur Sortie \u2014 Caption": {"ai_outputParser": [[{"node": "Agent Redacteur", "type": "ai_outputParser", "index": 0}]]},
-    "Modele OpenAI \u2014 AutoFix": {"ai_languageModel": [[{"node": "Parseur Sortie \u2014 Caption", "type": "ai_languageModel", "index": 0}]]}
+  "tags": [],
+  "activeVersion": {
+    "updatedAt": "2026-03-08T12:00:40.820Z",
+    "createdAt": "2026-03-08T12:00:40.820Z",
+    "versionId": "b2a1c8d7-c8a4-426e-aa13-740de08f6f21",
+    "workflowId": "9CjAn1p1fBvqICU2",
+    "nodes": [
+      {
+        "parameters": {
+          "rule": {
+            "interval": [
+              {
+                "field": "minutes",
+                "minutesInterval": 10
+              }
+            ]
+          }
+        },
+        "id": "sch01",
+        "name": "Declencheur Planifie",
+        "type": "n8n-nodes-base.scheduleTrigger",
+        "typeVersion": 1.2,
+        "position": [
+          0,
+          376
+        ]
+      },
+      {
+        "parameters": {
+          "operation": "getAll",
+          "tableId": "clients",
+          "returnAll": true,
+          "matchType": "allFilters",
+          "filters": {
+            "conditions": [
+              {
+                "keyName": "is_active",
+                "condition": "eq",
+                "keyValue": "true"
+              }
+            ]
+          }
+        },
+        "id": "sb02",
+        "name": "Charger Clients Actifs",
+        "type": "n8n-nodes-base.supabase",
+        "typeVersion": 1,
+        "position": [
+          224,
+          376
+        ],
+        "credentials": {
+          "supabaseApi": {
+            "id": "3MfRNEiX8JttZZ8Z",
+            "name": "Supabase Neurolia Social"
+          }
+        }
+      },
+      {
+        "parameters": {
+          "jsCode": "const items = $input.all();\nconst filtered = items.filter(item => item.json.drive_folder_id);\nif (filtered.length === 0) return [];\nreturn filtered;"
+        },
+        "id": "cd03",
+        "name": "Filtrer Clients avec Drive",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          448,
+          376
+        ]
+      },
+      {
+        "parameters": {
+          "options": {}
+        },
+        "id": "sp04",
+        "name": "Boucle Clients",
+        "type": "n8n-nodes-base.splitInBatches",
+        "typeVersion": 3,
+        "position": [
+          672,
+          376
+        ]
+      },
+      {
+        "parameters": {
+          "jsCode": "const httpRequest = this.helpers.httpRequest;\nconst SUPABASE_URL = 'https://abbtnownnraylaylswqk.supabase.co';\nconst SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFiYnRub3dubnJheWxheWxzd3FrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI3OTM0MTYsImV4cCI6MjA4ODM2OTQxNn0.OkRpMcaNgZDGSDLOxWP32F50iOZa3mhcRxSMH-5UlaM';\nconst client = $('Boucle Clients').first().json;\nconst headers = { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` };\n\nlet slots = [];\ntry {\n  slots = await httpRequest({\n    method: 'GET',\n    url: `${SUPABASE_URL}/rest/v1/editorial_slots?client_id=eq.${client.id}&drive_subfolder_id=not.is.null&order=scheduled_date.asc,scheduled_time.asc&select=id,scheduled_date,scheduled_time,content_type,category,theme,angle,tone,visual_direction,sublimation_mode,caption_style,objective,drive_subfolder_id,compositing_context`,\n    headers\n  });\n} catch(e) {}\n\nif (!slots || slots.length === 0) return [{ json: { _noSlots: true } }];\n\n// Exclure slots deja dans content_queue\nlet covered = [];\ntry {\n  const ids = slots.map(s => s.id).join(',');\n  covered = await httpRequest({\n    method: 'GET',\n    url: `${SUPABASE_URL}/rest/v1/content_queue?slot_id=in.(${ids})&select=slot_id`,\n    headers\n  });\n} catch(e) {}\nconst coveredIds = new Set((covered || []).map(c => c.slot_id));\n\n// Exclure slots ayant DEJA un upload (idempotence — tout status confondu)\nlet uploaded = [];\ntry {\n  const ids = slots.map(s => s.id).join(',');\n  uploaded = await httpRequest({\n    method: 'GET',\n    url: `${SUPABASE_URL}/rest/v1/uploads?slot_id=in.(${ids})&select=slot_id`,\n    headers\n  });\n} catch(e) {}\nconst uploadedIds = new Set((uploaded || []).map(p => p.slot_id));\n\nconst ready = slots.filter(s => !coveredIds.has(s.id) && !uploadedIds.has(s.id));\nif (ready.length === 0) return [{ json: { _noSlots: true } }];\n\nreturn [{ json: { _noSlots: false, client_id: client.id, client_name: client.name, client_slug: client.slug, drive_folder_id: client.drive_folder_id, slots: ready } }];"
+        },
+        "id": "cd05",
+        "name": "Charger Slots Prets",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          896,
+          304
+        ]
+      },
+      {
+        "parameters": {
+          "conditions": {
+            "options": {
+              "version": 2,
+              "leftValue": "",
+              "caseSensitive": true,
+              "typeValidation": "strict"
+            },
+            "conditions": [
+              {
+                "id": "cond1",
+                "leftValue": "={{ $json._noSlots }}",
+                "rightValue": "",
+                "operator": {
+                  "type": "boolean",
+                  "operation": "false",
+                  "singleValue": true
+                }
+              }
+            ],
+            "combinator": "and"
+          },
+          "options": {}
+        },
+        "id": "if06",
+        "name": "SI — Slots a Traiter",
+        "type": "n8n-nodes-base.if",
+        "typeVersion": 2.2,
+        "position": [
+          1120,
+          376
+        ]
+      },
+      {
+        "parameters": {
+          "jsCode": "const data = $input.first().json;\nreturn data.slots.map(s => ({\n  json: {\n    ...s,\n    client_id: data.client_id,\n    client_name: data.client_name,\n    client_slug: data.client_slug,\n    drive_folder_id: data.drive_folder_id\n  }\n}));"
+        },
+        "id": "cd07",
+        "name": "Preparer Slots",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          1344,
+          376
+        ]
+      },
+      {
+        "parameters": {
+          "options": {}
+        },
+        "id": "sp08",
+        "name": "Boucle Slots",
+        "type": "n8n-nodes-base.splitInBatches",
+        "typeVersion": 3,
+        "position": [
+          1568,
+          448
+        ]
+      },
+      {
+        "parameters": {
+          "url": "https://www.googleapis.com/drive/v3/files",
+          "authentication": "predefinedCredentialType",
+          "nodeCredentialType": "googleOAuth2Api",
+          "sendQuery": true,
+          "queryParameters": {
+            "parameters": [
+              {
+                "name": "q",
+                "value": "={{ \"'\" + $json.drive_subfolder_id + \"' in parents AND trashed=false\" }}"
+              },
+              {
+                "name": "fields",
+                "value": "files(id,name,mimeType,createdTime)"
+              }
+            ]
+          },
+          "options": {}
+        },
+        "id": "hr09",
+        "name": "Lister Fichiers Sous-Dossier",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [
+          1792,
+          192
+        ],
+        "credentials": {
+          "googleOAuth2Api": {
+            "id": "hCRiI63ihlXygTyp",
+            "name": "Google account"
+          }
+        }
+      },
+      {
+        "parameters": {
+          "jsCode": "const httpRequest = this.helpers.httpRequest;\nconst SUPABASE_URL = 'https://abbtnownnraylaylswqk.supabase.co';\nconst SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFiYnRub3dubnJheWxheWxzd3FrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI3OTM0MTYsImV4cCI6MjA4ODM2OTQxNn0.OkRpMcaNgZDGSDLOxWP32F50iOZa3mhcRxSMH-5UlaM';\nconst slot = $('Boucle Slots').first().json;\nconst driveResponse = $input.first().json;\nconst files = driveResponse.files || [];\n\nif (files.length === 0) return [{ json: { _noFile: true } }];\n\nconst headers = { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` };\nlet existing = [];\ntry {\n  existing = await httpRequest({\n    method: 'GET',\n    url: `${SUPABASE_URL}/rest/v1/uploads?client_id=eq.${slot.client_id}&select=drive_file_id`,\n    headers\n  });\n} catch(e) {}\nconst existingIds = new Set((existing || []).map(e => e.drive_file_id));\n\nconst newFile = files.find(f => !existingIds.has(f.id));\nif (!newFile) return [{ json: { _noFile: true } }];\n\nreturn [{ json: {\n  _noFile: false,\n  fileId: newFile.id,\n  fileName: newFile.name,\n  mimeType: newFile.mimeType,\n  client_id: slot.client_id,\n  client_slug: slot.client_slug,\n  drive_subfolder_id: slot.drive_subfolder_id,\n  slot_id: slot.id\n}}];"
+        },
+        "id": "cd10",
+        "name": "Identifier Nouveau Fichier",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          2016,
+          192
+        ]
+      },
+      {
+        "parameters": {
+          "conditions": {
+            "options": {
+              "version": 2,
+              "leftValue": "",
+              "caseSensitive": true,
+              "typeValidation": "strict"
+            },
+            "conditions": [
+              {
+                "id": "cond1",
+                "leftValue": "={{ $json._noFile }}",
+                "rightValue": "",
+                "operator": {
+                  "type": "boolean",
+                  "operation": "false",
+                  "singleValue": true
+                }
+              }
+            ],
+            "combinator": "and"
+          },
+          "options": {}
+        },
+        "id": "if11",
+        "name": "SI — Fichier Trouve",
+        "type": "n8n-nodes-base.if",
+        "typeVersion": 2.2,
+        "position": [
+          2240,
+          192
+        ]
+      },
+      {
+        "parameters": {
+          "url": "=https://www.googleapis.com/drive/v3/files/{{ $json.fileId }}?alt=media",
+          "authentication": "predefinedCredentialType",
+          "nodeCredentialType": "googleOAuth2Api",
+          "options": {
+            "response": {
+              "response": {
+                "responseFormat": "file"
+              }
+            }
+          }
+        },
+        "id": "hr12",
+        "name": "Telecharger Fichier",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [
+          2464,
+          192
+        ],
+        "credentials": {
+          "googleOAuth2Api": {
+            "id": "hCRiI63ihlXygTyp",
+            "name": "Google account"
+          }
+        }
+      },
+      {
+        "parameters": {
+          "method": "POST",
+          "url": "=https://abbtnownnraylaylswqk.supabase.co/storage/v1/object/social-engine/{{ $('Identifier Nouveau Fichier').first().json.client_slug }}/originals/{{ $('Identifier Nouveau Fichier').first().json.fileName }}",
+          "sendHeaders": true,
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "apikey",
+                "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFiYnRub3dubnJheWxheWxzd3FrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI3OTM0MTYsImV4cCI6MjA4ODM2OTQxNn0.OkRpMcaNgZDGSDLOxWP32F50iOZa3mhcRxSMH-5UlaM"
+              },
+              {
+                "name": "Authorization",
+                "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFiYnRub3dubnJheWxheWxzd3FrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI3OTM0MTYsImV4cCI6MjA4ODM2OTQxNn0.OkRpMcaNgZDGSDLOxWP32F50iOZa3mhcRxSMH-5UlaM"
+              }
+            ]
+          },
+          "sendBody": true,
+          "contentType": "binaryData",
+          "inputDataFieldName": "data",
+          "options": {}
+        },
+        "id": "hr13",
+        "name": "Upload vers Storage",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [
+          2688,
+          192
+        ]
+      },
+      {
+        "parameters": {
+          "tableId": "uploads",
+          "fieldsUi": {
+            "fieldValues": [
+              {
+                "fieldId": "client_id",
+                "fieldValue": "={{ $('Identifier Nouveau Fichier').first().json.client_id }}"
+              },
+              {
+                "fieldId": "slot_id",
+                "fieldValue": "={{ $('Identifier Nouveau Fichier').first().json.slot_id }}"
+              },
+              {
+                "fieldId": "original_url",
+                "fieldValue": "={{ 'PLACEHOLDER_SUPABASE_URL/storage/v1/object/public/social-engine/' + $('Identifier Nouveau Fichier').first().json.client_slug + '/originals/' + $('Identifier Nouveau Fichier').first().json.fileName }}"
+              },
+              {
+                "fieldId": "original_path",
+                "fieldValue": "={{ $('Identifier Nouveau Fichier').first().json.client_slug + '/originals/' + $('Identifier Nouveau Fichier').first().json.fileName }}"
+              },
+              {
+                "fieldId": "filename",
+                "fieldValue": "={{ $('Identifier Nouveau Fichier').first().json.fileName }}"
+              },
+              {
+                "fieldId": "mime_type",
+                "fieldValue": "={{ $('Identifier Nouveau Fichier').first().json.mimeType }}"
+              },
+              {
+                "fieldId": "source",
+                "fieldValue": "drive"
+              },
+              {
+                "fieldId": "drive_file_id",
+                "fieldValue": "={{ $('Identifier Nouveau Fichier').first().json.fileId }}"
+              },
+              {
+                "fieldId": "status",
+                "fieldValue": "assigned"
+              }
+            ]
+          }
+        },
+        "id": "sb14",
+        "name": "Inserer Upload Assigne",
+        "type": "n8n-nodes-base.supabase",
+        "typeVersion": 1,
+        "position": [
+          2912,
+          192
+        ],
+        "credentials": {
+          "supabaseApi": {
+            "id": "3MfRNEiX8JttZZ8Z",
+            "name": "Supabase Neurolia Social"
+          }
+        }
+      },
+      {
+        "parameters": {
+          "operation": "get",
+          "tableId": "editorial_slots",
+          "filters": {
+            "conditions": [
+              {
+                "keyName": "id",
+                "keyValue": "={{ $('Identifier Nouveau Fichier').first().json.slot_id }}"
+              }
+            ]
+          }
+        },
+        "id": "sb15",
+        "name": "Charger Direction Artistique",
+        "type": "n8n-nodes-base.supabase",
+        "typeVersion": 1,
+        "position": [
+          3136,
+          192
+        ],
+        "credentials": {
+          "supabaseApi": {
+            "id": "3MfRNEiX8JttZZ8Z",
+            "name": "Supabase Neurolia Social"
+          }
+        }
+      },
+      {
+        "parameters": {
+          "operation": "getAll",
+          "tableId": "brand_platforms",
+          "returnAll": true,
+          "matchType": "allFilters",
+          "filters": {
+            "conditions": [
+              {
+                "keyName": "client_id",
+                "condition": "eq",
+                "keyValue": "={{ $('Identifier Nouveau Fichier').first().json.client_id }}"
+              }
+            ]
+          }
+        },
+        "id": "sb16",
+        "name": "Charger Plateforme Marque",
+        "type": "n8n-nodes-base.supabase",
+        "typeVersion": 1,
+        "position": [
+          3360,
+          192
+        ],
+        "credentials": {
+          "supabaseApi": {
+            "id": "3MfRNEiX8JttZZ8Z",
+            "name": "Supabase Neurolia Social"
+          }
+        }
+      },
+      {
+        "parameters": {
+          "url": "=https://abbtnownnraylaylswqk.supabase.co/rest/v1/brand_assets?client_id=eq.{{ $('Identifier Nouveau Fichier').first().json.client_id }}&type=in.(background,photo_style,context)&select=name,file_url,metadata,type",
+          "sendHeaders": true,
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "apikey",
+                "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFiYnRub3dubnJheWxheWxzd3FrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI3OTM0MTYsImV4cCI6MjA4ODM2OTQxNn0.OkRpMcaNgZDGSDLOxWP32F50iOZa3mhcRxSMH-5UlaM"
+              },
+              {
+                "name": "Authorization",
+                "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFiYnRub3dubnJheWxheWxzd3FrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI3OTM0MTYsImV4cCI6MjA4ODM2OTQxNn0.OkRpMcaNgZDGSDLOxWP32F50iOZa3mhcRxSMH-5UlaM"
+              }
+            ]
+          },
+          "options": {}
+        },
+        "id": "hr17",
+        "name": "Charger Images Contexte",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [
+          3584,
+          192
+        ],
+        "alwaysOutputData": true,
+        "onError": "continueRegularOutput"
+      },
+      {
+        "parameters": {
+          "url": "=https://abbtnownnraylaylswqk.supabase.co/storage/v1/object/social-engine/{{ $('Identifier Nouveau Fichier').first().json.client_slug }}/originals/{{ $('Identifier Nouveau Fichier').first().json.fileName }}",
+          "sendHeaders": true,
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "apikey",
+                "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFiYnRub3dubnJheWxheWxzd3FrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI3OTM0MTYsImV4cCI6MjA4ODM2OTQxNn0.OkRpMcaNgZDGSDLOxWP32F50iOZa3mhcRxSMH-5UlaM"
+              },
+              {
+                "name": "Authorization",
+                "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFiYnRub3dubnJheWxheWxzd3FrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI3OTM0MTYsImV4cCI6MjA4ODM2OTQxNn0.OkRpMcaNgZDGSDLOxWP32F50iOZa3mhcRxSMH-5UlaM"
+              }
+            ]
+          },
+          "options": {
+            "response": {
+              "response": {
+                "responseFormat": "file"
+              }
+            }
+          }
+        },
+        "id": "hr18",
+        "name": "Telecharger Original",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [
+          3808,
+          192
+        ]
+      },
+      {
+        "parameters": {
+          "jsCode": "// Construire Prompt Sublimation — cd19 (compositing + categories)\nconst slot = $('Charger Direction Artistique').first().json;\nconst brand = $('Charger Plateforme Marque').first().json;\nconst mode = (slot.content_type === 'story') ? 'light' : 'creative';\nconst fileData = $('Identifier Nouveau Fichier').first().json;\n\n// Donnees compositing (depuis garde-fou vision cd17d)\nconst compData = $('Valider Compatibilite Compositing').first().json;\nconst hasCompositing = compData.hasCompositing === true;\n\n// Construire les binaires de sortie\nconst binary = {};\nconst compBinary = $('Valider Compatibilite Compositing').first().binary || {};\nif (compBinary.data) {\n  binary.data = compBinary.data;\n}\nif (hasCompositing && compBinary.context) {\n  binary.context = compBinary.context;\n}\n\n// Directions par categorie (art-director.md §6)\nconst categoryDirections = {\n  creative: {\n    produit: 'Focus produit, fond epure ou contextuel, lumiere studio. Mise en valeur nette du sujet principal.',\n    coulisses: 'Style reportage, grain leger, authentique. Ambiance spontanee, lumiere naturelle.',\n    equipe: 'Portrait pro, fond flou (bokeh), lumiere flatteuse. Mise en valeur naturelle du sujet.',\n    engagement: 'Coloree, dynamique, interactive. Couleurs pop, energie, cadrage serre.',\n    saisonnier: 'Ambiance saisonniere marquee (couleurs, elements decoratifs). Atmosphere immersive.',\n    educatif: 'Clean, structure, espace pour le regard. Fond unifie, mise en page claire.',\n    temoignage: 'Chaleureux, fond doux, guillemets visuels. Ambiance intimiste et sincere.',\n    ambiance: 'Atmospherique, profondeur, mood. Jeu de lumieres, composition evocatrice.'\n  },\n  light: {\n    produit: 'Retouche couleurs, accentuer le produit. Contraste net sur le sujet.',\n    coulisses: 'Leger filtre documentaire, texte spontane. Authenticite preservee.',\n    equipe: 'Retouche portrait legere, texte nom/role. Naturel et professionnel.',\n    engagement: 'Contraste fort, texte question grande taille. Couleurs vives.',\n    saisonnier: 'Filtre saisonnier subtil, texte festif. Ambiance de saison.',\n    educatif: 'Fond unifie, texte lisible format tip. Structure claire.',\n    temoignage: 'Retouche portrait, texte citation. Fond doux et chaleureux.',\n    ambiance: 'Leger filtre ambiance, texte minimal. Atmosphere preservee.'\n  }\n};\n\nconst catDirection = (categoryDirections[mode] && categoryDirections[mode][slot.category]) || 'Sublimation standard, respecter la charte graphique.';\nconst archVisuel = (brand.archetype && typeof brand.archetype === 'object' && brand.archetype.manifestation) ? brand.archetype.manifestation.visuel || '' : '';\n\nlet prompt;\n\nif (hasCompositing && mode === 'creative') {\n  const compositingContext = compData.compositingContext || slot.compositing_context || '';\n\n  prompt = 'ROLE ET CONTEXTE :\\n'\n    + 'Tu es un directeur artistique specialise en photographie premium.\\n'\n    + 'Tu realises un compositing : integrer un sujet dans un decor reel.\\n\\n'\n    + 'IMAGES FOURNIES :\\n'\n    + '- Image 1 (SUJET) : La photo brute contenant le sujet principal.\\n'\n    + '- Image 2 (DECOR) : La photo de contexte servant de decor/fond.\\n\\n'\n    + 'OBJECTIF :\\n'\n    + 'Cree une image de qualite publicitaire professionnelle.\\n'\n    + 'Prends le sujet de l\\'Image 1 et integre-le naturellement dans le decor de l\\'Image 2.\\n\\n'\n    + 'TRAITEMENT DU SUJET :\\n'\n    + '- Preserve la structure, les proportions et l\\'identite du sujet.\\n'\n    + '- Le sujet doit paraitre sublime : plus attrayant, plus premium, mais toujours realiste.\\n'\n    + '- Conserve les textures naturelles, les imperfections subtiles, le caractere artisanal.\\n\\n'\n    + 'INTEGRATION DANS LE DECOR :\\n'\n    + '- Place le sujet naturellement dans l\\'environnement de l\\'Image 2.\\n'\n    + '- Le decor doit rester fidele a l\\'Image 2 : memes materiaux, meme atmosphere. Ne redesigne PAS l\\'espace.\\n'\n    + '- Le decor peut etre sublime : plus propre, plus elegant, mais toujours reconnaissable.\\n'\n    + '- Zone autour du sujet : epuree, maitrisee, visuellement premium.\\n\\n'\n    + 'SCENE SOUHAITEE : ' + compositingContext + '\\n'\n    + 'SUJET : ' + (slot.theme || '') + '\\n'\n    + 'ANGLE : ' + (slot.angle || '') + '\\n'\n    + 'AMBIANCE : ' + (slot.tone || brand.tone_of_voice || '') + '\\n\\n'\n    + 'CHARTE GRAPHIQUE :\\n'\n    + '- Couleur principale : ' + (brand.primary_color || '#000000') + '\\n'\n    + '- Couleurs secondaires : ' + (brand.secondary_colors || []).join(', ') + '\\n'\n    + '- Style visuel : ' + (brand.visual_style || '') + '\\n'\n    + '- Style photo : ' + (brand.photo_style || '') + '\\n\\n'\n    + 'IDENTITE DE MARQUE :\\n'\n    + '- Essence : ' + (brand.brand_essence || '') + '\\n'\n    + '- Registre visuel : ' + archVisuel + '\\n\\n'\n    + 'DIRECTION CATEGORIE (' + (slot.category || 'general') + ') :\\n'\n    + catDirection + '\\n\\n'\n    + 'DIRECTION VISUELLE DU SLOT :\\n'\n    + (slot.visual_direction || 'Sublimation premium coherente avec la marque.') + '\\n\\n'\n    + 'COMPOSITION :\\n'\n    + '- Format : 1080x1080 ou 1080x1350.\\n'\n    + '- Le sujet est le point focal principal, net et dominant dans le cadre.\\n'\n    + '- Espace de respiration suffisant autour du sujet.\\n'\n    + '- Separation nette sujet/arriere-plan, profondeur de champ realiste.\\n\\n'\n    + 'ECLAIRAGE :\\n'\n    + '- Eclairage professionnel integre naturellement a la scene.\\n'\n    + '- Lumiere principale douce sur le sujet, contraste directionnel subtil.\\n'\n    + '- Rendu des couleurs fidele, pas de reflet artificiel agressif.\\n\\n'\n    + 'STYLE ET REALISME :\\n'\n    + '- Photorealiste, ultra-realiste, qualite publicite haut de gamme.\\n'\n    + '- Textures naturelles, eclairage et ombres fideles, pas de rendu IA visible.\\n\\n'\n    + 'INTERDICTIONS ABSOLUES :\\n'\n    + '- Deformation du sujet (proportions, couleurs, textures)\\n'\n    + '- Modification de l\\'identite du produit/plat\\n'\n    + '- Rendu plastique, CGI, cartoon, symetrie exageree\\n'\n    + '- Elements flottants, geometrie fondue, doublons\\n'\n    + '- Texte, logo, watermark, branding\\n'\n    + '- Artefacts IA visibles\\n'\n    + '- Redesign du decor (inventer un autre lieu)\\n\\n'\n    + 'Dimensions : 1080x1080 ou 1080x1350.';\n\n} else if (mode === 'light') {\n  prompt = 'Retouche legerement cette photo pour une story Instagram.\\n\\n'\n    + 'CHARTE GRAPHIQUE :\\n'\n    + '- Couleur principale : ' + (brand.primary_color || '#000000') + '\\n'\n    + '- Couleurs secondaires : ' + (brand.secondary_colors || []).join(', ') + '\\n'\n    + '- Police principale : ' + (brand.font_primary || 'sans-serif') + '\\n'\n    + '- Police secondaire : ' + (brand.font_secondary || '') + '\\n\\n'\n    + 'IDENTITE DE MARQUE :\\n'\n    + '- Essence : ' + (brand.brand_essence || '') + '\\n'\n    + '- Registre visuel : ' + archVisuel + '\\n\\n'\n    + 'DIRECTION CATEGORIE (' + (slot.category || 'general') + ') :\\n'\n    + catDirection + '\\n\\n'\n    + 'DIRECTION VISUELLE DU SLOT :\\n'\n    + (slot.visual_direction || 'Retouche legere.') + '\\n\\n'\n    + 'TEXTE : \"' + (slot.story_text || '') + '\"\\n'\n    + 'Dimensions : 1080x1920.';\n\n} else {\n  prompt = 'Sublime cette photo pour un post Instagram feed.\\n\\n'\n    + 'CHARTE GRAPHIQUE :\\n'\n    + '- Couleur principale : ' + (brand.primary_color || '#000000') + '\\n'\n    + '- Couleurs secondaires : ' + (brand.secondary_colors || []).join(', ') + '\\n'\n    + '- Style visuel : ' + (brand.visual_style || '') + '\\n'\n    + '- Style photo : ' + (brand.photo_style || '') + '\\n\\n'\n    + 'IDENTITE DE MARQUE :\\n'\n    + '- Essence : ' + (brand.brand_essence || '') + '\\n'\n    + '- Registre visuel : ' + archVisuel + '\\n\\n'\n    + 'DIRECTION CATEGORIE (' + (slot.category || 'general') + ') :\\n'\n    + catDirection + '\\n\\n'\n    + 'DIRECTION VISUELLE DU SLOT :\\n'\n    + (slot.visual_direction || 'Sublimation creative, ambiance premium coherente avec la marque.') + '\\n\\n'\n    + 'MODE : Sublimation creative — transformation complete autorisee.\\n\\n'\n    + 'SUJET : ' + (slot.theme || '') + '\\n'\n    + 'ANGLE : ' + (slot.angle || '') + '\\n'\n    + 'AMBIANCE : ' + (slot.tone || brand.tone_of_voice || '') + '\\n\\n'\n    + 'Dimensions : 1080x1080 ou 1080x1350.';\n}\n\nreturn [{\n  json: {\n    prompt,\n    mode,\n    model: 'gpt-image-1',\n    hasCompositing,\n    upload_id: $('Inserer Upload Assigne').first().json.id,\n    slot_id: fileData.slot_id,\n    client_id: fileData.client_id,\n    client_slug: fileData.client_slug,\n    fileName: fileData.fileName\n  },\n  binary\n}];"
+        },
+        "id": "cd19",
+        "name": "Construire Prompt Sublimation",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          4704,
+          192
+        ]
+      },
+      {
+        "parameters": {
+          "resource": "image",
+          "operation": "edit",
+          "prompt": "={{ $json.prompt }}",
+          "images": {
+            "values": [
+              {},
+              {
+                "binaryPropertyName": "={{ $json.hasCompositing ? 'context' : 'data' }}"
+              }
+            ]
+          },
+          "size": "auto",
+          "options": {
+            "inputFidelity": "high"
+          }
+        },
+        "id": "oa20",
+        "name": "Agent DA — Sublimation",
+        "type": "@n8n/n8n-nodes-langchain.openAi",
+        "typeVersion": 2.1,
+        "position": [
+          4928,
+          192
+        ],
+        "credentials": {
+          "openAiApi": {
+            "id": "wVJ0Gr269Fhtq1ro",
+            "name": "OpenAi account"
+          }
+        },
+        "onError": "continueRegularOutput"
+      },
+      {
+        "parameters": {
+          "method": "POST",
+          "url": "=https://abbtnownnraylaylswqk.supabase.co/storage/v1/object/social-engine/{{ $('Construire Prompt Sublimation').first().json.client_slug }}/sublimated/{{ $('Construire Prompt Sublimation').first().json.fileName }}",
+          "sendHeaders": true,
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "apikey",
+                "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFiYnRub3dubnJheWxheWxzd3FrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI3OTM0MTYsImV4cCI6MjA4ODM2OTQxNn0.OkRpMcaNgZDGSDLOxWP32F50iOZa3mhcRxSMH-5UlaM"
+              },
+              {
+                "name": "Authorization",
+                "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFiYnRub3dubnJheWxheWxzd3FrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI3OTM0MTYsImV4cCI6MjA4ODM2OTQxNn0.OkRpMcaNgZDGSDLOxWP32F50iOZa3mhcRxSMH-5UlaM"
+              },
+              {
+                "name": "Content-Type",
+                "value": "image/png"
+              }
+            ]
+          },
+          "sendBody": true,
+          "contentType": "binaryData",
+          "inputDataFieldName": "data",
+          "options": {}
+        },
+        "id": "hr21",
+        "name": "Upload Image Sublimee",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [
+          5152,
+          192
+        ]
+      },
+      {
+        "parameters": {
+          "url": "=https://abbtnownnraylaylswqk.supabase.co/rest/v1/content_queue?client_id=eq.{{ $('Construire Prompt Sublimation').first().json.client_id }}&status=eq.published&order=created_at.desc&limit=15&select=caption,hashtags,caption_style",
+          "sendHeaders": true,
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "apikey",
+                "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFiYnRub3dubnJheWxheWxzd3FrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI3OTM0MTYsImV4cCI6MjA4ODM2OTQxNn0.OkRpMcaNgZDGSDLOxWP32F50iOZa3mhcRxSMH-5UlaM"
+              },
+              {
+                "name": "Authorization",
+                "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFiYnRub3dubnJheWxheWxzd3FrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI3OTM0MTYsImV4cCI6MjA4ODM2OTQxNn0.OkRpMcaNgZDGSDLOxWP32F50iOZa3mhcRxSMH-5UlaM"
+              }
+            ]
+          },
+          "options": {}
+        },
+        "id": "hr22",
+        "name": "Charger Captions Anti-Repetition",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [
+          5376,
+          192
+        ]
+      },
+      {
+        "parameters": {
+          "jsCode": "const slot = $('Charger Direction Artistique').first().json;\nconst brand = $('Charger Plateforme Marque').first().json;\nconst client = $('Boucle Clients').first().json;\nconst subData = $('Construire Prompt Sublimation').first().json;\nconst recentCaptions = $('Charger Captions Anti-Repetition').all();\nconst layer1 = '# COUCHE 1 — IDENTITE DE MARQUE\\nMarque : ' + client.name + '\\nSecteur : ' + (client.industry || '') + '\\nTon : ' + (brand.tone_of_voice || '') + '\\nPersonnalite : ' + (brand.personality || '') + '\\nValeurs : ' + (brand.brand_values || []).join(', ') + '\\nVocab DO : ' + (brand.vocabulary_do || []).join(', ') + '\\nVocab DONT : ' + (brand.vocabulary_dont || []).join(', ') + '\\nEmojis : ' + (brand.emoji_usage || 'moderate') + '\\nHashtags marque : ' + (brand.hashtags_branded || []).join(', ') + '\\nHashtags niche : ' + (brand.hashtags_niche || []).join(', ') + '\\nCTA favoris : ' + (brand.cta_preferred || []).join(', ') + '\\nAudience : ' + (brand.target_audience || '') + '\\nTu/Vous : ' + (brand.tu_vous || 'vouvoiement') + '\\nFormalite (1-5) : ' + (brand.formality_level || 3) + '\\nEssence de marque : ' + (brand.brand_essence || '');\nconst ancrage = '# ANCRAGE STRATEGIQUE\\nPromesse : ' + (brand.brand_promise || '') + '\\nUSPs : ' + (brand.unique_selling_points || []).join(', ');\nconst layer2 = '# COUCHE 2 — DIRECTIVE EDITORIALE\\nType : ' + slot.content_type + '\\nTheme : ' + slot.theme + '\\nAngle : ' + (slot.angle || 'Libre') + '\\nTon : ' + (slot.tone || 'Par defaut') + '\\nStyle : ' + slot.caption_style + '\\nObjectif : ' + slot.objective + '\\nCTA : ' + (slot.cta || 'Libre');\nconst layer3 = '# COUCHE 3 — CONTEXTE VISUEL\\nSublimation : ' + subData.prompt.substring(0, 300) + '\\nMode : ' + subData.mode + '\\nDirection : ' + (slot.visual_direction || '');\nconst caps = recentCaptions.filter(c => c.json.caption).map((c, i) => (i+1) + '. [' + (c.json.caption_style || '?') + '] ' + (c.json.caption || '').substring(0, 150)).join('\\n');\nlet antiRep = '';\nconst fw = recentCaptions.filter(c => c.json.caption).map(c => (c.json.caption || '').split('\\n')[0].split(/\\s+/)[0]?.toLowerCase()).filter(Boolean);\nconst wc = {}; fw.forEach(w => { wc[w] = (wc[w] || 0) + 1; });\nconst ov = Object.entries(wc).filter(([_, n]) => n >= 2).map(([w]) => w);\nif (ov.length > 0) antiRep += '\\nNE COMMENCE PAS par : ' + ov.join(', ');\nconst layer4 = '# COUCHE 4 — ANTI-REPETITION\\n' + (caps || 'Premiere publication.') + antiRep;\nconst exPhrases = (brand.brand_extended || {}).example_phrases;\nconst examplesBlock = exPhrases ? '# EXEMPLES DE PHRASES\\n\\nA faire :\\n' + (exPhrases.do || []).slice(0, 3).map(p => '- ' + p).join('\\n') + '\\n\\nA eviter :\\n' + (exPhrases.dont || []).slice(0, 3).map(p => '- ' + p).join('\\n') : '';\nconst sectionMsgs = (brand.brand_extended || {}).section_messages || {};\nconst slotThemeLower = (slot.theme || '').toLowerCase();\nlet sectionRef = '';\nfor (const [key, msg] of Object.entries(sectionMsgs)) {\n  if (slotThemeLower.includes(key.toLowerCase())) { sectionRef = '\\nMessage de reference : ' + msg; break; }\n}\nlet productRef = '';\nif (slot.category === 'produit' && (brand.brand_extended || {}).product_categories) {\n  const mc = (brand.brand_extended.product_categories || []).find(c => slotThemeLower.includes((c.name || '').toLowerCase()));\n  if (mc) { productRef = '\\nCategorie produit : ' + mc.name + ' — ' + (mc.tagline || '') + '\\n' + (mc.description || ''); }\n}\nconst userPrompt = layer1 + '\\n\\n' + ancrage + '\\n\\n' + layer2 + sectionRef + productRef + '\\n\\n' + layer3 + '\\n\\n' + layer4 + '\\n\\n' + examplesBlock + '\\n\\n# INSTRUCTIONS\\nEcris une caption ' + slot.content_type + ' style \"' + slot.caption_style + '\" theme \"' + slot.theme + '\". Objectif : ' + slot.objective + '. JSON : { \"caption\", \"hashtags\", \"cta\" }';\nconst systemPrompt = 'Tu es un redacteur social media expert.\\n\\n<rules>\\nREGLES FONDAMENTALES :\\n- Ton de marque (Couche 1) : respecte la voix, les valeurs et le vocabulaire.\\n- Directive editoriale (Couche 2) : theme, angle, ton, style de caption, CTA.\\n- Contexte visuel (Couche 3) : ta caption doit etre coherente avec l\\'image sublimee.\\n- Anti-repetition (Couche 4) : ne repete JAMAIS une structure, accroche ou formule des 15 dernieres captions.\\n</rules>\\n\\n<output_format>\\nJSON UNIQUEMENT — pas de texte avant/apres :\\n{\\n  \"caption\": \"string — texte complet de la caption\",\\n  \"hashtags\": [\"string — sans #, 10-15 max\"],\\n  \"cta\": \"string — call to action final\"\\n}\\n</output_format>\\n\\n<styles>\\nSTYLES DISPONIBLES : question_directe, storytelling_court, factuel, exclamatif, conseil, citation, liste, teaser\\n- question_directe : commence par une question qui interpelle\\n- storytelling_court : micro-histoire en 3-5 phrases\\n- factuel : chiffres reels, proof_points — jamais de donnees inventees\\n- exclamatif : energie, enthousiasme, ponctuation dynamique\\n- conseil : partage d\\'expertise, \"voici comment...\"\\n- citation : phrase inspirante liee au theme\\n- liste : enumeration structuree (3-5 points)\\n- teaser : suspense, curiosite, incite a lire la suite\\n</styles>\\n\\n<constraints>\\nLONGUEURS :\\n- Post : 150-300 mots, structure en paragraphes ou listes.\\n- Story : 20-40 mots, percutant et direct.\\n\\nINTERDITS ABSOLUS :\\n- \"N\\'hesitez pas\", \"Decouvrez notre\", \"profitez de\"\\n- Hashtags dans le corps de la caption\\n- Liens URL\\n- Chiffres inventes ou non-sourced\\n\\nEMOJIS : respecte le niveau emoji_usage de la marque.\\n</constraints>\\n\\n<quality_checklist>\\n1. La premiere ligne arrete le scroll ?\\n2. Le tu/vous est respecte partout ?\\n3. Aucune formule interdite ?\\n4. Le style demande est bien applique ?\\n5. Le JSON est valide et complet ?\\n6. Les hashtags sont pertinents et sans # ?\\n7. Le CTA est actionnable ?\\n</quality_checklist>\\n\\n<thinking>\\nAvant d\\'ecrire, analyse silencieusement :\\n1. Quel est le style demande ? Adapte ta structure.\\n2. Quels mots/accroches sont surrepresentes dans C4 ? Evite-les.\\n3. Quel CTA correspond au theme et a l\\'objectif ?\\nPuis redige ta caption.\\n</thinking>\\n\\nREGLES DE MARQUE :\\n- Tu DOIS utiliser le ' + (brand.tu_vous || 'vouvoiement') + ' systematiquement.\\n- Chaque caption doit servir la promesse de marque.\\n- En style factuel, cite des proof_points reels — jamais de chiffres inventes.';\nreturn [{ json: { systemPrompt, userPrompt, upload_id: subData.upload_id, slot_id: subData.slot_id, client_id: subData.client_id } }];"
+        },
+        "id": "cd23",
+        "name": "Construire Prompt Caption",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          5600,
+          192
+        ]
+      },
+      {
+        "parameters": {
+          "promptType": "define",
+          "text": "={{ $('Construire Prompt Caption').first().json.userPrompt }}",
+          "hasOutputParser": false,
+          "options": {
+            "systemMessage": "={{ $('Construire Prompt Caption').first().json.systemPrompt }}",
+            "maxIterations": 3,
+            "passthroughBinaryImages": true
+          }
+        },
+        "id": "ag24",
+        "name": "Agent Redacteur",
+        "type": "@n8n/n8n-nodes-langchain.agent",
+        "typeVersion": 3.1,
+        "position": [
+          6080,
+          192
+        ]
+      },
+      {
+        "parameters": {
+          "model": {
+            "__rl": true,
+            "mode": "id",
+            "value": "gpt-4o"
+          },
+          "builtInTools": {},
+          "options": {
+            "maxTokens": 1000,
+            "temperature": 0.85
+          }
+        },
+        "id": "lm24a",
+        "name": "Modele OpenAI — Redacteur",
+        "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+        "typeVersion": 1.3,
+        "position": [
+          6048,
+          416
+        ],
+        "credentials": {
+          "openAiApi": {
+            "id": "wVJ0Gr269Fhtq1ro",
+            "name": "OpenAi account"
+          }
+        }
+      },
+      {
+        "parameters": {
+          "tableId": "content_queue",
+          "fieldsUi": {
+            "fieldValues": [
+              {
+                "fieldId": "client_id",
+                "fieldValue": "={{ $('Construire Prompt Caption').first().json.client_id }}"
+              },
+              {
+                "fieldId": "slot_id",
+                "fieldValue": "={{ $('Construire Prompt Caption').first().json.slot_id }}"
+              },
+              {
+                "fieldId": "upload_id",
+                "fieldValue": "={{ $('Construire Prompt Caption').first().json.upload_id }}"
+              },
+              {
+                "fieldId": "content_type",
+                "fieldValue": "={{ $('Charger Direction Artistique').first().json.content_type || 'post' }}"
+              },
+              {
+                "fieldId": "sublimated_url",
+                "fieldValue": "={{ 'https://abbtnownnraylaylswqk.supabase.co/storage/v1/object/public/social-engine/' + $('Construire Prompt Sublimation').first().json.client_slug + '/sublimated/' + $('Construire Prompt Sublimation').first().json.fileName }}"
+              },
+              {
+                "fieldId": "sublimation_prompt",
+                "fieldValue": "={{ $('Construire Prompt Sublimation').first().json.prompt }}"
+              },
+              {
+                "fieldId": "sublimation_model",
+                "fieldValue": "gpt-image-1"
+              },
+              {
+                "fieldId": "caption",
+                "fieldValue": "={{ ($json.output || {}).caption || $json.caption || '' }}"
+              },
+              {
+                "fieldId": "hashtags",
+                "fieldValue": "={{ JSON.stringify(($json.output || {}).hashtags || $json.hashtags || []) }}"
+              },
+              {
+                "fieldId": "cta",
+                "fieldValue": "={{ ($json.output || {}).cta || $json.cta || '' }}"
+              },
+              {
+                "fieldId": "caption_model",
+                "fieldValue": "gpt-4o"
+              },
+              {
+                "fieldId": "status",
+                "fieldValue": "pending_review"
+              },
+              {
+                "fieldId": "scheduled_at",
+                "fieldValue": "={{ $('Charger Direction Artistique').first().json.scheduled_date + 'T' + $('Charger Direction Artistique').first().json.scheduled_time }}"
+              },
+              {
+                "fieldId": "pillar",
+                "fieldValue": "={{ $('Charger Direction Artistique').first().json.pillar || '' }}"
+              }
+            ]
+          }
+        },
+        "id": "sb25",
+        "name": "Inserer File Contenu",
+        "type": "n8n-nodes-base.supabase",
+        "typeVersion": 1,
+        "position": [
+          6544,
+          192
+        ],
+        "credentials": {
+          "supabaseApi": {
+            "id": "3MfRNEiX8JttZZ8Z",
+            "name": "Supabase Neurolia Social"
+          }
+        }
+      },
+      {
+        "parameters": {
+          "operation": "update",
+          "tableId": "uploads",
+          "matchType": "allFilters",
+          "filters": {
+            "conditions": [
+              {
+                "keyName": "id",
+                "condition": "eq",
+                "keyValue": "={{ $('Construire Prompt Caption').first().json.upload_id }}"
+              }
+            ]
+          },
+          "fieldsUi": {
+            "fieldValues": [
+              {
+                "fieldId": "status",
+                "fieldValue": "processed"
+              }
+            ]
+          }
+        },
+        "id": "sb26",
+        "name": "MAJ Statut Upload",
+        "type": "n8n-nodes-base.supabase",
+        "typeVersion": 1,
+        "position": [
+          6768,
+          192
+        ],
+        "credentials": {
+          "supabaseApi": {
+            "id": "3MfRNEiX8JttZZ8Z",
+            "name": "Supabase Neurolia Social"
+          }
+        }
+      },
+      {
+        "parameters": {
+          "method": "PATCH",
+          "url": "=https://www.googleapis.com/drive/v3/files/{{ $('Identifier Nouveau Fichier').first().json.fileId }}",
+          "authentication": "predefinedCredentialType",
+          "nodeCredentialType": "googleOAuth2Api",
+          "sendBody": true,
+          "bodyParameters": {
+            "parameters": [
+              {
+                "name": "addParents",
+                "value": "={{ $('Boucle Clients').first().json.traites_folder_id || '' }}"
+              },
+              {
+                "name": "removeParents",
+                "value": "={{ $('Identifier Nouveau Fichier').first().json.drive_subfolder_id }}"
+              }
+            ]
+          },
+          "options": {}
+        },
+        "id": "hr27",
+        "name": "Deplacer Fichier Drive",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [
+          6992,
+          368
+        ],
+        "credentials": {
+          "googleOAuth2Api": {
+            "id": "hCRiI63ihlXygTyp",
+            "name": "Google account"
+          }
+        }
+      },
+      {
+        "parameters": {
+          "tableId": "workflow_logs",
+          "fieldsUi": {
+            "fieldValues": [
+              {
+                "fieldId": "workflow_name",
+                "fieldValue": "wf02-content-creation"
+              },
+              {
+                "fieldId": "status",
+                "fieldValue": "success"
+              },
+              {
+                "fieldId": "message",
+                "fieldValue": "Content creation batch complete"
+              }
+            ]
+          }
+        },
+        "id": "sb28",
+        "name": "Journal Execution",
+        "type": "n8n-nodes-base.supabase",
+        "typeVersion": 1,
+        "position": [
+          896,
+          112
+        ],
+        "credentials": {
+          "supabaseApi": {
+            "id": "3MfRNEiX8JttZZ8Z",
+            "name": "Supabase Neurolia Social"
+          }
+        }
+      },
+      {
+        "parameters": {
+          "content": "## 1. CHARGEMENT CLIENTS\nDeclencheur toutes les 10 min.\nCharge les clients actifs avec un dossier Google Drive configure.",
+          "height": 120,
+          "width": 800
+        },
+        "id": "sn01",
+        "name": "Sticky Note sn01",
+        "type": "n8n-nodes-base.stickyNote",
+        "typeVersion": 1,
+        "position": [
+          -80,
+          320
+        ]
+      },
+      {
+        "parameters": {
+          "content": "## 2. ANALYSE PLANNING\nCharge les slots editoriaux avec sous-dossier Drive (crees par WF1.5).\nExclut ceux deja traites (content_queue ou upload processed).",
+          "height": 120,
+          "width": 560
+        },
+        "id": "sn02",
+        "name": "Sticky Note sn02",
+        "type": "n8n-nodes-base.stickyNote",
+        "typeVersion": 1,
+        "position": [
+          816,
+          512
+        ]
+      },
+      {
+        "parameters": {
+          "content": "## 3. SCAN SOUS-DOSSIERS DRIVE\nPour chaque slot, liste les fichiers dans son sous-dossier Drive.\nIdentifie le premier fichier non encore traite.",
+          "height": 120,
+          "width": 584
+        },
+        "id": "sn03",
+        "name": "Sticky Note sn03",
+        "type": "n8n-nodes-base.stickyNote",
+        "typeVersion": 1,
+        "position": [
+          1792,
+          48
+        ]
+      },
+      {
+        "parameters": {
+          "content": "## 4. TELECHARGEMENT + STOCKAGE\nTelecharge le fichier, upload vers Supabase Storage.\nInsere l'upload directement assigne au slot (pas de FIFO).",
+          "height": 120,
+          "width": 700
+        },
+        "id": "sn04",
+        "name": "Sticky Note sn04",
+        "type": "n8n-nodes-base.stickyNote",
+        "typeVersion": 1,
+        "position": [
+          2464,
+          -96
+        ]
+      },
+      {
+        "parameters": {
+          "content": "## 5. CONTEXTE CREATIF + SUBLIMATION\nCharge direction artistique, charte marque et images contexte.\nSublime la photo via gpt-image-1 (mode post ou story).",
+          "height": 120,
+          "width": 1184
+        },
+        "id": "sn05",
+        "name": "Sticky Note sn05",
+        "type": "n8n-nodes-base.stickyNote",
+        "typeVersion": 1,
+        "position": [
+          3184,
+          -96
+        ]
+      },
+      {
+        "parameters": {
+          "content": "## 6. REDACTION CAPTION\nCharge les dernieres captions pour anti-repetition.\nAgent Redacteur (GPT-4o) ecrit caption + hashtags + CTA en JSON.",
+          "height": 120,
+          "width": 900
+        },
+        "id": "sn06",
+        "name": "Sticky Note sn06",
+        "type": "n8n-nodes-base.stickyNote",
+        "typeVersion": 1,
+        "position": [
+          5104,
+          -80
+        ]
+      },
+      {
+        "parameters": {
+          "content": "## 7. ENREGISTREMENT + ARCHIVAGE\nInsere dans content_queue (pending_review).\nMAJ statut upload, deplace le fichier Drive vers traites.",
+          "height": 120,
+          "width": 700
+        },
+        "id": "sn07",
+        "name": "Sticky Note sn07",
+        "type": "n8n-nodes-base.stickyNote",
+        "typeVersion": 1,
+        "position": [
+          6032,
+          -80
+        ]
+      },
+      {
+        "parameters": {
+          "jsCode": "// Selectionner Photo Contexte — cd17b\nconst slot = $('Charger Direction Artistique').first().json;\nconst contextAssets = $('Charger Images Contexte').all();\nconst fileData = $('Identifier Nouveau Fichier').first().json;\n\nconst compositingContext = slot.compositing_context;\n\nif (!compositingContext || compositingContext.trim() === '') {\n  return [{\n    json: {\n      hasCompositing: false,\n      contextAssetUrl: null,\n      contextAssetDescription: null,\n      slot_id: fileData.slot_id,\n      client_id: fileData.client_id,\n      client_slug: fileData.client_slug,\n      fileName: fileData.fileName\n    }\n  }];\n}\n\nconst keywords = compositingContext.toLowerCase().split(/[\\s,\\u2014\\-]+/).filter(k => k.length > 2);\nlet bestMatch = null;\nlet bestScore = 0;\n\nfor (const asset of contextAssets) {\n  const a = asset.json;\n  if (!a || !a.file_url) continue;\n\n  const m = typeof a.metadata === 'string' ? JSON.parse(a.metadata) : (a.metadata || {});\n  const description = (m.description || '').toLowerCase();\n  const tags = (m.tags || []).map(t => t.toLowerCase());\n  const name = (a.name || '').toLowerCase();\n\n  let score = 0;\n  for (const kw of keywords) {\n    if (description.includes(kw)) score += 2;\n    if (tags.some(t => t.includes(kw))) score += 3;\n    if (name.includes(kw)) score += 1;\n  }\n\n  if (score > bestScore) {\n    bestScore = score;\n    bestMatch = { url: a.file_url, description: m.description || a.name, tags: m.tags || [] };\n  }\n}\n\nif (!bestMatch || bestScore === 0) {\n  return [{\n    json: {\n      hasCompositing: false,\n      contextAssetUrl: null,\n      contextAssetDescription: null,\n      _warning: 'compositing_context rempli mais aucune photo ne correspond: ' + compositingContext,\n      slot_id: fileData.slot_id,\n      client_id: fileData.client_id,\n      client_slug: fileData.client_slug,\n      fileName: fileData.fileName\n    }\n  }];\n}\n\nreturn [{\n  json: {\n    hasCompositing: true,\n    contextAssetUrl: bestMatch.url,\n    contextAssetDescription: bestMatch.description,\n    contextAssetTags: bestMatch.tags,\n    compositingContext: compositingContext,\n    slot_id: fileData.slot_id,\n    client_id: fileData.client_id,\n    client_slug: fileData.client_slug,\n    fileName: fileData.fileName\n  }\n}];"
+        },
+        "id": "cd17b",
+        "name": "Selectionner Photo Contexte",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          4032,
+          192
+        ]
+      },
+      {
+        "parameters": {
+          "jsCode": "// Preparer Compositing — cd17c\nconst selectionData = $('Selectionner Photo Contexte').first().json;\nconst originalBinary = $('Telecharger Original').first().binary;\n\nif (!selectionData.hasCompositing) {\n  return [{\n    json: { ...selectionData },\n    binary: originalBinary || {}\n  }];\n}\n\nconst contextUrl = selectionData.contextAssetUrl;\nif (!contextUrl) {\n  return [{\n    json: { ...selectionData, hasCompositing: false, _warning: 'URL contexte manquante' },\n    binary: originalBinary || {}\n  }];\n}\n\ntry {\n  const buffer = await this.helpers.httpRequest({\n    method: 'GET',\n    url: contextUrl,\n    encoding: 'arraybuffer'\n  });\n\n  const contextBinaryData = await this.helpers.prepareBinaryData(\n    Buffer.from(buffer),\n    'context.jpg',\n    'image/jpeg'\n  );\n\n  return [{\n    json: { ...selectionData },\n    binary: {\n      data: (originalBinary || {}).data,\n      context: contextBinaryData\n    }\n  }];\n} catch (e) {\n  return [{\n    json: {\n      ...selectionData,\n      hasCompositing: false,\n      _warning: 'Echec telechargement contexte: ' + e.message\n    },\n    binary: originalBinary || {}\n  }];\n}"
+        },
+        "id": "cd17c",
+        "name": "Preparer Compositing",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          4256,
+          192
+        ]
+      },
+      {
+        "parameters": {
+          "url": "=https://abbtnownnraylaylswqk.supabase.co/storage/v1/object/public/social-engine/{{ $('Construire Prompt Sublimation').first().json.client_slug }}/sublimated/{{ $('Construire Prompt Sublimation').first().json.fileName }}",
+          "options": {
+            "response": {
+              "response": {
+                "responseFormat": "file"
+              }
+            }
+          }
+        },
+        "id": "hr23b",
+        "name": "Telecharger Image Sublimee",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [
+          5824,
+          192
+        ]
+      },
+      {
+        "parameters": {
+          "jsCode": "// Valider Compatibilite Compositing — cd17d\n// Garde-fou vision : verifie la compatibilite sujet/decor avant compositing\nconst compData = $('Preparer Compositing').first().json;\nconst slot = $('Charger Direction Artistique').first().json;\nconst binary = $('Preparer Compositing').first().binary || {};\n\n// Si pas de compositing, passer directement (pas d'appel API)\nif (!compData.hasCompositing) {\n  return [{ json: compData, binary }];\n}\n\n// Verifier que les 2 images binaires existent\nconst imgBrute = binary.data;\nconst imgContexte = binary.context;\n\nif (!imgBrute || !imgContexte) {\n  return [{ json: { ...compData, hasCompositing: false, _warning: 'Binaire manquant pour validation compositing' }, binary }];\n}\n\nconst mimeType1 = imgBrute.mimeType || 'image/jpeg';\nconst mimeType2 = imgContexte.mimeType || 'image/jpeg';\n\ntry {\n  const response = await this.helpers.httpRequestWithAuthentication('openAiApi', {\n    method: 'POST',\n    url: 'https://api.openai.com/v1/chat/completions',\n    body: {\n      model: 'gpt-4o-mini',\n      max_tokens: 200,\n      messages: [{\n        role: 'user',\n        content: [\n          {\n            type: 'text',\n            text: 'Image 1 = sujet (' + (slot.theme || 'produit') + ', categorie ' + (slot.category || 'produit') + ').\\nImage 2 = decor prevu pour le compositing.\\nCompositing demande : \"' + (compData.compositingContext || slot.compositing_context || '') + '\".\\n\\nCe compositing est-il visuellement coherent ? Le sujet peut-il etre integre naturellement dans ce decor ?\\nReponds UNIQUEMENT en JSON : { \"feasible\": true/false, \"reason\": \"explication courte\" }'\n          },\n          { type: 'image_url', image_url: { url: 'data:' + mimeType1 + ';base64,' + imgBrute.data } },\n          { type: 'image_url', image_url: { url: 'data:' + mimeType2 + ';base64,' + imgContexte.data } }\n        ]\n      }]\n    },\n    json: true\n  });\n\n  const content = (response.choices && response.choices[0] && response.choices[0].message && response.choices[0].message.content) || '';\n  let result;\n  try {\n    result = JSON.parse(content);\n  } catch (e) {\n    const match = content.match(/\\{[\\s\\S]*\\}/);\n    if (match) { try { result = JSON.parse(match[0]); } catch (e2) { /* ignore */ } }\n  }\n\n  if (result && result.feasible === false) {\n    return [{ json: {\n      ...compData,\n      hasCompositing: false,\n      _compositingRejected: true,\n      _rejectReason: result.reason || 'Compositing juge incoherent par le garde-fou vision'\n    }, binary }];\n  }\n\n  // Compositing valide\n  return [{ json: { ...compData, _compositingValidated: true }, binary }];\n\n} catch (e) {\n  // Erreur API — fallback sublimation simple (pas de blocage du pipeline)\n  return [{ json: {\n    ...compData,\n    hasCompositing: false,\n    _warning: 'Erreur garde-fou vision: ' + e.message\n  }, binary }];\n}"
+        },
+        "id": "cd17d",
+        "name": "Valider Compatibilite Compositing",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          4480,
+          192
+        ]
+      },
+      {
+        "id": "cd24b",
+        "name": "Valider Sortie Caption",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          6312,
+          192
+        ],
+        "parameters": {
+          "jsCode": "// Valider Sortie Caption — cd24b\n// Pattern aligne avec WF03 \"Valider Sortie Story\" (cd15a)\nconst raw = $('Agent Redacteur').first().json.output || $('Agent Redacteur').first().json.text || '';\nconst slot = $('Charger Direction Artistique').first().json;\nconst contentType = slot.content_type || 'post';\n\n// Parsing JSON robuste (meme pattern que WF01/WF03)\nlet parsed;\ntry {\n  parsed = typeof raw === 'object' ? raw : JSON.parse(raw);\n} catch (e) {\n  const match = raw.match(/```(?:json)?\\s*([\\s\\S]*?)```/);\n  if (match) {\n    try { parsed = JSON.parse(match[1].trim()); } catch (e2) {}\n  }\n  if (!parsed) {\n    const braceMatch = raw.match(/\\{[\\s\\S]*\\}/);\n    if (braceMatch) {\n      try { parsed = JSON.parse(braceMatch[0]); } catch (e3) {}\n    }\n  }\n}\n\nif (!parsed || !parsed.caption) {\n  throw new Error('Parsing caption echoue — output brut: ' + raw.substring(0, 200));\n}\n\n// Validation structure\nif (!parsed.hashtags || !Array.isArray(parsed.hashtags)) {\n  parsed.hashtags = [];\n}\nif (!parsed.cta) {\n  parsed.cta = '';\n}\n\n// Nettoyage hashtags (retirer # si present)\nparsed.hashtags = parsed.hashtags.map(h => h.replace(/^#/, ''));\n\n// Validation longueur\nconst wordCount = parsed.caption.split(/\\s+/).filter(Boolean).length;\nif (contentType === 'post' && (wordCount < 50 || wordCount > 400)) {\n  throw new Error(`Caption post: ${wordCount} mots (attendu 50-400)`);\n}\nif (contentType === 'story' && wordCount > 60) {\n  throw new Error(`Caption story: ${wordCount} mots (attendu < 60)`);\n}\n\n// Validation formules bannies\nconst banned = [\"n'hesitez pas\", 'decouvrez notre', 'decouvrez nos'];\nconst captionLower = parsed.caption.toLowerCase();\nfor (const formula of banned) {\n  if (captionLower.includes(formula)) {\n    throw new Error(`Formule bannie detectee: \\\"${formula}\\\"`);\n  }\n}\n\nreturn [{ json: {\n  caption: parsed.caption,\n  hashtags: parsed.hashtags,\n  cta: parsed.cta,\n  content_type: contentType,\n  word_count: wordCount,\n  validation: 'ok'\n}}];"
+        }
+      },
+      {
+        "id": "if14b",
+        "name": "SI — Type Post",
+        "type": "n8n-nodes-base.if",
+        "typeVersion": 2.2,
+        "position": [
+          3040,
+          192
+        ],
+        "parameters": {
+          "conditions": {
+            "options": {
+              "version": 2,
+              "leftValue": "",
+              "caseSensitive": true,
+              "typeValidation": "strict"
+            },
+            "conditions": [
+              {
+                "id": "cond_type",
+                "leftValue": "={{ $('Boucle Slots').first().json.content_type }}",
+                "rightValue": "post",
+                "operator": {
+                  "type": "string",
+                  "operation": "equals"
+                }
+              }
+            ],
+            "combinator": "and"
+          },
+          "options": {}
+        }
+      },
+      {
+        "id": "cd14c",
+        "name": "MAJ Upload Story Pret",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          3040,
+          480
+        ],
+        "parameters": {
+          "jsCode": "const httpRequest = this.helpers.httpRequest;\nconst SUPABASE_URL = 'https://abbtnownnraylaylswqk.supabase.co';\nconst SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFiYnRub3dubnJheWxheWxzd3FrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI3OTM0MTYsImV4cCI6MjA4ODM2OTQxNn0.OkRpMcaNgZDGSDLOxWP32F50iOZa3mhcRxSMH-5UlaM';\nconst fileData = $('Identifier Nouveau Fichier').first().json;\nconst headers = { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json', Prefer: 'return=minimal' };\n\n// Marquer l'upload comme pret pour WF03\ntry {\n  await httpRequest({\n    method: 'PATCH',\n    url: `${SUPABASE_URL}/rest/v1/uploads?slot_id=eq.${fileData.slot_id}`,\n    headers,\n    body: JSON.stringify({ status: 'ready_for_story' })\n  });\n} catch(e) {}\n\nreturn [{ json: { fileId: fileData.fileId, drive_subfolder_id: fileData.drive_subfolder_id, slot_id: fileData.slot_id } }];"
+        }
+      },
+      {
+        "id": "hr14d",
+        "name": "Deplacer Fichier Story",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [
+          3280,
+          480
+        ],
+        "parameters": {
+          "method": "PATCH",
+          "url": "=https://www.googleapis.com/drive/v3/files/{{ $json.fileId }}",
+          "authentication": "predefinedCredentialType",
+          "nodeCredentialType": "googleOAuth2Api",
+          "sendBody": true,
+          "bodyParameters": {
+            "parameters": [
+              {
+                "name": "addParents",
+                "value": "={{ $('Boucle Clients').first().json.traites_folder_id || '' }}"
+              },
+              {
+                "name": "removeParents",
+                "value": "={{ $json.drive_subfolder_id }}"
+              }
+            ]
+          },
+          "options": {}
+        },
+        "credentials": {
+          "googleOAuth2Api": {
+            "id": "hCRiI63ihlXygTyp",
+            "name": "Google account"
+          }
+        }
+      }
+    ],
+    "connections": {
+      "Declencheur Planifie": {
+        "main": [
+          [
+            {
+              "node": "Charger Clients Actifs",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Charger Clients Actifs": {
+        "main": [
+          [
+            {
+              "node": "Filtrer Clients avec Drive",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Filtrer Clients avec Drive": {
+        "main": [
+          [
+            {
+              "node": "Boucle Clients",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Boucle Clients": {
+        "main": [
+          [
+            {
+              "node": "Journal Execution",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Charger Slots Prets",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Charger Slots Prets": {
+        "main": [
+          [
+            {
+              "node": "SI — Slots a Traiter",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "SI — Slots a Traiter": {
+        "main": [
+          [
+            {
+              "node": "Preparer Slots",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Boucle Clients",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Preparer Slots": {
+        "main": [
+          [
+            {
+              "node": "Boucle Slots",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Boucle Slots": {
+        "main": [
+          [
+            {
+              "node": "Boucle Clients",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Lister Fichiers Sous-Dossier",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Lister Fichiers Sous-Dossier": {
+        "main": [
+          [
+            {
+              "node": "Identifier Nouveau Fichier",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Identifier Nouveau Fichier": {
+        "main": [
+          [
+            {
+              "node": "SI — Fichier Trouve",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "SI — Fichier Trouve": {
+        "main": [
+          [
+            {
+              "node": "Telecharger Fichier",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Boucle Slots",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Telecharger Fichier": {
+        "main": [
+          [
+            {
+              "node": "Upload vers Storage",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Upload vers Storage": {
+        "main": [
+          [
+            {
+              "node": "Inserer Upload Assigne",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Charger Direction Artistique": {
+        "main": [
+          [
+            {
+              "node": "Charger Plateforme Marque",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Charger Plateforme Marque": {
+        "main": [
+          [
+            {
+              "node": "Charger Images Contexte",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Charger Images Contexte": {
+        "main": [
+          [
+            {
+              "node": "Telecharger Original",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Construire Prompt Sublimation": {
+        "main": [
+          [
+            {
+              "node": "Agent DA — Sublimation",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Agent DA — Sublimation": {
+        "main": [
+          [
+            {
+              "node": "Upload Image Sublimee",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Upload Image Sublimee": {
+        "main": [
+          [
+            {
+              "node": "Charger Captions Anti-Repetition",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Charger Captions Anti-Repetition": {
+        "main": [
+          [
+            {
+              "node": "Construire Prompt Caption",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Inserer File Contenu": {
+        "main": [
+          [
+            {
+              "node": "MAJ Statut Upload",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "MAJ Statut Upload": {
+        "main": [
+          [
+            {
+              "node": "Deplacer Fichier Drive",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Deplacer Fichier Drive": {
+        "main": [
+          [
+            {
+              "node": "Boucle Slots",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Modele OpenAI — Redacteur": {
+        "ai_languageModel": [
+          [
+            {
+              "node": "Agent Redacteur",
+              "type": "ai_languageModel",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Telecharger Original": {
+        "main": [
+          [
+            {
+              "node": "Selectionner Photo Contexte",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Selectionner Photo Contexte": {
+        "main": [
+          [
+            {
+              "node": "Preparer Compositing",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Construire Prompt Caption": {
+        "main": [
+          [
+            {
+              "node": "Telecharger Image Sublimee",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Telecharger Image Sublimee": {
+        "main": [
+          [
+            {
+              "node": "Agent Redacteur",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Preparer Compositing": {
+        "main": [
+          [
+            {
+              "node": "Valider Compatibilite Compositing",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Valider Compatibilite Compositing": {
+        "main": [
+          [
+            {
+              "node": "Construire Prompt Sublimation",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Agent Redacteur": {
+        "main": [
+          [
+            {
+              "node": "Valider Sortie Caption",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Valider Sortie Caption": {
+        "main": [
+          [
+            {
+              "node": "Inserer File Contenu",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Inserer Upload Assigne": {
+        "main": [
+          [
+            {
+              "node": "SI — Type Post",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "SI — Type Post": {
+        "main": [
+          [
+            {
+              "node": "Charger Direction Artistique",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "MAJ Upload Story Pret",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "MAJ Upload Story Pret": {
+        "main": [
+          [
+            {
+              "node": "Deplacer Fichier Story",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Deplacer Fichier Story": {
+        "main": [
+          [
+            {
+              "node": "Boucle Slots",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "authors": "Dorian Gustiez",
+    "name": null,
+    "description": null,
+    "autosaved": false,
+    "workflowPublishHistory": [
+      {
+        "createdAt": "2026-03-08T12:00:40.893Z",
+        "id": 414,
+        "workflowId": "9CjAn1p1fBvqICU2",
+        "versionId": "b2a1c8d7-c8a4-426e-aa13-740de08f6f21",
+        "event": "activated",
+        "userId": "d67028b9-af92-4215-8935-96348dd29218"
+      },
+      {
+        "createdAt": "2026-03-08T12:00:40.873Z",
+        "id": 413,
+        "workflowId": "9CjAn1p1fBvqICU2",
+        "versionId": "b2a1c8d7-c8a4-426e-aa13-740de08f6f21",
+        "event": "deactivated",
+        "userId": "d67028b9-af92-4215-8935-96348dd29218"
+      }
+    ]
   }
 }

@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Strategie Editoriale — {{campaign_name}} | Neurolia Social Engine</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://api.fontshare.com/v2/css?f[]=satoshi@500,700,900&display=swap">
+  <link rel="stylesheet" href="design-system.css">
+</head>
+<body>
+
+  <!-- ============================================
+       NAVIGATION
+       ============================================ -->
+  <nav class="nav" id="nav">
+    <div class="nav-inner">
+      <div class="nav-logo">Neurolia <span>&times;</span> {{client_name}}</div>
+      <button class="nav-toggle" id="navToggle" aria-label="Menu">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="3" y1="6" x2="21" y2="6"/>
+          <line x1="3" y1="12" x2="21" y2="12"/>
+          <line x1="3" y1="18" x2="21" y2="18"/>
+        </svg>
+      </button>
+      <ul class="nav-links" id="navLinks">
+        <li><a href="#resume">Resume</a></li>
+        <li><a href="#strategie-agent">Strategie</a></li>
+        <li><a href="#distribution">Piliers</a></li>
+        <li><a href="#calendrier-posts">Posts</a></li>
+        <li><a href="#calendrier-stories">Stories</a></li>
+        <li><a href="#coherence">Coherence</a></li>
+      </ul>
+    </div>
+    <div class="nav-progress" id="navProgress"></div>
+  </nav>
+
+  <!-- ============================================
+       HERO
+       ============================================ -->
+  <section class="hero section" id="resume">
+    <div class="container">
+      <div class="reveal">
+        <p class="hero-label">WF01 — Strategie Editoriale</p>
+        <h1>{{campaign_name}}</h1>
+        <p class="hero-subtitle">Calendrier editorial genere par 3 agents IA pour {{client_name}}. Periode {{period_number}} : {{period_name}}.</p>
+      </div>
+
+      <!-- Summary: campagne -->
+      <div class="summary-cards reveal" style="max-width:1100px;">
+        <div class="summary-card" data-accent="1">
+          <p class="summary-card-label">Periode active</p>
+          <p class="summary-card-meta">{{period_date_start}} &rarr; {{period_date_end}}</p>
+          <p class="summary-card-title" style="font-size:18px;">{{period_name}}</p>
+          <p>{{period_mission_short}}</p>
+        </div>
+        <div class="summary-card" data-accent="2">
+          <p class="summary-card-label">Volume</p>
+          <p class="summary-card-title" style="font-size:18px;">{{total_posts}} posts</p>
+          <p>{{posts_per_week}} / semaine &middot; {{total_weeks}} semaines</p>
+        </div>
+        <div class="summary-card" data-accent="3">
+          <p class="summary-card-label">Stories</p>
+          <p class="summary-card-title" style="font-size:18px;">{{total_stories}} stories</p>
+          <p>{{stories_per_day}} / jour &middot; {{total_days}} jours</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================
+       1. VISION STRATEGIQUE (Agent 1)
+       ============================================ -->
+  <section class="section section-elevated" id="strategie-agent" data-accent="1">
+    <div class="container">
+      <div class="section-header reveal">
+        <div class="section-header-top">
+          <div class="section-number">01</div>
+          <div>
+            <h2>Vision Strategique</h2>
+            <p class="section-header-subtitle">Sortie de l'Agent 1 Stratege. Phases de campagne, directives et distribution des piliers.</p>
+            <div class="meta-badges">
+              <span class="meta-badge">Agent Stratege &middot; GPT-4o</span>
+              <span class="meta-badge">temp 0.7 &middot; 3k tokens</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Strategy summary -->
+      <div class="context-banner reveal">
+        <p><strong style="color:var(--text-primary);">Resume strategique</strong></p>
+        <p>{{strategy_summary}}</p>
+      </div>
+
+      <!-- Campaign phases from Agent 1 -->
+      <h3 class="kpi-section-title reveal">Phases de campagne</h3>
+      <div class="steps-grid reveal">
+        <!-- {{#campaign_phases}} -->
+        <div class="step-card">
+          <div class="step-card-header">
+            <span class="step-card-number">{{phase_index}}</span>
+            <span class="step-card-title">{{phase_name}}</span>
+            <span class="step-card-badge">{{phase_weeks}}</span>
+          </div>
+          <p style="font-size:14px; color:var(--text-muted); line-height:1.7; margin-bottom:12px;">{{phase_directive}}</p>
+          <div class="step-card-footer">
+            <p class="step-card-footer-label">Focus</p>
+            <p>{{phase_focus}}</p>
+          </div>
+        </div>
+        <!-- {{/campaign_phases}} -->
+      </div>
+
+      <!-- KPIs cibles -->
+      <h3 class="kpi-section-title reveal">KPIs cibles de la periode</h3>
+      <div class="kpi-grid reveal">
+        <!-- {{#period_kpis}} -->
+        <div class="kpi-card">
+          <div class="kpi-tag">{{kpi_category}}</div>
+          <div class="kpi-value">{{kpi_value}}</div>
+          <div class="kpi-label">{{kpi_label}}</div>
+        </div>
+        <!-- {{/period_kpis}} -->
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================
+       2. DISTRIBUTION PILIERS
+       ============================================ -->
+  <section class="section" id="distribution" data-accent="2">
+    <div class="container">
+      <div class="section-header reveal">
+        <div class="section-header-top">
+          <div class="section-number">02</div>
+          <div>
+            <h2>Distribution des Piliers</h2>
+            <p class="section-header-subtitle">Repartition reelle des posts generes par pilier vs. objectifs de la strategie.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Pillar bar: strategie vs reel -->
+      <h3 class="kpi-section-title reveal">Strategie (objectif)</h3>
+      <div class="reveal" style="margin-bottom:var(--space-xl);">
+        <div class="pillar-bar">
+          <!-- {{#pillars_strategy}} -->
+          <div class="pillar-bar-segment" style="flex:{{pillar_pct}}; background:{{pillar_color}};">{{pillar_pct}}%</div>
+          <!-- {{/pillars_strategy}} -->
+        </div>
+      </div>
+
+      <h3 class="kpi-section-title reveal">Genere (reel)</h3>
+      <div class="reveal" style="margin-bottom:var(--space-md);">
+        <div class="pillar-bar">
+          <!-- {{#pillars_actual}} -->
+          <div class="pillar-bar-segment" style="flex:{{pillar_pct}}; background:{{pillar_color}};">{{pillar_pct}}%</div>
+          <!-- {{/pillars_actual}} -->
+        </div>
+      </div>
+
+      <div class="pillar-bar-legend reveal">
+        <!-- {{#pillars_legend}} -->
+        <div class="pillar-bar-legend-item">
+          <div class="pillar-bar-legend-dot" style="background:{{pillar_color}};"></div>
+          <span>{{pillar_name}} &mdash; cible {{pillar_target_pct}}% / reel {{pillar_actual_pct}}% ({{pillar_actual_count}} posts)</span>
+        </div>
+        <!-- {{/pillars_legend}} -->
+      </div>
+
+      <!-- Deviation check -->
+      <div class="info-box reveal">
+        <p class="info-box-label">Analyse de deviation</p>
+        <h4>{{deviation_status}}</h4>
+        <p>{{deviation_detail}}</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================
+       3. CALENDRIER POSTS
+       ============================================ -->
+  <section class="section section-elevated" id="calendrier-posts" data-accent="1">
+    <div class="container">
+      <div class="section-header reveal">
+        <div class="section-header-top">
+          <div class="section-number">03</div>
+          <div>
+            <h2>Calendrier Posts</h2>
+            <p class="section-header-subtitle">{{total_posts}} posts planifies sur {{total_weeks}} semaines. Sortie de l'Agent 2 Planificateur.</p>
+            <div class="meta-badges">
+              <span class="meta-badge">Agent Planificateur &middot; GPT-4o</span>
+              <span class="meta-badge">temp 0.85 &middot; 8k tokens</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Semaine par semaine -->
+      <!-- {{#weeks}} -->
+      <div class="reveal" style="margin-bottom:var(--space-xl);">
+        <h3 style="font-family:'Satoshi',sans-serif; font-weight:700; font-size:16px; color:var(--text-primary); margin-bottom:var(--space-md); display:flex; align-items:center; gap:12px;">
+          <span style="color:var(--text-subtle); font-size:13px; font-weight:600; background:var(--bg-contrast); padding:4px 12px; border-radius:5px;">S{{week_number}}</span>
+          {{week_date_range}}
+        </h3>
+
+        <div class="steps-grid" style="margin-bottom:0;">
+          <!-- {{#week_posts}} -->
+          <div class="step-card">
+            <div class="step-card-header">
+              <span class="step-card-number" style="font-size:11px; width:auto; height:auto; padding:4px 8px; border-radius:5px; background:{{post_pillar_color}}20; color:{{post_pillar_color}};">{{post_day_short}}</span>
+              <span class="step-card-title" style="font-size:15px;">{{post_theme}}</span>
+              <span class="step-card-badge">{{post_pillar_name}}</span>
+            </div>
+            <table class="data-table" style="margin-bottom:0; font-size:13px;">
+              <tbody>
+                <tr>
+                  <td style="width:120px; padding:6px 12px; font-size:12px;">Angle</td>
+                  <td style="padding:6px 12px;">{{post_angle}}</td>
+                </tr>
+                <tr>
+                  <td style="padding:6px 12px; font-size:12px;">Ton</td>
+                  <td style="padding:6px 12px;">{{post_tone}}</td>
+                </tr>
+                <tr>
+                  <td style="padding:6px 12px; font-size:12px;">Style caption</td>
+                  <td style="padding:6px 12px;">{{post_caption_style}}</td>
+                </tr>
+                <tr>
+                  <td style="padding:6px 12px; font-size:12px;">Direction visuelle</td>
+                  <td style="padding:6px 12px;">{{post_visual_direction}}</td>
+                </tr>
+                <!-- {{#post_has_compositing}} -->
+                <tr>
+                  <td style="padding:6px 12px; font-size:12px;">Compositing</td>
+                  <td style="padding:6px 12px;"><span class="tag tag-accent-3">{{post_compositing_context}}</span></td>
+                </tr>
+                <!-- {{/post_has_compositing}} -->
+              </tbody>
+            </table>
+          </div>
+          <!-- {{/week_posts}} -->
+        </div>
+      </div>
+      <!-- {{/weeks}} -->
+    </div>
+  </section>
+
+  <!-- ============================================
+       4. CALENDRIER STORIES
+       ============================================ -->
+  <section class="section" id="calendrier-stories" data-accent="3">
+    <div class="container">
+      <div class="section-header reveal">
+        <div class="section-header-top">
+          <div class="section-number">04</div>
+          <div>
+            <h2>Calendrier Stories</h2>
+            <p class="section-header-subtitle">{{total_stories}} stories planifiees. Sortie de l'Agent 3 Planificateur Stories, accumule par phase.</p>
+            <div class="meta-badges">
+              <span class="meta-badge">Agent Stories &middot; GPT-4o</span>
+              <span class="meta-badge">temp 0.8 &middot; 14k tokens</span>
+              <span class="meta-badge">SplitInBatches par phase</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Resume par semaine -->
+      <h3 class="kpi-section-title reveal">Volume par semaine</h3>
+      <div class="reveal" style="margin-bottom:var(--space-2xl); overflow-x:auto;">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Semaine</th>
+              <th>Dates</th>
+              <th>Stories planifiees</th>
+              <th>Interactives</th>
+              <th>Themes dominants</th>
+            </tr>
+          </thead>
+          <tbody>
+            <!-- {{#stories_weeks}} -->
+            <tr>
+              <td>S{{story_week_number}}</td>
+              <td>{{story_week_dates}}</td>
+              <td>{{story_week_count}}</td>
+              <td>{{story_week_interactive}}</td>
+              <td>
+                <!-- {{#story_week_themes}} -->
+                <span class="tag tag-accent-3" style="margin:2px;">{{theme}}</span>
+                <!-- {{/story_week_themes}} -->
+              </td>
+            </tr>
+            <!-- {{/stories_weeks}} -->
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Detail d'une journee type (exemple) -->
+      <h3 class="kpi-section-title reveal">Exemple : journee type</h3>
+      <div class="context-banner reveal">
+        <p><strong style="color:var(--text-primary);">{{example_day_date}} ({{example_day_name}})</strong></p>
+        <p>{{example_day_stories_count}} stories planifiees</p>
+      </div>
+      <div class="steps-grid reveal" style="grid-template-columns: repeat(3, 1fr);">
+        <!-- {{#example_day_stories}} -->
+        <div class="step-card" style="padding:20px;">
+          <div style="display:flex; align-items:center; gap:8px; margin-bottom:8px;">
+            <span class="step-card-number" style="width:24px; height:24px; font-size:11px;">{{story_hour}}</span>
+            <span style="font-family:'Satoshi',sans-serif; font-size:13px; font-weight:600; color:var(--text-primary);">{{story_type}}</span>
+          </div>
+          <p style="font-size:13px; color:var(--text-muted); line-height:1.6;">{{story_description}}</p>
+          <!-- {{#story_is_interactive}} -->
+          <span class="tag tag-accent-4" style="margin-top:8px;">Interactif</span>
+          <!-- {{/story_is_interactive}} -->
+        </div>
+        <!-- {{/example_day_stories}} -->
+      </div>
+
+      @media (max-width: 768px) {
+        .steps-grid[style*="repeat(3"] {
+          grid-template-columns: 1fr !important;
+        }
+      }
+    </div>
+  </section>
+
+  <!-- ============================================
+       5. COHERENCE & VALIDATION
+       ============================================ -->
+  <section class="section section-elevated" id="coherence" data-accent="5">
+    <div class="container">
+      <div class="section-header reveal">
+        <div class="section-header-top">
+          <div class="section-number">05</div>
+          <div>
+            <h2>Coherence &amp; Validation</h2>
+            <p class="section-header-subtitle">Verification automatique : le calendrier genere respecte-t-il les contraintes de la strategie ?</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Checks grid -->
+      <div class="steps-grid reveal" style="grid-template-columns: 1fr;">
+
+        <!-- Distribution piliers -->
+        <div class="step-card" style="padding:16px 24px;">
+          <div style="display:flex; align-items:center; gap:12px;">
+            <span class="status-dot {{distribution_check_dot}}"></span>
+            <span style="font-size:14px; color:var(--text-secondary); flex:1;">Distribution piliers conforme a la strategie (&pm;5%)</span>
+            <span class="tag {{distribution_check_tag}}">{{distribution_check_label}}</span>
+          </div>
+          <!-- {{#distribution_check_detail}} -->
+          <p style="font-size:13px; color:var(--text-subtle); margin-top:8px; padding-left:20px;">{{distribution_check_detail}}</p>
+          <!-- {{/distribution_check_detail}} -->
+        </div>
+
+        <!-- Volume posts -->
+        <div class="step-card" style="padding:16px 24px;">
+          <div style="display:flex; align-items:center; gap:12px;">
+            <span class="status-dot {{volume_posts_check_dot}}"></span>
+            <span style="font-size:14px; color:var(--text-secondary); flex:1;">Volume posts ({{total_posts}} generes vs {{expected_posts}} attendus)</span>
+            <span class="tag {{volume_posts_check_tag}}">{{volume_posts_check_label}}</span>
+          </div>
+        </div>
+
+        <!-- Volume stories -->
+        <div class="step-card" style="padding:16px 24px;">
+          <div style="display:flex; align-items:center; gap:12px;">
+            <span class="status-dot {{volume_stories_check_dot}}"></span>
+            <span style="font-size:14px; color:var(--text-secondary); flex:1;">Volume stories ({{total_stories}} generees vs {{expected_stories}} attendues)</span>
+            <span class="tag {{volume_stories_check_tag}}">{{volume_stories_check_label}}</span>
+          </div>
+        </div>
+
+        <!-- Calendrier hebdo -->
+        <div class="step-card" style="padding:16px 24px;">
+          <div style="display:flex; align-items:center; gap:12px;">
+            <span class="status-dot {{calendar_check_dot}}"></span>
+            <span style="font-size:14px; color:var(--text-secondary); flex:1;">Respect du calendrier hebdomadaire type (jour &rarr; pilier)</span>
+            <span class="tag {{calendar_check_tag}}">{{calendar_check_label}}</span>
+          </div>
+          <!-- {{#calendar_deviations}} -->
+          <p style="font-size:13px; color:var(--text-subtle); margin-top:8px; padding-left:20px;">{{calendar_deviation}}</p>
+          <!-- {{/calendar_deviations}} -->
+        </div>
+
+        <!-- Compositing coherent -->
+        <div class="step-card" style="padding:16px 24px;">
+          <div style="display:flex; align-items:center; gap:12px;">
+            <span class="status-dot {{compositing_check_dot}}"></span>
+            <span style="font-size:14px; color:var(--text-secondary); flex:1;">Slots avec compositing_context ont un asset contexte disponible</span>
+            <span class="tag {{compositing_check_tag}}">{{compositing_check_label}}</span>
+          </div>
+        </div>
+
+        <!-- Pas de repetition theme -->
+        <div class="step-card" style="padding:16px 24px;">
+          <div style="display:flex; align-items:center; gap:12px;">
+            <span class="status-dot {{repetition_check_dot}}"></span>
+            <span style="font-size:14px; color:var(--text-secondary); flex:1;">Aucun theme repete 2 fois consecutive dans le meme pilier</span>
+            <span class="tag {{repetition_check_tag}}">{{repetition_check_label}}</span>
+          </div>
+        </div>
+
+        <!-- Stories interactives -->
+        <div class="step-card" style="padding:16px 24px;">
+          <div style="display:flex; align-items:center; gap:12px;">
+            <span class="status-dot {{interactive_check_dot}}"></span>
+            <span style="font-size:14px; color:var(--text-secondary); flex:1;">Minimum 2 stories interactives par semaine</span>
+            <span class="tag {{interactive_check_tag}}">{{interactive_check_label}}</span>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Bilan -->
+      <div class="flow-row reveal" style="margin-top:var(--space-2xl);">
+        <div class="flow-node" data-accent="1">
+          <p class="flow-node-label">Agent 1</p>
+          <p class="flow-node-title">Stratege</p>
+        </div>
+        <span class="flow-arrow">&#8594;</span>
+        <div class="flow-node" data-accent="2">
+          <p class="flow-node-label">Agent 2</p>
+          <p class="flow-node-title">Posts</p>
+        </div>
+        <span class="flow-arrow">&#8594;</span>
+        <div class="flow-node" data-accent="3">
+          <p class="flow-node-label">Agent 3</p>
+          <p class="flow-node-title">Stories</p>
+        </div>
+        <span class="flow-arrow">&#8594;</span>
+        <div class="flow-node" data-accent="4">
+          <p class="flow-node-label">Resultat</p>
+          <p class="flow-node-title">{{total_slots}} slots</p>
+        </div>
+      </div>
+
+      <p class="flow-text reveal">{{coherence_summary}}</p>
+
+      <!-- Action requise -->
+      <div class="info-box reveal" style="margin-top:var(--space-2xl);">
+        <p class="info-box-label">Prochaine etape</p>
+        <h4>{{next_step_title}}</h4>
+        <p>{{next_step_detail}}</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================
+       FOOTER
+       ============================================ -->
+  <footer class="footer">
+    <div class="container">
+      <p class="footer-brand">Neurolia Social Engine</p>
+      <p class="footer-tagline">Rapport WF01 &mdash; {{campaign_name}} &middot; {{client_name}}</p>
+      <p class="footer-date">{{report_date}} &middot; Confidentiel</p>
+    </div>
+  </footer>
+
+  <script src="report-utils.js"></script>
+</body>
+</html>

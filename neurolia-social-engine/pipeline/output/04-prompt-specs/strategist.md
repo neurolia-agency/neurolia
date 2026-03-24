@@ -1,10 +1,42 @@
-# Agent Strategiste Editorial — Spec Prompt
+# Agents Strategie Editoriale — Spec Prompts (Multi-Agent v2)
 
-Specification complete de l'agent IA qui genere le calendrier editorial d'une campagne (duree flexible).
+Architecture multi-agent v2 pour la generation du calendrier editorial d'une campagne (duree flexible).
+3 agents sequentiels, chacun avec des prompts prompt-engineered (XML tags, chain-of-thought, few-shot, guardrails, quality_checklist).
+
+## Architecture Multi-Agent
+
+| Agent | Code Node | Role | Temp | Max Tokens | Output |
+|-------|-----------|------|------|------------|--------|
+| Agent 1 — Stratege | cd06 → ag07 | Phases, objectifs, intensite, directives | 0.7 | 3k | `strategy_summary` + `campaign_phases[]` |
+| Agent 2 — Planificateur Posts | cd09 → ag10 | Posts feed detailles par phase | 0.85 | 8k | `posts[]` |
+| Agent 3 — Planificateur Stories | cd14 → ag15 | Stories par phase (boucle) | 0.8 | 14k | `stories[]` par phase |
+
+### Methodologie Prompt Engineering (appliquee aux 3 agents)
+
+Chaque prompt (system + user) contient :
+- **`<role>`** : definition du role et perimetre strict
+- **`<rules>`** : regles numerotees, non ambigues
+- **`<constraints>`** : enums autorises, formats de date, guardrails anti-hallucination
+- **`<output_format>`** : schema JSON exact attendu
+- **`<quality_checklist>`** : criteres de verification avant generation
+- **`<thinking>`** : instruction chain-of-thought (raisonnement etape par etape avant le JSON)
+- **`<example>`** : 1 exemple few-shot input/output
+- **Prefill** : termine par "Reponds avec le JSON :"
+
+### Decisions verrouillees
+
+- `hasOutputParser: false` — parsing JSON dans Code nodes de validation (cd08, cd11, cd16)
+- Accumulation stories via `$getWorkflowStaticData('global')` avec reset en cd12
+- Pas de champ `cta` dans editorial_slots (fix cd19)
+- GPT-4o pour les 3 agents
 
 ---
 
-## 1. System Prompt
+> **Note** : Les sections ci-dessous documentent l'ancienne spec single-agent. Les prompts finaux multi-agent sont dans `workflows/wf01-editorial-strategy.json` (Code nodes cd06, cd09, cd14).
+
+---
+
+## 1. System Prompt (ancienne spec — agent unique)
 
 ```
 Tu es un stratege editorial specialise dans les reseaux sociaux (Instagram + Facebook).
@@ -84,9 +116,11 @@ Ton budgetaire : {budget_tone}
 Secteur : {industry}
 Mission : {mission}
 Vision : {vision}
-Valeurs : {values_csv}
+Valeurs :
+{brand_values_formatted}
 Personnalite : {personality}
-Archetype : {archetype}
+Archetype principal : {archetype_principal}
+Archetype secondaire : {archetype_secondaire}
 Ton de voix : {tone_of_voice}
 Vocabulaire a utiliser : {vocabulary_do_csv}
 Vocabulaire interdit : {vocabulary_dont_csv}
@@ -94,6 +128,22 @@ Style visuel : {visual_style}
 Style photo : {photo_style}
 Audience cible : {target_audience}
 Differenciateurs : {differentiators_csv}
+
+## POSITIONNEMENT
+
+Insight cle : {key_insight}
+Promesse de marque : {brand_promise}
+Essence de marque : {brand_essence}
+Tagline : {tagline}
+Discriminateur : {discriminator}
+USPs :
+{usps_formatted}
+Proof points : {proof_points_csv}
+Chiffres cles : {key_figures_csv}
+
+## PERSONAS
+
+{personas_formatted}
 
 ## OBJECTIFS MARQUE (permanents)
 
@@ -691,9 +741,11 @@ ${campaign.brief || 'Pas de brief specifique.'}
 Secteur : ${client.industry || 'Non precise'}
 Mission : ${brand.mission || ''}
 Vision : ${brand.vision || ''}
-Valeurs : ${(brand.values || []).join(', ')}
+Valeurs :
+${(brand.brand_values || []).map(v => typeof v === 'object' ? '- ' + v.name + ' (implique: ' + (v.implique || 'N/A') + ' / exclut: ' + (v.exclut || 'N/A') + ')' : '- ' + v).join('\n')}
 Personnalite : ${brand.personality || ''}
-Archetype : ${brand.archetype || ''}
+Archetype principal : ${(brand.archetype && typeof brand.archetype === 'object' ? brand.archetype.principal : brand.archetype) || ''}
+Archetype secondaire : ${(brand.archetype && typeof brand.archetype === 'object' ? brand.archetype.secondaire : '') || ''}
 Ton de voix : ${brand.tone_of_voice || ''}
 Vocabulaire a utiliser : ${(brand.vocabulary_do || []).join(', ')}
 Vocabulaire interdit : ${(brand.vocabulary_dont || []).join(', ')}
@@ -701,6 +753,22 @@ Style visuel : ${brand.visual_style || ''}
 Style photo : ${brand.photo_style || ''}
 Audience cible : ${brand.target_audience || ''}
 Differenciateurs : ${(brand.differentiators || []).join(', ')}
+
+## POSITIONNEMENT
+
+Insight cle : ${brand.key_insight || ''}
+Promesse de marque : ${brand.brand_promise || ''}
+Essence de marque : ${brand.brand_essence || ''}
+Tagline : ${brand.tagline || ''}
+Discriminateur : ${brand.discriminator || ''}
+USPs :
+${(brand.usps || []).map((u, i) => (i+1) + '. ' + (typeof u === 'object' ? u.title || u.name || JSON.stringify(u) : u)).join('\n')}
+Proof points : ${(brand.proof_points || []).join(', ')}
+Chiffres cles : ${(brand.key_figures || []).join(', ')}
+
+## PERSONAS
+
+${((brand.brand_extended || {}).personas || []).map(p => '- ' + (p.name || '?') + ' (' + (p.type || '?') + ') — Probleme: ' + (p.probleme || '?') + ' — Message cle: ' + (p.message_cle || '?')).join('\n') || 'Pas de personas definis.'}
 
 ## OBJECTIFS MARQUE (permanents)
 
@@ -923,4 +991,5 @@ const { posts, stories, strategy_summary, campaign_phases } = result;
 
 ---
 
-*Reecrit le 2026-03-06 — Refonte campagne (duree flexible, objectifs, phases, intensity_curve)*
+*Reecrit le 2026-03-06 — Refonte campagne (duree flexible, objectifs, phases, intensity_curve) + enrichissement brand (POSITIONNEMENT, PERSONAS, brand_values JSONB, archetype dual)*
+*MAJ 2026-03-07 — Architecture multi-agent v2 (3 agents sequentiels), prompts prompt-engineered (XML, CoT, few-shot, guardrails), deploye MCP*

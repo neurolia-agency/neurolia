@@ -1,333 +1,1170 @@
 {
+  "updatedAt": "2026-03-08T16:39:56.115Z",
+  "createdAt": "2026-03-05T17:51:31.730Z",
   "id": "TG3Pxizh8oWKA3Ab",
   "name": "SE-WF01 — Strategie Editoriale",
+  "description": null,
   "active": false,
-  "settings": {
-    "executionOrder": "v1",
-    "timezone": "Europe/Paris",
-    "saveDataErrorExecution": "all",
-    "saveDataSuccessExecution": "all"
-  },
+  "isArchived": false,
   "nodes": [
     {
+      "parameters": {
+        "content": "## 1. DECLENCHEMENT\nWebhook POST avec client_id + campagne (nom, dates, objectifs, brief).",
+        "height": 120,
+        "width": 280
+      },
       "id": "sn01",
       "name": "Sticky Note",
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
-      "position": [60, 120],
-      "parameters": {
-        "content": "## 1. DECLENCHEMENT\nWebhook POST avec client_id + campagne (nom, dates, objectifs, brief).",
-        "width": 280,
-        "height": 120
-      }
+      "position": [
+        64,
+        128
+      ]
     },
     {
+      "parameters": {
+        "content": "## 2. CHARGEMENT DONNEES\nClient + plateforme de marque + metriques recentes + captions publiees.",
+        "height": 120,
+        "width": 900
+      },
       "id": "sn02",
       "name": "Sticky Note1",
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
-      "position": [340, 120],
-      "parameters": {
-        "content": "## 2. CHARGEMENT DONNEES\nClient + plateforme de marque + metriques recentes + captions publiees.",
-        "width": 900,
-        "height": 120
-      }
+      "position": [
+        352,
+        128
+      ]
     },
     {
+      "parameters": {
+        "content": "## 3. AGENT 1 — STRATEGE\nVision macro : phases, objectifs, intensite, directives thematiques. Ne genere PAS de slots individuels.",
+        "height": 120,
+        "width": 700
+      },
       "id": "sn03",
       "name": "Sticky Note2",
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
-      "position": [1460, 120],
-      "parameters": {
-        "content": "## 3. AGENT IA\nConstruction prompt campagne + Agent Strategiste (GPT-4o) + validation calendrier.",
-        "width": 900,
-        "height": 120
-      }
+      "position": [
+        1472,
+        128
+      ]
     },
     {
+      "parameters": {
+        "content": "## 4. AGENT 2 — PLANIFICATEUR POSTS\nCree les posts feed detailles a partir du plan strategique. Focus variete creative.",
+        "height": 120,
+        "width": 700
+      },
       "id": "sn04",
       "name": "Sticky Note3",
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
-      "position": [2300, 120],
-      "parameters": {
-        "content": "## 4. ENREGISTREMENT\nCreation calendrier + insertion slots par batch + log + reponse webhook.",
-        "width": 1100,
-        "height": 120
-      }
+      "position": [
+        2304,
+        128
+      ]
     },
     {
-      "id": "wh01",
-      "name": "Webhook",
-      "type": "n8n-nodes-base.webhook",
-      "typeVersion": 2.1,
-      "position": [100, 300],
       "parameters": {
-        "httpMethod": "POST",
-        "path": "editorial-strategy",
-        "responseMode": "responseNode",
-        "options": {}
+        "content": "## 5. AGENT 3 — STORIES (BOUCLE)\nGenere les stories phase par phase. Boucle dynamique selon le nombre de phases.",
+        "height": 120,
+        "width": 1200
       },
-      "onError": "continueRegularOutput"
+      "id": "sn05",
+      "name": "Sticky Note4",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        3152,
+        128
+      ]
     },
     {
-      "id": "sb02",
-      "name": "Charger Donnees Client",
-      "type": "n8n-nodes-base.supabase",
-      "typeVersion": 1,
-      "position": [380, 300],
       "parameters": {
-        "resource": "row",
+        "content": "## 6. ASSEMBLAGE\nFusion posts + stories + validation finale croisee.",
+        "height": 120,
+        "width": 300
+      },
+      "id": "sn06",
+      "name": "Sticky Note5",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        4400,
+        128
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## 7. ENREGISTREMENT\nCalendrier + slots en DB + reponse webhook + log.",
+        "height": 120,
+        "width": 1100
+      },
+      "id": "sn07",
+      "name": "Sticky Note6",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        4752,
+        128
+      ]
+    },
+    {
+      "parameters": {
         "operation": "get",
         "tableId": "clients",
         "filters": {
           "conditions": [
-            { "keyName": "id", "keyValue": "={{ $json.body.client_id }}" }
+            {
+              "keyName": "id",
+              "keyValue": "={{ $json.body.client_id }}"
+            }
           ]
         }
       },
+      "id": "sb02",
+      "name": "Charger Donnees Client",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        384,
+        304
+      ],
       "credentials": {
-        "supabaseApi": { "id": "PLACEHOLDER", "name": "Supabase Social Engine" }
+        "supabaseApi": {
+          "id": "3MfRNEiX8JttZZ8Z",
+          "name": "Supabase Neurolia Social"
+        }
       }
     },
     {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "brand_platforms",
+        "returnAll": true,
+        "matchType": "allFilters",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "client_id",
+              "condition": "eq",
+              "keyValue": "={{ $json.id }}"
+            }
+          ]
+        }
+      },
       "id": "sb03",
       "name": "Charger Plateforme Marque",
       "type": "n8n-nodes-base.supabase",
       "typeVersion": 1,
-      "position": [660, 300],
-      "parameters": {
-        "resource": "row",
-        "operation": "getAll",
-        "tableId": "brand_platforms",
-        "returnAll": true,
-        "filterType": "manual",
-        "matchType": "allFilters",
-        "filters": {
-          "conditions": [
-            { "keyName": "client_id", "condition": "eq", "keyValue": "={{ $json.id }}" }
-          ]
-        }
-      },
+      "position": [
+        608,
+        304
+      ],
       "credentials": {
-        "supabaseApi": { "id": "PLACEHOLDER", "name": "Supabase Social Engine" }
+        "supabaseApi": {
+          "id": "3MfRNEiX8JttZZ8Z",
+          "name": "Supabase Neurolia Social"
+        }
       }
     },
     {
+      "parameters": {
+        "jsCode": "const httpRequest = this.helpers.httpRequest;\nconst clientId = $('Charger Donnees Client').first().json.id;\nconst campaign = $('Formater Inputs Campagne').first().json.body.campaign;\nconst SUPABASE_URL = 'PLACEHOLDER_SUPABASE_URL';\nconst SUPABASE_KEY = 'PLACEHOLDER_SUPABASE_KEY';\nconst startDate = new Date(campaign.start_date);\nconst prevEnd = new Date(startDate);\nprevEnd.setDate(prevEnd.getDate() - 1);\nconst prevStart = new Date(prevEnd);\nprevStart.setDate(prevStart.getDate() - 30);\nconst headers = { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` };\nlet metrics = [];\ntry {\n  const response = await httpRequest({\n    method: 'GET',\n    url: `${SUPABASE_URL}/rest/v1/publication_metrics?select=*,publications!inner(client_id,published_at)&publications.client_id=eq.${clientId}&publications.published_at=gte.${prevStart.toISOString().split('T')[0]}&publications.published_at=lte.${prevEnd.toISOString().split('T')[0]}`,\n    headers\n  });\n  metrics = Array.isArray(response) ? response : [];\n} catch (e) {}\nif (metrics.length === 0) return [{ json: { _noData: true } }];\nreturn metrics.map(m => ({ json: m }));"
+      },
       "id": "cd04",
       "name": "Charger Metriques Precedentes",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [940, 300],
-      "parameters": {
-        "mode": "runOnceForAllItems",
-        "jsCode": "// Fetch publication_metrics for the 30 days before campaign start\nconst httpRequest = globalThis.helpers.httpRequest;\nconst clientId = $input.first().json.id;\nconst campaign = $('Webhook').first().json.body.campaign;\n\nconst SUPABASE_URL = 'PLACEHOLDER_SUPABASE_URL';\nconst SUPABASE_KEY = 'PLACEHOLDER_SUPABASE_KEY';\n\nconst startDate = new Date(campaign.start_date);\nconst prevEnd = new Date(startDate);\nprevEnd.setDate(prevEnd.getDate() - 1);\nconst prevStart = new Date(prevEnd);\nprevStart.setDate(prevStart.getDate() - 30);\n\nconst headers = {\n  apikey: SUPABASE_KEY,\n  Authorization: `Bearer ${SUPABASE_KEY}`\n};\n\nlet metrics = [];\ntry {\n  const response = await httpRequest({\n    method: 'GET',\n    url: `${SUPABASE_URL}/rest/v1/publication_metrics?select=*,publications!inner(client_id,published_at)&publications.client_id=eq.${clientId}&publications.published_at=gte.${prevStart.toISOString().split('T')[0]}&publications.published_at=lte.${prevEnd.toISOString().split('T')[0]}`,\n    headers\n  });\n  metrics = Array.isArray(response) ? response : [];\n} catch (e) {\n  // First campaign — no metrics available\n}\n\nif (metrics.length === 0) {\n  return [{ json: { _noData: true } }];\n}\nreturn metrics.map(m => ({ json: m }));"
-      }
+      "position": [
+        1008,
+        304
+      ]
     },
     {
+      "parameters": {
+        "jsCode": "const httpRequest = this.helpers.httpRequest;\nconst clientId = $('Charger Donnees Client').first().json.id;\nconst SUPABASE_URL = 'PLACEHOLDER_SUPABASE_URL';\nconst SUPABASE_KEY = 'PLACEHOLDER_SUPABASE_KEY';\nconst headers = { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` };\nlet captions = [];\ntry {\n  const response = await httpRequest({\n    method: 'GET',\n    url: `${SUPABASE_URL}/rest/v1/content_queue?client_id=eq.${clientId}&status=eq.published&order=created_at.desc&limit=20&select=caption,hashtags,caption_style`,\n    headers\n  });\n  captions = Array.isArray(response) ? response : [];\n} catch (e) {}\nif (captions.length === 0) return [{ json: { _noData: true } }];\nreturn captions.map(c => ({ json: c }));"
+      },
       "id": "cd05",
       "name": "Charger Captions Recentes",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1220, 300],
-      "parameters": {
-        "mode": "runOnceForAllItems",
-        "jsCode": "// Fetch last 20 published captions for anti-repetition\nconst httpRequest = globalThis.helpers.httpRequest;\nconst clientId = $('Charger Donnees Client').first().json.id;\n\nconst SUPABASE_URL = 'PLACEHOLDER_SUPABASE_URL';\nconst SUPABASE_KEY = 'PLACEHOLDER_SUPABASE_KEY';\n\nconst headers = {\n  apikey: SUPABASE_KEY,\n  Authorization: `Bearer ${SUPABASE_KEY}`\n};\n\nlet captions = [];\ntry {\n  const response = await httpRequest({\n    method: 'GET',\n    url: `${SUPABASE_URL}/rest/v1/content_queue?client_id=eq.${clientId}&status=eq.published&order=created_at.desc&limit=20&select=caption,hashtags,caption_style`,\n    headers\n  });\n  captions = Array.isArray(response) ? response : [];\n} catch (e) {\n  // No captions yet\n}\n\nif (captions.length === 0) {\n  return [{ json: { _noData: true } }];\n}\nreturn captions.map(c => ({ json: c }));"
-      }
+      "position": [
+        1232,
+        304
+      ]
     },
     {
+      "parameters": {
+        "jsCode": "const client = $('Charger Donnees Client').first().json;\nconst brand = $('Charger Plateforme Marque').first().json;\nconst metricsItems = $('Charger Metriques Precedentes').all();\nconst campaign = $('Formater Inputs Campagne').first().json.body.campaign;\n\n// Charger strategie client\nconst strategyData = $('Detecter Periode Active').first().json;\nconst strategy = strategyData.strategy;\nconst activePeriod = strategyData.active_period;\nconst hasStrategy = strategyData._strategy_loaded;\n\nconst startDate = new Date(campaign.start_date);\nconst endDate = new Date(campaign.end_date);\nconst campaignDays = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24)) + 1;\nconst weeksCount = Math.ceil(campaignDays / 7);\nconst objectives = campaign.objectives || {};\nconst postsPerWeek = objectives.posts_per_week || 4;\nconst storiesPerDay = objectives.stories_per_day || 6;\nconst postsCount = postsPerWeek * weeksCount;\nconst storiesCount = storiesPerDay * campaignDays;\n\nlet phasesCount;\nif (campaignDays <= 10) phasesCount = 2;\nelse if (campaignDays <= 21) phasesCount = 3;\nelse if (campaignDays <= 45) phasesCount = 4;\nelse phasesCount = 5;\n\nconst intensityCurve = objectives.intensity_curve || 'flat';\n\nlet metricsSummary = 'Premiere campagne \\u2014 pas de metriques.';\nif (metricsItems.length > 0 && !metricsItems[0].json._noData) {\n  const rates = metricsItems.map(m => m.json.engagement_rate).filter(Boolean);\n  const avgRate = rates.length > 0 ? (rates.reduce((a, b) => a + b, 0) / rates.length * 100).toFixed(1) : 'N/A';\n  metricsSummary = `${metricsItems.length} publications, engagement moyen: ${avgRate}%`;\n}\n\nconst keyDatesFormatted = (objectives.key_dates || []).map(kd => `- ${kd.date} : ${kd.label}`).join('\\n') || 'Aucune.';\nconst kpisFormatted = (objectives.kpis || []).map(k => `${k.metric}: ${k.target}`).join(', ') || 'Non definis';\n\nconst curveInstructions = {\n  flat: 'Distribue les posts de maniere uniforme entre les phases.',\n  ramp_up: 'Commence doucement et augmente progressivement. Derniere phase = plus de posts.',\n  peak_middle: 'Faible volume en debut, pic au milieu, retour modere en fin.',\n  front_loaded: 'Volume maximal en premiere phase, puis decroissant.'\n};\n\n// Construire bloc strategie si disponible\nlet strategyBlock = '';\nlet planningRules = '';\nlet pillarDistField = '';\nlet pillarQuality = '';\nlet pillarThinking = '';\n\nif (hasStrategy) {\n  const pillarsXml = (strategy.pillars || []).map(p => {\n    const dialXml = p.creative_dial ? '\\n      <dial>' + JSON.stringify(p.creative_dial) + '</dial>' : '';\n    return '    <pillar name=\"' + p.name + '\" percentage=\"' + p.percentage + '\" posts_month=\"' + p.posts_per_month + '\">\\n' +\n      '      <function>' + (p.function || '') + '</function>\\n' +\n      '      <content_types>' + (p.content_types || []).join(', ') + '</content_types>\\n' +\n      '      <rules>' + (p.rules || []).join(' | ') + '</rules>' + dialXml + '\\n' +\n      '    </pillar>';\n  }).join('\\n');\n\n  let calendarXml = '';\n  if (strategy.weekly_calendar) {\n    calendarXml = Object.entries(strategy.weekly_calendar).map(([day, info]) =>\n      '    <day name=\"' + day + '\" pillar=\"' + info.pillar + '\" format=\"' + info.format + '\" />'\n    ).join('\\n');\n  }\n\n  let periodXml = '';\n  if (activePeriod) {\n    const overridesXml = activePeriod.pillar_overrides\n      ? '\\n    <pillar_overrides>' + JSON.stringify(activePeriod.pillar_overrides) + '</pillar_overrides>'\n      : '';\n    periodXml = '\\n  <active_period number=\"' + activePeriod.number + '\" name=\"' + activePeriod.name + '\">\\n' +\n      '    <mission>' + (activePeriod.mission || '') + '</mission>' + overridesXml + '\\n' +\n      '    <kpis>' + JSON.stringify(activePeriod.kpis || {}) + '</kpis>\\n' +\n      '  </active_period>';\n  }\n\n  strategyBlock = '\\n## STRATEGIE INSTAGRAM\\n<content_strategy>\\n' +\n    '  <role>' + (strategy.role_statement || '') + '</role>\\n' +\n    '  <positioning>' + (strategy.positioning_summary || '') + '</positioning>\\n\\n' +\n    '  <pillars>\\n' + pillarsXml + '\\n  </pillars>\\n\\n' +\n    '  <weekly_calendar>\\n' + calendarXml + '\\n  </weekly_calendar>' +\n    periodXml + '\\n</content_strategy>';\n\n  planningRules = '\\n<planning_rules>\\n' +\n    '1. Tu NE REINVENTES PAS les piliers \\u2014 utilise ceux definis dans <pillars>.\\n' +\n    '2. Respecte la distribution % de chaque pilier (tolerance +-5%).\\n' +\n    '3. Si la periode active a des pillar_overrides, utilise CES pourcentages a la place des pourcentages par defaut.\\n' +\n    '4. Respecte le mapping jour \\u2192 pilier du <weekly_calendar>.\\n' +\n    '5. Chaque phase doit inclure un champ \"pillar_distribution\" avec le % par pilier pour cette phase.\\n' +\n    '6. Les KPIs de la periode active sont tes objectifs.\\n' +\n    '</planning_rules>\\n';\n\n  pillarDistField = ',\\n      \"pillar_distribution\": { \"nom_pilier\": \"pourcentage\" }';\n  pillarQuality = '\\n- pillar_distribution par phase respecte les % definis (tolerance +-5%)\\n- Les piliers sont issus de <pillars> \\u2014 aucun pilier invente';\n  pillarThinking = '\\n7. Distribue les piliers selon les % definis (ou pillar_overrides de la periode active).';\n}\n\nconst systemPrompt = `<role>\nTu es un stratege de campagne specialise reseaux sociaux (Instagram + Facebook).\nTu concois l'architecture macro d'une campagne : phases temporelles, objectifs par phase, intensite, directives thematiques.\nTu ne generes PAS de posts ni de stories individuels \\u2014 uniquement le plan directeur en ${phasesCount} phases.\n</role>\n\n<rules>\n1. Reponds UNIQUEMENT en JSON valide. Aucun texte, commentaire ou explication avant ou apres le JSON.\n2. Genere exactement ${phasesCount} phases coherentes couvrant la totalite de la periode [${campaign.start_date}, ${campaign.end_date}].\n3. Les phases doivent etre contigues sans trou ni chevauchement.\n4. Courbe d'intensite : \"${intensityCurve}\". ${curveInstructions[intensityCurve] || curveInstructions.flat}\n5. posts_target total des phases = exactement ${postsCount}.\n6. stories_per_day adapte a l'intensite de chaque phase (moyenne globale ~${storiesPerDay}/jour).\n7. Chaque date cle doit tomber dans une phase avec une directive specifique dans key_date_directives.\n8. Transitions fluides : le ton et l'objectif de chaque phase doivent s'enchainer naturellement.\n</rules>\n${planningRules}\n<constraints>\nVALEURS AUTORISEES \\u2014 toute autre valeur invalide le JSON :\n- intensity : \"low\", \"medium\", \"high\" (strictement ces 3 valeurs)\n- categories_focus : \"produit\", \"coulisses\", \"equipe\", \"engagement\", \"saisonnier\", \"educatif\", \"temoignage\", \"ambiance\"\n- Toutes les dates au format YYYY-MM-DD, dans la plage [${campaign.start_date}, ${campaign.end_date}]\n- Ne genere JAMAIS de texte avant ou apres le bloc JSON\n</constraints>\n\n<output_format>\n{\n  \"strategy_summary\": \"Resume strategie 2-3 phrases, specifique au client\",\n  \"campaign_phases\": [\n    {\n      \"name\": \"nom evocateur\",\n      \"start_date\": \"YYYY-MM-DD\",\n      \"end_date\": \"YYYY-MM-DD\",\n      \"objective\": \"objectif clair\",\n      \"tone\": \"ton dominant\",\n      \"intensity\": \"low|medium|high\",\n      \"themes_priority\": [\"theme1\", \"theme2\"],\n      \"categories_focus\": [\"categorie1\", \"categorie2\"],\n      \"posts_target\": 0,\n      \"stories_per_day\": 0,\n      \"key_date_directives\": [{ \"date\": \"YYYY-MM-DD\", \"label\": \"string\", \"directive\": \"string\" }]${pillarDistField}\n    }\n  ]\n}\n</output_format>\n\n<quality_checklist>\nAvant de finaliser, verifie :\n- Nombre de phases = ${phasesCount}\n- Dates couvrent [${campaign.start_date}, ${campaign.end_date}] sans trou\n- Somme posts_target = ${postsCount}\n- Chaque date cle a une directive\n- Intensite suit la courbe \"${intensityCurve}\"\n- categories_focus varient entre les phases\n- strategy_summary mentionne le client et son secteur${pillarQuality}\n</quality_checklist>`;\n\nconst userPrompt = `# BRIEF CAMPAGNE \\u2014 ${client.name}\n\nCampagne : ${campaign.name}\nPeriode : ${campaign.start_date} au ${campaign.end_date} (${campaignDays} jours, ${weeksCount} semaines)\nObjectif : ${objectives.primary_goal || 'engagement'} \\u2014 ${objectives.description || ''}\nKPIs : ${kpisFormatted}\nCourbe : ${intensityCurve}\nVolume prevu : ${postsCount} posts (${postsPerWeek}/sem) + ${storiesCount} stories (${storiesPerDay}/jour)\n\n### Dates cles\n${keyDatesFormatted}\n\n### Themes imposes\n${(objectives.themes_imposed || []).join(', ') || 'Aucun'}\n\n### Brief client\n${campaign.brief || 'Pas de brief specifique.'}\n\n## MARQUE\nSecteur : ${client.industry || '?'}\nMission : ${brand.mission || ''}\nValeurs : ${(brand.brand_values || []).map(v => typeof v === 'object' ? v.name : v).join(', ')}\nPersonnalite : ${brand.personality || ''}\nTon : ${brand.tone_of_voice || ''}\nAudience : ${brand.target_audience || ''}\nEssence : ${brand.brand_essence || ''}\nPromesse : ${brand.brand_promise || ''}\n${strategyBlock}\n\n## METRIQUES RECENTES\n${metricsSummary}\n\n<thinking>\nAvant de generer le JSON, raisonne etape par etape :\n1. Analyse la duree (${campaignDays} jours) et identifie les temps forts naturels.\n2. Place les dates cles et determine quelles phases les encadrent.\n3. Definis ${phasesCount} phases avec objectifs distincts et transitions logiques.\n4. Distribue les ${postsCount} posts selon la courbe \"${intensityCurve}\".\n5. Ajuste stories_per_day par phase (low=moins, high=plus, moyenne ~${storiesPerDay}).\n6. Verifie : posts_target total = ${postsCount} exactement.${pillarThinking}\nNe montre PAS ce raisonnement \\u2014 genere uniquement le JSON.\n</thinking>\n\nReponds avec le JSON :`;\n\nreturn [{\n  json: {\n    systemPrompt,\n    userPrompt,\n    postsCount,\n    storiesCount,\n    storiesPerDay,\n    campaignDays,\n    weeksCount,\n    campaignStartDate: campaign.start_date,\n    campaignEndDate: campaign.end_date,\n    campaignName: campaign.name,\n    campaignObjectives: objectives,\n    campaignBrief: campaign.brief || '',\n    keyDates: objectives.key_dates || [],\n    intensityCurve,\n    phasesCount,\n    _hasStrategy: hasStrategy,\n    _strategy: hasStrategy ? strategy : null,\n    _activePeriod: activePeriod\n  }\n}];"
+      },
       "id": "cd06",
       "name": "Construire Prompt Strategie",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1500, 300],
-      "parameters": {
-        "mode": "runOnceForAllItems",
-        "jsCode": "// See strategist.md section 9 for full prompt assembly logic\n// This node assembles systemPrompt + userPrompt from brand platform, campaign objectives, metrics, and captions\n\nconst client = $('Charger Donnees Client').first().json;\nconst brand = $('Charger Plateforme Marque').first().json;\nconst metricsItems = $('Charger Metriques Precedentes').all();\nconst captionsItems = $('Charger Captions Recentes').all();\n\n// Campagne\nconst campaign = $('Webhook').first().json.body.campaign;\nconst startDate = new Date(campaign.start_date);\nconst endDate = new Date(campaign.end_date);\nconst campaignDays = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24)) + 1;\nconst weeksCount = Math.ceil(campaignDays / 7);\n\nconst objectives = campaign.objectives || {};\nconst postsPerWeek = objectives.posts_per_week || 4;\nconst storiesPerDay = objectives.stories_per_day || 6;\nconst postsCount = postsPerWeek * weeksCount;\nconst storiesCount = storiesPerDay * campaignDays;\nconst totalSlots = postsCount + storiesCount;\n\n// Nombre de phases\nlet phasesCount;\nif (campaignDays <= 10) phasesCount = 2;\nelse if (campaignDays <= 21) phasesCount = 3;\nelse if (campaignDays <= 45) phasesCount = 4;\nelse phasesCount = 5;\n\n// Courbe d'intensite\nconst intensityCurve = objectives.intensity_curve || 'flat';\nconst curveInstructions = {\n  flat: 'Distribue les posts de maniere uniforme entre les phases.',\n  ramp_up: 'Commence doucement (peu de posts en phase 1) et augmente progressivement. La derniere phase doit avoir le plus de posts.',\n  peak_middle: 'Faible volume en debut, pic au milieu de la campagne, puis retour a un volume modere.',\n  front_loaded: 'Volume maximal des la premiere phase, puis decroissant progressivement.'\n};\n\n// Key dates\nconst keyDatesFormatted = (objectives.key_dates || [])\n  .map(kd => `- ${kd.date} : ${kd.label}`)\n  .join('\\n') || 'Aucune date cle.';\n\n// KPIs\nconst kpisFormatted = (objectives.kpis || [])\n  .map(k => `${k.metric}: ${k.target}`)\n  .join(', ') || 'Non definis';\n\n// Metriques precedentes\nlet metricsSummary = 'Pas de metriques disponibles (premiere campagne).';\nif (metricsItems.length > 0 && !metricsItems[0].json._noData) {\n  const rates = metricsItems.map(m => m.json.engagement_rate).filter(Boolean);\n  const avgRate = rates.length > 0\n    ? (rates.reduce((a, b) => a + b, 0) / rates.length * 100).toFixed(1)\n    : 'N/A';\n  metricsSummary = `Publications recentes : ${metricsItems.length}\\nEngagement moyen : ${avgRate}%`;\n}\n\n// Captions recentes\nconst recentCaptions = captionsItems\n  .filter(c => !c.json._noData)\n  .map((c, i) => `${i + 1}. [${c.json.caption_style || '?'}] ${(c.json.caption || '').substring(0, 120)}`)\n  .join('\\n');\n\n// User prompt\nconst userPrompt = `# BRIEF CAMPAGNE — ${client.name}\\n\\n## CAMPAGNE : ${campaign.name}\\n\\nPeriode : du ${campaign.start_date} au ${campaign.end_date} (${campaignDays} jours, ${weeksCount} semaines)\\nObjectif principal : ${objectives.primary_goal || 'engagement'} — ${objectives.description || ''}\\nKPIs cibles : ${kpisFormatted}\\nCourbe d'intensite : ${intensityCurve}\\nTon budgetaire : ${objectives.budget_tone || 'standard'}\\n\\n### Dates cles\\n${keyDatesFormatted}\\n\\n### Themes imposes\\n${(objectives.themes_imposed || []).join(', ') || 'Aucun'}\\n\\n### Brief client\\n${campaign.brief || 'Pas de brief specifique.'}\\n\\n## IDENTITE DE MARQUE\\n\\nSecteur : ${client.industry || 'Non precise'}\\nMission : ${brand.mission || ''}\\nVision : ${brand.vision || ''}\\nValeurs : ${(brand.values || []).join(', ')}\\nPersonnalite : ${brand.personality || ''}\\nArchetype : ${brand.archetype || ''}\\nTon de voix : ${brand.tone_of_voice || ''}\\nVocabulaire a utiliser : ${(brand.vocabulary_do || []).join(', ')}\\nVocabulaire interdit : ${(brand.vocabulary_dont || []).join(', ')}\\nStyle visuel : ${brand.visual_style || ''}\\nStyle photo : ${brand.photo_style || ''}\\nAudience cible : ${brand.target_audience || ''}\\nDifferenciateurs : ${(brand.differentiators || []).join(', ')}\\n\\n## OBJECTIFS MARQUE (permanents)\\n\\nObjectif principal marque : ${brand.objectives_primary || ''}\\nObjectifs secondaires : ${(brand.objectives_secondary || []).join(', ')}\\nKPIs marque : ${(brand.kpis || []).join(', ')}\\n\\n## METRIQUES RECENTES (30 derniers jours)\\n\\n${metricsSummary}\\n\\n## CAPTIONS RECENTES (anti-repetition)\\n\\n${recentCaptions || 'Aucune caption publiee encore.'}\\n\\n## VOLUME DEMANDE\\n\\n- Phases : ${phasesCount} phases (adapte a ${campaignDays} jours)\\n- Posts feed : ${postsCount} posts (${postsPerWeek}/semaine x ${weeksCount} semaines)\\n- Stories : ${storiesCount} stories (${storiesPerDay}/jour x ${campaignDays} jours)\\n- Total : ${totalSlots} slots\\n\\n## INSTRUCTIONS INTENSITE\\n\\n${curveInstructions[intensityCurve] || curveInstructions.flat}\\n\\n## FORMAT DE SORTIE\\n\\nReponds avec un JSON respectant EXACTEMENT ce schema (pas de texte autour) :\\n\\n{\\n  \"strategy_summary\": \"string\",\\n  \"campaign_phases\": [{ \"name\": \"string\", \"start_date\": \"YYYY-MM-DD\", \"end_date\": \"YYYY-MM-DD\", \"objective\": \"string\", \"tone\": \"string\", \"intensity\": \"low|medium|high\" }],\\n  \"posts\": [{ \"scheduled_date\": \"YYYY-MM-DD\", \"scheduled_time\": \"HH:MM\", \"phase\": \"string\", \"category\": \"enum\", \"theme\": \"string\", \"angle\": \"string\", \"tone\": \"string\", \"caption_style\": \"enum\", \"objective\": \"enum\", \"visual_direction\": \"string\", \"sublimation_mode\": \"creative\", \"cta\": \"string\", \"is_key_date\": false }],\\n  \"stories\": [{ \"scheduled_date\": \"YYYY-MM-DD\", \"scheduled_time\": \"HH:MM\", \"phase\": \"string\", \"category\": \"enum\", \"theme\": \"string\", \"angle\": \"string\", \"tone\": \"string\", \"caption_style\": \"enum\", \"objective\": \"enum\", \"visual_direction\": \"string\", \"sublimation_mode\": \"light\", \"story_text\": \"string (max 60 chars)\", \"source_slot_ref\": \"null | index post\", \"cta\": \"string\" }]\\n}\\n\\nEnums valides :\\n- category : produit, coulisses, equipe, engagement, saisonnier, educatif, temoignage, ambiance\\n- caption_style : question_directe, storytelling_court, factuel, exclamatif, conseil, citation, liste, teaser\\n- objective : engagement, conversion, notoriete, fidelisation\\n- intensity : low, medium, high`;\n\n// System prompt\nconst systemPrompt = `Tu es un stratege editorial specialise dans les reseaux sociaux (Instagram + Facebook).\\nTu produis des calendriers de contenu pour des campagnes de duree variable, structures en phases, varies et alignes avec la marque et les objectifs.\\n\\nREGLES ABSOLUES :\\n- Tu reponds UNIQUEMENT en JSON valide, sans texte avant ni apres.\\n- Le JSON doit respecter exactement le schema fourni.\\n- Tu structures la campagne en exactement ${phasesCount} phases coherentes.\\n- Tu adaptes l'intensite selon la courbe \"${intensityCurve}\".\\n- Tu places des contenus strategiques sur les dates cles.\\n- Tu ne repetes jamais deux themes identiques sur la meme semaine.\\n- Tu distribues les categories de maniere equilibree.\\n- Tu alternes les caption_styles pour eviter la monotonie.\\n- Tu assignes des heures de publication optimales.\\n- Tu crees des liens logiques entre posts et stories du meme jour (source_slot_ref).\\n- Tu respectes les objectifs de la campagne.\\n- Tu tiens compte des metriques recentes.\\n\\nCONTRAINTES DE VOLUME :\\n- Posts feed : exactement ${postsCount}\\n- Stories : exactement ${storiesCount}\\n- Total : ${totalSlots} slots\\n- Duree : ${campaignDays} jours (du ${campaign.start_date} au ${campaign.end_date})\\n\\nCONTRAINTES DE VARIETE :\\n- Chaque content_category au moins 1 fois${campaignDays >= 14 ? ' par semaine' : ' dans la campagne'} (posts).\\n- Aucun caption_style > 25% des posts.\\n- Pas 2 posts consecutifs meme angle.\\n- Pas plus de 3 posts consecutifs meme objectif.\\n- Stories d'un meme jour = progression narrative.\\n\\nDATES CLES :\\n- Chaque date cle DOIT avoir au moins 1 post dedie.\\n- Les posts des dates cles doivent avoir is_key_date: true.\\n\\nHEURES DE PUBLICATION :\\n- Posts : 11:30-13:00 ou 18:00-20:00\\n- Stories : 08:00-22:00, espacees d'au moins 1h30`;\n\nreturn [{\n  json: {\n    systemPrompt,\n    userPrompt,\n    postsCount,\n    storiesCount,\n    totalSlots,\n    campaignDays,\n    campaignStartDate: campaign.start_date,\n    campaignEndDate: campaign.end_date,\n    campaignName: campaign.name,\n    campaignObjectives: objectives,\n    campaignBrief: campaign.brief || '',\n    keyDates: objectives.key_dates || [],\n    intensityCurve,\n    phasesCount,\n    model: 'gpt-4o'\n  }\n}];"
-      }
+      "position": [
+        1504,
+        304
+      ]
     },
     {
-      "id": "ag07",
-      "name": "Agent Strategiste",
-      "type": "@n8n/n8n-nodes-langchain.agent",
-      "typeVersion": 3.1,
-      "position": [1780, 300],
       "parameters": {
         "promptType": "define",
         "text": "={{ $json.userPrompt }}",
-        "hasOutputParser": true,
         "options": {
           "systemMessage": "={{ $json.systemPrompt }}",
           "maxIterations": 3
         }
-      }
+      },
+      "id": "ag07",
+      "name": "Agent Stratege",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        1792,
+        304
+      ]
     },
     {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "id",
+          "value": "gpt-4o"
+        },
+        "builtInTools": {},
+        "options": {
+          "maxTokens": 3000,
+          "temperature": 0.7
+        }
+      },
       "id": "lm07a",
-      "name": "Modele OpenAI — Strategiste",
+      "name": "Modele OpenAI — Stratege",
       "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
       "typeVersion": 1.3,
-      "position": [1680, 540],
-      "parameters": {
-        "model": { "__rl": true, "mode": "id", "value": "gpt-4o" },
-        "options": { "temperature": 0.8, "maxTokens": 16000 }
-      },
+      "position": [
+        1680,
+        544
+      ],
       "credentials": {
-        "openAiApi": { "id": "PLACEHOLDER", "name": "OpenAI" }
+        "openAiApi": {
+          "id": "PLACEHOLDER",
+          "name": "OpenAI"
+        }
       }
     },
     {
-      "id": "op07b",
-      "name": "Parseur Sortie — Calendrier",
-      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
-      "typeVersion": 1.3,
-      "position": [1880, 540],
       "parameters": {
-        "schemaType": "fromJson",
-        "jsonSchemaExample": "{\n  \"strategy_summary\": \"Resume strategie de la campagne\",\n  \"campaign_phases\": [\n    {\n      \"name\": \"Teasing\",\n      \"start_date\": \"2026-04-01\",\n      \"end_date\": \"2026-04-09\",\n      \"objective\": \"Creer anticipation\",\n      \"tone\": \"mysterieux\",\n      \"intensity\": \"low\"\n    }\n  ],\n  \"posts\": [\n    {\n      \"scheduled_date\": \"2026-04-01\",\n      \"scheduled_time\": \"12:00\",\n      \"phase\": \"Teasing\",\n      \"category\": \"produit\",\n      \"theme\": \"Sujet du post\",\n      \"angle\": \"angle_approche\",\n      \"tone\": \"chaleureux\",\n      \"caption_style\": \"storytelling_court\",\n      \"objective\": \"engagement\",\n      \"visual_direction\": \"Description direction visuelle\",\n      \"sublimation_mode\": \"creative\",\n      \"cta\": \"Call to action\",\n      \"is_key_date\": false\n    }\n  ],\n  \"stories\": [\n    {\n      \"scheduled_date\": \"2026-04-01\",\n      \"scheduled_time\": \"08:30\",\n      \"phase\": \"Teasing\",\n      \"category\": \"coulisses\",\n      \"theme\": \"Sujet story\",\n      \"angle\": \"angle_court\",\n      \"tone\": \"decontracte\",\n      \"caption_style\": \"exclamatif\",\n      \"objective\": \"fidelisation\",\n      \"visual_direction\": \"Direction visuelle legere\",\n      \"sublimation_mode\": \"light\",\n      \"story_text\": \"Texte court max 60 chars\",\n      \"source_slot_ref\": null,\n      \"cta\": \"CTA story\"\n    }\n  ]\n}",
-        "autoFix": true
-      }
-    },
-    {
+        "jsCode": "const rawOutput = $json.output;\nlet parsed;\nif (typeof rawOutput === 'object' && rawOutput !== null) {\n  parsed = rawOutput;\n} else {\n  try {\n    const cleaned = String(rawOutput).replace(/```json\\n?/g, '').replace(/```\\n?/g, '').trim();\n    parsed = JSON.parse(cleaned);\n  } catch (e) {\n    throw new Error('Agent Stratege: JSON invalide — ' + e.message);\n  }\n}\n\nconst { strategy_summary, campaign_phases } = parsed;\nconst meta = $('Construire Prompt Strategie').first().json;\nconst errors = [];\n\nif (!campaign_phases || campaign_phases.length !== meta.phasesCount) {\n  errors.push(`Attendu ${meta.phasesCount} phases, recu ${campaign_phases ? campaign_phases.length : 0}`);\n}\n\nif (campaign_phases && campaign_phases.length > 0) {\n  const sorted = [...campaign_phases].sort((a, b) => new Date(a.start_date) - new Date(b.start_date));\n  if (new Date(sorted[0].start_date) > new Date(meta.campaignStartDate)) errors.push('Trou avant premiere phase');\n  if (new Date(sorted[sorted.length - 1].end_date) < new Date(meta.campaignEndDate)) errors.push('Trou apres derniere phase');\n\n  const totalPostsTarget = campaign_phases.reduce((sum, p) => sum + (p.posts_target || 0), 0);\n  if (totalPostsTarget !== meta.postsCount) {\n    errors.push(`posts_target total ${totalPostsTarget} != attendu ${meta.postsCount}`);\n  }\n\n  (meta.keyDates || []).forEach(kd => {\n    const inPhase = campaign_phases.some(p => {\n      const ps = new Date(p.start_date), pe = new Date(p.end_date), kdd = new Date(kd.date);\n      return kdd >= ps && kdd <= pe;\n    });\n    if (!inPhase) errors.push(`Date cle ${kd.date} hors phases`);\n  });\n}\n\nif (errors.length > 0) {\n  throw new Error('Validation phases echouee:\\n' + errors.join('\\n'));\n}\n\nreturn [{\n  json: {\n    strategy_summary,\n    campaign_phases,\n    ...meta\n  }\n}];"
+      },
       "id": "cd08",
-      "name": "Valider Calendrier",
+      "name": "Valider Phases",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [2060, 300],
+      "position": [
+        2064,
+        304
+      ]
+    },
+    {
       "parameters": {
-        "mode": "runOnceForAllItems",
-        "jsCode": "// See strategist.md section 4 for full validation logic\nconst result = $json.output;\nconst { posts, stories, strategy_summary, campaign_phases } = result;\nconst postsCount = $('Construire Prompt Strategie').first().json.postsCount;\nconst storiesCount = $('Construire Prompt Strategie').first().json.storiesCount;\nconst campaignStartDate = $('Construire Prompt Strategie').first().json.campaignStartDate;\nconst campaignEndDate = $('Construire Prompt Strategie').first().json.campaignEndDate;\nconst keyDates = $('Construire Prompt Strategie').first().json.keyDates;\nconst campaignDays = $('Construire Prompt Strategie').first().json.campaignDays;\n\nconst errors = [];\nconst startDate = new Date(campaignStartDate);\nconst endDate = new Date(campaignEndDate);\n\n// 1. Dates dans la plage\nposts.forEach((p, idx) => {\n  const d = new Date(p.scheduled_date);\n  if (d < startDate || d > endDate) {\n    errors.push(`Post ${idx}: date ${p.scheduled_date} hors campagne`);\n  }\n});\nstories.forEach((s, idx) => {\n  const d = new Date(s.scheduled_date);\n  if (d < startDate || d > endDate) {\n    errors.push(`Story ${idx}: date ${s.scheduled_date} hors campagne`);\n  }\n});\n\n// 2. Key dates couvertes\n(keyDates || []).forEach(kd => {\n  const hasPost = posts.some(p => p.scheduled_date === kd.date);\n  if (!hasPost) {\n    errors.push(`Key date ${kd.date} (${kd.label}) n'a aucun post`);\n  }\n});\n\n// 3. Phases valides\nconst phaseNames = campaign_phases.map(p => p.name);\nposts.forEach((p, idx) => {\n  if (!phaseNames.includes(p.phase)) {\n    errors.push(`Post ${idx}: phase '${p.phase}' inexistante`);\n  }\n});\n\n// 4. Pas plus de 3 posts consecutifs meme categorie\nfor (let i = 0; i < posts.length - 2; i++) {\n  if (posts[i].category === posts[i+1].category && posts[i+1].category === posts[i+2].category) {\n    errors.push(`3 posts consecutifs categorie '${posts[i].category}' a partir du ${posts[i].scheduled_date}`);\n  }\n}\n\n// 5. caption_style < 25%\nconst styleCounts = {};\nposts.forEach(p => { styleCounts[p.caption_style] = (styleCounts[p.caption_style] || 0) + 1; });\nconst maxAllowed = Math.ceil(posts.length * 0.25);\nfor (const [style, count] of Object.entries(styleCounts)) {\n  if (count > maxAllowed) {\n    errors.push(`caption_style '${style}' utilise ${count} fois (max ${maxAllowed})`);\n  }\n}\n\n// 6. story_text <= 60 chars\nstories.forEach((s, idx) => {\n  if (s.story_text && s.story_text.length > 60) {\n    errors.push(`Story ${idx}: story_text ${s.story_text.length} chars (max 60)`);\n  }\n});\n\n// 7. source_slot_ref valide\nstories.forEach((s, idx) => {\n  if (s.source_slot_ref !== null && (s.source_slot_ref < 0 || s.source_slot_ref >= posts.length)) {\n    errors.push(`Story ${idx}: source_slot_ref=${s.source_slot_ref} hors range`);\n  }\n});\n\n// 8. Volume\nif (posts.length !== postsCount) {\n  errors.push(`Attendu ${postsCount} posts, recu ${posts.length}`);\n}\nif (stories.length !== storiesCount) {\n  errors.push(`Attendu ${storiesCount} stories, recu ${stories.length}`);\n}\n\n// 9. Stories espacees >= 90 min\nconst storiesByDay = {};\nstories.forEach(s => {\n  if (!storiesByDay[s.scheduled_date]) storiesByDay[s.scheduled_date] = [];\n  storiesByDay[s.scheduled_date].push(s.scheduled_time);\n});\nfor (const [date, times] of Object.entries(storiesByDay)) {\n  times.sort();\n  for (let i = 0; i < times.length - 1; i++) {\n    const [h1, m1] = times[i].split(':').map(Number);\n    const [h2, m2] = times[i+1].split(':').map(Number);\n    const diffMin = (h2 * 60 + m2) - (h1 * 60 + m1);\n    if (diffMin < 90) {\n      errors.push(`Stories trop proches le ${date}: ${times[i]} et ${times[i+1]}`);\n    }\n  }\n}\n\nif (errors.length > 0) {\n  throw new Error('Validation echouee:\\n' + errors.join('\\n'));\n}\n\nreturn [{\n  json: {\n    ...result,\n    postsCount: posts.length,\n    storiesCount: stories.length,\n    totalSlots: posts.length + stories.length,\n    campaignDays,\n    campaignStartDate,\n    campaignEndDate,\n    campaignName: $('Construire Prompt Strategie').first().json.campaignName,\n    campaignObjectives: $('Construire Prompt Strategie').first().json.campaignObjectives,\n    campaignBrief: $('Construire Prompt Strategie').first().json.campaignBrief\n  }\n}];"
+        "jsCode": "const meta = $('Valider Phases').first().json;\nconst brand = $('Charger Plateforme Marque').first().json;\nconst client = $('Charger Donnees Client').first().json;\nconst captionsItems = $('Charger Captions Recentes').all();\n\n// Strategie client\nconst strategyData = $('Detecter Periode Active').first().json;\nconst strategy = strategyData.strategy;\nconst hasStrategy = strategyData._strategy_loaded;\n\nconst catalogueItems = $('Charger Catalogue Contexte').all();\nlet catalogueSummary = '';\nif (catalogueItems.length > 0 && catalogueItems[0].json && catalogueItems[0].json.name) {\n  catalogueSummary = catalogueItems\n    .filter(c => c.json.name)\n    .map(c => {\n      const m = typeof c.json.metadata === 'string' ? JSON.parse(c.json.metadata) : (c.json.metadata || {});\n      return '- ' + c.json.name + ': ' + (m.description || '(pas de description)') + ' [' + (m.tags || []).join(', ') + ']';\n    })\n    .join('\\n');\n}\nconst hasContextCatalogue = catalogueSummary.length > 0;\n\nconst recentCaptions = captionsItems\n  .filter(c => !c.json._noData)\n  .map((c, i) => `${i + 1}. [${c.json.caption_style || '?'}] ${(c.json.caption || '').substring(0, 120)}`)\n  .join('\\n');\n\nconst phasesContext = meta.campaign_phases.map(p =>\n  `### ${p.name} (${p.start_date} > ${p.end_date}) \\u2014 ${p.intensity}\\nObjectif : ${p.objective}\\nTon : ${p.tone}\\nThemes : ${(p.themes_priority || []).join(', ')}\\nCategories : ${(p.categories_focus || []).join(', ')}\\nPosts a creer : ${p.posts_target}${p.pillar_distribution ? '\\nDistribution piliers : ' + JSON.stringify(p.pillar_distribution) : ''}\\n${(p.key_date_directives || []).map(kd => `DATE CLE ${kd.date} : ${kd.directive}`).join('\\n')}`\n).join('\\n\\n');\n\nconst maxStyleCount = Math.ceil(meta.postsCount * 0.25);\n\n// Construire bloc piliers et caption_rules\nlet pillarContextBlock = '';\nlet captionRulesBlock = '';\nlet pillarRule = '';\nlet pillarOutputField = '';\n\nif (hasStrategy) {\n  // Piliers editoriaux\n  pillarContextBlock = '## PILIERS EDITORIAUX\\n<pillar_definitions>\\n' +\n    (strategy.pillars || []).map(p => {\n      const dialXml = p.creative_dial ? '\\n  <creative_dial>' + JSON.stringify(p.creative_dial) + '</creative_dial>' : '';\n      return '<pillar_context pillar=\"' + p.name + '\">\\n' +\n        '  <allowed_content_types>' + (p.content_types || []).join(', ') + '</allowed_content_types>\\n' +\n        '  <pillar_rules>' + (p.rules || []).join(' | ') + '</pillar_rules>' + dialXml + '\\n' +\n        '</pillar_context>';\n    }).join('\\n') + '\\n</pillar_definitions>\\n';\n\n  // Calendar mapping\n  if (strategy.weekly_calendar) {\n    pillarContextBlock += '\\n<weekly_calendar>\\n' +\n      Object.entries(strategy.weekly_calendar).map(([day, info]) =>\n        '  <day name=\"' + day + '\" pillar=\"' + info.pillar + '\" format=\"' + info.format + '\" />'\n      ).join('\\n') + '\\n</weekly_calendar>\\n';\n  }\n\n  // Caption rules\n  const cr = strategy.caption_rules;\n  if (cr) {\n    captionRulesBlock = '## REGLES CAPTIONS\\n<caption_rules>\\n' +\n      '  <hook>Premiere ligne = hook visible avant \"...voir plus\"</hook>\\n' +\n      (cr.food_length ? '  <length_guide pillar=\"food\">' + cr.food_length + '</length_guide>\\n' : '') +\n      (cr.education_length ? '  <length_guide pillar=\"education\">' + cr.education_length + '</length_guide>\\n' : '') +\n      (cr.hashtags_count ? '  <hashtags>' + cr.hashtags_count + ' hashtags, mix : ' + (cr.hashtags_mix || []).join(', ') + '</hashtags>\\n' : '') +\n      (cr.emoji_usage ? '  <emoji>' + cr.emoji_usage + '</emoji>\\n' : '') +\n      '</caption_rules>\\n';\n  }\n\n  pillarRule = '\\n9. Assigne un pilier a chaque post. Utilise le <weekly_calendar> pour determiner le pilier du jour, et respecte la pillar_distribution de chaque phase.';\n  pillarOutputField = ',\\n      \"pillar\": \"nom du pilier (depuis <pillar_definitions>)\"';\n}\n\nconst systemPrompt = `<role>\nTu es un planificateur de contenu feed (posts Instagram + Facebook).\nTu recois un plan de campagne par phases et tu crees les posts detailles pour chaque phase.\nTu excelles dans la variete creative : themes originaux, angles differents, visual_direction riches et evocatrices.\n</role>\n\n<rules>\n1. Reponds UNIQUEMENT en JSON valide. Aucun texte avant ou apres le JSON.\n2. Genere exactement ${meta.postsCount} posts au total.\n3. Respecte le nombre de posts par phase (posts_target de chaque phase).\n4. Heures de publication : 11:30-13:00 ou 18:00-20:00 uniquement.\n5. Chaque date cle DOIT avoir un post avec is_key_date: true.\n6. visual_direction doit etre riche et descriptive (lumiere, cadrage, ambiance, elements \\u2014 min 15 mots).\n7. Pour chaque post, tu PEUX remplir compositing_context (string) ou le laisser null.\n   - Remplis-le UNIQUEMENT quand le sujet beneficierait d'une immersion dans un decor reel.\n   - Laisse-le null quand la photo doit rester authentique (coulisses, equipe, temoignage).\n   - La valeur doit decrire la scene souhaitee en s'appuyant sur le catalogue fourni.\n   - Ne force PAS le compositing \\u2014 en cas de doute, laisse null.\n8. Chaque post DOIT avoir des content_types coherents avec son pilier (si piliers definis).${pillarRule}\n</rules>\n\n<constraints>\nVALEURS AUTORISEES :\n- category : \"produit\", \"coulisses\", \"equipe\", \"engagement\", \"saisonnier\", \"educatif\", \"temoignage\", \"ambiance\"\n- caption_style : \"question_directe\", \"storytelling_court\", \"factuel\", \"exclamatif\", \"conseil\", \"citation\", \"liste\", \"teaser\"\n- objective : \"engagement\", \"conversion\", \"notoriete\", \"fidelisation\"\n- sublimation_mode : toujours \"creative\" pour les posts\n- phase : doit correspondre EXACTEMENT a un nom de phase fourni\n- Dates : format YYYY-MM-DD, dans la plage de la campagne\n- compositing_context : string descriptif ou null\n\nCONTRAINTES DE VARIETE :\n- Pas 3 posts consecutifs de la meme categorie.\n- Aucun caption_style > 25% du total (max ${maxStyleCount} occurrences).\n- Pas 2 posts consecutifs avec le meme angle.\n- Pas 3 posts consecutifs avec le meme objectif.\n- Les 8 categories doivent etre presentes si campagne >= 2 semaines.\n</constraints>\n\n<output_format>\n{\n  \"posts\": [\n    {\n      \"scheduled_date\": \"YYYY-MM-DD\",\n      \"scheduled_time\": \"HH:MM\",\n      \"phase\": \"nom exact de la phase\",\n      \"category\": \"enum\",\n      \"theme\": \"sujet original et specifique\",\n      \"angle\": \"approche unique\",\n      \"tone\": \"ton du post\",\n      \"caption_style\": \"enum\",\n      \"objective\": \"enum\",\n      \"visual_direction\": \"description riche pour le DA (min 15 mots)\",\n      \"sublimation_mode\": \"creative\",\n      \"cta\": \"call to action\",\n      \"is_key_date\": false,\n      \"compositing_context\": \"description scene souhaitee ou null\"${pillarOutputField}\n    }\n  ]\n}\n</output_format>\n\n<quality_checklist>\nAvant de finaliser, verifie :\n- Nombre total de posts = ${meta.postsCount}\n- Posts par phase respectent posts_target de chaque phase\n- Toutes les dates cles ont un post is_key_date: true\n- Pas de 3 consecutifs meme categorie\n- Aucun caption_style > ${maxStyleCount} occurrences\n- Pas de 2 consecutifs meme angle\n- Heures dans les creneaux autorises (11:30-13:00 ou 18:00-20:00)\n- visual_direction descriptive (pas generique)\n- Tous les themes sont uniques ou quasi-uniques\n- compositing_context est null OU une description coherente avec le catalogue${hasStrategy ? '\\n- Chaque post a un pilier valide issu de <pillar_definitions>' : ''}\n</quality_checklist>`;\n\nconst compositingSection = hasContextCatalogue\n  ? `## PHOTOS DE CONTEXTE DISPONIBLES (COMPOSITING)\\n${catalogueSummary}\\n\\nPour chaque post, tu peux remplir compositing_context pour decrire la scene d'immersion souhaitee.\\nExemples : \"cuisine \\u2014 plan de travail bois, ingredients frais autour du plat\", \"terrasse \\u2014 table en fer forge, lumiere doree fin de journee\".\\nNe force pas le compositing : laisse null si aucune photo ne correspond ou si l'authenticite prime.`\n  : `## COMPOSITING\\nAucune photo de contexte disponible \\u2014 laisse compositing_context a null pour tous les posts.`;\n\nconst userPrompt = `# BRIEF CAMPAGNE \\u2014 ${client.name}\\n\\nCampagne : ${meta.campaignName}\\nPeriode : ${meta.campaignStartDate} au ${meta.campaignEndDate} (${meta.campaignDays} jours, ${meta.weeksCount} semaines)\\nObjectif : ${(meta.campaignObjectives || {}).primary_goal || 'engagement'} \\u2014 ${(meta.campaignObjectives || {}).description || ''}\\nKPIs : ${((meta.campaignObjectives || {}).kpis || []).map(k => k.metric + ': ' + k.target).join(', ') || 'Non definis'}\\nCourbe : ${meta.intensityCurve}\\nVolume prevu : ${meta.postsCount} posts (${(meta.campaignObjectives || {}).posts_per_week || 4}/sem) + ${meta.storiesCount} stories (${meta.storiesPerDay}/jour)\\n\\n### Dates cles\\n${((meta.campaignObjectives || {}).key_dates || []).map(kd => '- ' + kd.date + ' : ' + kd.label).join('\\n') || 'Aucune.'}\\n\\n### Themes imposes\\n${((meta.campaignObjectives || {}).themes_imposed || []).join(', ') || 'Aucun'}\\n\\n### Brief client\\n${meta.campaignBrief || 'Pas de brief specifique.'}\\n\\n## MARQUE\\nSecteur : ${client.industry || '?'}\\nMission : ${brand.mission || ''}\\nVision : ${brand.vision || ''}\\nValeurs :\\n${(brand.brand_values || []).map(v => typeof v === 'object' ? '- ' + v.name + ' (' + (v.implique || '') + ')' : '- ' + v).join('\\n')}\\nPersonnalite : ${brand.personality || ''}\\nArchetype : ${(brand.archetype && typeof brand.archetype === 'object' ? brand.archetype.principal : brand.archetype) || ''} / ${(brand.archetype && typeof brand.archetype === 'object' ? brand.archetype.secondaire : '') || ''}\\nTon : ${brand.tone_of_voice || ''}\\nVocabulaire OK : ${(brand.vocabulary_do || []).join(', ')}\\nVocabulaire interdit : ${(brand.vocabulary_dont || []).join(', ')}\\nStyle visuel : ${brand.visual_style || ''}\\nStyle photo : ${brand.photo_style || ''}\\nAudience : ${brand.target_audience || ''}\\n\\n## POSITIONNEMENT\\nInsight : ${brand.key_insight || ''}\\nPromesse : ${brand.brand_promise || ''}\\nEssence : ${brand.brand_essence || ''}\\nTagline : ${brand.tagline || ''}\\nUSPs : ${(brand.usps || []).map((u, i) => (i+1) + '. ' + (typeof u === 'object' ? u.title || u.name || JSON.stringify(u) : u)).join(', ')}\\nDifferenciateurs : ${(brand.differentiators || []).join(', ')}\\n\\n## PERSONAS\\n${((brand.brand_extended || {}).personas || []).map(p => '- ' + (p.name || '?') + ' (' + (p.type || '?') + ') \\u2014 ' + (p.message_cle || '?')).join('\\n') || 'Aucun.'}\\n\\n${pillarContextBlock}${captionRulesBlock}${compositingSection}\\n\\n## CAPTIONS RECENTES (ne pas repeter ces structures)\\n${recentCaptions || 'Aucune.'}\\n\\n<thinking>\\nAvant de generer le JSON, raisonne etape par etape :\\n1. Pour chaque phase, note le nombre exact de posts a creer (posts_target).\\n2. Distribue les categories de maniere equilibree au sein de chaque phase.\\n3. Varie les caption_styles \\u2014 compte les occurrences au fur et a mesure.\\n4. Alterne les angles et objectifs pour eviter les repetitions consecutives.\\n5. Place les posts des dates cles en priorite, puis remplis les jours restants.\\n6. Ecris une visual_direction riche et unique pour chaque post (min 15 mots).\\n7. Pour chaque post, evalue si le compositing est pertinent. Si oui et si le catalogue le permet, decris la scene.\\n8. Verifie le total : exactement ${meta.postsCount} posts.${hasStrategy ? '\\n9. Assigne un pilier a chaque post en respectant le weekly_calendar et la pillar_distribution de la phase.' : ''}\\nNe montre PAS ce raisonnement \\u2014 genere uniquement le JSON.\\n</thinking>\\n\\n## PHASES\\n${phasesContext}\\n\\nReponds avec le JSON :`;\n\nreturn [{ json: { systemPrompt, userPrompt } }];"
+      },
+      "id": "cd09",
+      "name": "Construire Prompt Posts",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2352,
+        304
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.userPrompt }}",
+        "options": {
+          "systemMessage": "={{ $json.systemPrompt }}",
+          "maxIterations": 3
+        }
+      },
+      "id": "ag10",
+      "name": "Agent Planificateur Posts",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        2624,
+        304
+      ]
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "id",
+          "value": "gpt-4o"
+        },
+        "builtInTools": {},
+        "options": {
+          "maxTokens": 8000,
+          "temperature": 0.85
+        }
+      },
+      "id": "lm10a",
+      "name": "Modele OpenAI — Posts",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        2528,
+        544
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "PLACEHOLDER",
+          "name": "OpenAI"
+        }
       }
     },
     {
-      "id": "sb09",
+      "parameters": {
+        "jsCode": "const rawOutput = $json.output;\nlet parsed;\nif (typeof rawOutput === 'object' && rawOutput !== null) {\n  parsed = rawOutput;\n} else {\n  try {\n    const cleaned = String(rawOutput).replace(/```json\\n?/g, '').replace(/```\\n?/g, '').trim();\n    parsed = JSON.parse(cleaned);\n  } catch (e) {\n    throw new Error('Agent Posts: JSON invalide — ' + e.message);\n  }\n}\n\nconst { posts } = parsed;\nconst meta = $('Valider Phases').first().json;\nconst errors = [];\n\nif (posts.length !== meta.postsCount) {\n  errors.push(`Attendu ${meta.postsCount} posts, recu ${posts.length}`);\n}\n\nconst startDate = new Date(meta.campaignStartDate);\nconst endDate = new Date(meta.campaignEndDate);\nposts.forEach((p, idx) => {\n  const d = new Date(p.scheduled_date);\n  if (d < startDate || d > endDate) errors.push(`Post ${idx}: date ${p.scheduled_date} hors campagne`);\n});\n\nconst phaseNames = meta.campaign_phases.map(p => p.name);\nposts.forEach((p, idx) => {\n  if (!phaseNames.includes(p.phase)) errors.push(`Post ${idx}: phase '${p.phase}' inexistante`);\n});\n\n(meta.keyDates || []).forEach(kd => {\n  if (!posts.some(p => p.scheduled_date === kd.date && p.is_key_date)) {\n    errors.push(`Date cle ${kd.date} sans post dedie`);\n  }\n});\n\nfor (let i = 0; i < posts.length - 2; i++) {\n  if (posts[i].category === posts[i+1].category && posts[i+1].category === posts[i+2].category) {\n    errors.push(`3 posts consecutifs categorie '${posts[i].category}' a partir du ${posts[i].scheduled_date}`);\n  }\n}\n\nconst styleCounts = {};\nposts.forEach(p => { styleCounts[p.caption_style] = (styleCounts[p.caption_style] || 0) + 1; });\nconst maxAllowed = Math.ceil(posts.length * 0.25);\nfor (const [style, count] of Object.entries(styleCounts)) {\n  if (count > maxAllowed) errors.push(`caption_style '${style}': ${count}x (max ${maxAllowed})`);\n}\n\nif (errors.length > 0) {\n  throw new Error('Validation posts echouee:\\n' + errors.join('\\n'));\n}\n\nreturn [{ json: { posts, ...meta } }];"
+      },
+      "id": "cd11",
+      "name": "Valider Posts",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2912,
+        304
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const staticData = $getWorkflowStaticData('global');\nstaticData.storiesAccumulator = [];\n\nconst meta = $('Valider Posts').first().json;\nconst brand = $('Charger Plateforme Marque').first().json;\nconst client = $('Charger Donnees Client').first().json;\n\nconst items = meta.campaign_phases.map(phase => {\n  const phasePosts = meta.posts\n    .map((p, idx) => ({ ...p, _globalIndex: idx }))\n    .filter(p => p.phase === phase.name);\n\n  const phaseStart = new Date(phase.start_date);\n  const phaseEnd = new Date(phase.end_date);\n  const phaseDays = Math.ceil((phaseEnd - phaseStart) / (1000 * 60 * 60 * 24)) + 1;\n  const storiesPerDay = phase.stories_per_day || meta.storiesPerDay;\n  const storiesCount = storiesPerDay * phaseDays;\n\n  return {\n    json: {\n      phase,\n      phasePosts,\n      phaseDays,\n      storiesPerDay,\n      storiesCount,\n      brandSummary: {\n        personality: brand.personality || '',\n        tone: brand.tone_of_voice || '',\n        visual_style: brand.visual_style || '',\n        essence: brand.brand_essence || '',\n        vocabulary_do: brand.vocabulary_do || [],\n        vocabulary_dont: brand.vocabulary_dont || []\n      },\n      clientName: client.name\n    }\n  };\n});\n\nreturn items;"
+      },
+      "id": "cd12",
+      "name": "Preparer Phases Stories",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3184,
+        304
+      ]
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "si13",
+      "name": "Boucle Phases",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        3472,
+        304
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const data = $('Boucle Phases').first().json;\nconst { phase, phasePosts, phaseDays, storiesPerDay, storiesCount, brandSummary, clientName } = data;\n\n// Strategie client\nconst strategyData = $('Detecter Periode Active').first().json;\nconst strategy = strategyData.strategy;\nconst hasStrategy = strategyData._strategy_loaded;\n\nconst postsContext = phasePosts.map(p =>\n  `[Index ${p._globalIndex}] ${p.scheduled_date} \\u2014 ${p.theme} (${p.category}, ${p.angle})`\n).join('\\n');\n\n// Construire bloc stories_guidelines\nlet storiesGuidelinesBlock = '';\nif (hasStrategy && strategy.stories_guidelines) {\n  const sg = strategy.stories_guidelines;\n  storiesGuidelinesBlock = '\\n## GUIDELINES STORIES\\n<stories_guidelines>\\n' +\n    '  <frequency>' + (sg.daily_frequency || storiesPerDay) + ' stories/jour max</frequency>\\n' +\n    '  <interactive>' + (sg.interactive_per_week || 3) + ' stories interactives/semaine minimum</interactive>\\n' +\n    '  <style>' + (sg.style || '') + '</style>\\n' +\n    '  <weekday_content>' + (sg.weekday_content || []).join(', ') + '</weekday_content>\\n' +\n    '  <weekend_content>' + (sg.weekend_content || []).join(', ') + '</weekend_content>\\n' +\n    '</stories_guidelines>\\n';\n}\n\nconst systemPrompt = `<role>\nTu es un planificateur de stories Instagram.\nTu crees les stories pour UNE phase de campagne, en lien avec les posts existants de cette phase.\nChaque journee raconte une micro-progression narrative a travers ses stories.\n</role>\n\n<rules>\n1. Reponds UNIQUEMENT en JSON valide. Aucun texte avant ou apres le JSON.\n2. Genere exactement ${storiesCount} stories (${storiesPerDay}/jour x ${phaseDays} jours).\n3. Heures : entre 08:00 et 22:00, espacees d'au moins 1h30 le meme jour.\n4. story_text : maximum 60 caracteres, percutant et direct.\n5. source_slot_ref : index global du post parent (fourni entre [Index X]) ou null si story independante.\n6. Au moins 1 story par jour liee a un post du meme jour (si un post existe ce jour-la).\n7. sublimation_mode : toujours \"light\" pour les stories.${hasStrategy && strategy.stories_guidelines ? '\\n8. Respecte les <stories_guidelines> : types de contenu semaine vs weekend, stories interactives par semaine, style visuel.' : ''}\n</rules>\n\n<constraints>\nVALEURS AUTORISEES \\u2014 toute autre valeur invalide le JSON :\n- category : \"produit\", \"coulisses\", \"equipe\", \"engagement\", \"saisonnier\", \"educatif\", \"temoignage\", \"ambiance\"\n- caption_style : \"question_directe\", \"storytelling_court\", \"factuel\", \"exclamatif\", \"conseil\", \"citation\", \"liste\", \"teaser\"\n- objective : \"engagement\", \"conversion\", \"notoriete\", \"fidelisation\"\n- phase : toujours \"${phase.name}\" (cette phase uniquement)\n- Dates : format YYYY-MM-DD, strictement dans [${phase.start_date}, ${phase.end_date}]\n- story_text : ne doit JAMAIS depasser 60 caracteres\n- Ne genere JAMAIS de texte avant ou apres le bloc JSON\n</constraints>\n\n<output_format>\n{\n  \"stories\": [\n    {\n      \"scheduled_date\": \"YYYY-MM-DD\",\n      \"scheduled_time\": \"HH:MM\",\n      \"phase\": \"${phase.name}\",\n      \"category\": \"enum\",\n      \"theme\": \"sujet de la story\",\n      \"angle\": \"angle court\",\n      \"tone\": \"ton\",\n      \"caption_style\": \"enum\",\n      \"objective\": \"enum\",\n      \"visual_direction\": \"direction visuelle pour le DA\",\n      \"sublimation_mode\": \"light\",\n      \"story_text\": \"max 60 chars\",\n      \"source_slot_ref\": null,\n      \"cta\": \"CTA story\"\n    }\n  ]\n}\n</output_format>\n\n<quality_checklist>\nAvant de finaliser, verifie :\n- Nombre total = ${storiesCount} stories exactement\n- ${storiesPerDay} stories par jour pour chaque jour de la phase\n- Espacement >= 1h30 entre stories du meme jour\n- Tous les story_text <= 60 caracteres\n- source_slot_ref valides (index des posts fournis ou null)\n- Categories et styles varies au sein de chaque journee\n- Dates strictement dans [${phase.start_date}, ${phase.end_date}]${hasStrategy && strategy.stories_guidelines ? '\\n- Contenu semaine vs weekend respecte les guidelines' : ''}\n</quality_checklist>`;\n\nconst userPrompt = `# STORIES \\u2014 Phase \"${phase.name}\" \\u2014 ${clientName}\n\nPeriode : ${phase.start_date} > ${phase.end_date} (${phaseDays} jours)\nObjectif : ${phase.objective}\nTon : ${phase.tone}\nIntensite : ${phase.intensity}\nStories a creer : ${storiesCount} (${storiesPerDay}/jour)\n\n## POSTS DE CETTE PHASE (utiliser leur index pour source_slot_ref)\n${postsContext || 'Aucun post dans cette phase.'}\n\n## MARQUE\nPersonnalite : ${brandSummary.personality}\nTon : ${brandSummary.tone}\nStyle visuel : ${brandSummary.visual_style}\nEssence : ${brandSummary.essence}\nVocabulaire OK : ${(brandSummary.vocabulary_do || []).join(', ')}\nVocabulaire interdit : ${(brandSummary.vocabulary_dont || []).join(', ')}\n${storiesGuidelinesBlock}\n<thinking>\nAvant de generer le JSON, raisonne etape par etape :\n1. Identifie les posts de cette phase et leurs dates.\n2. Pour chaque jour, planifie ${storiesPerDay} stories espacees d'au moins 1h30.\n3. Lie au moins 1 story par jour a un post existant (si disponible ce jour-la) via source_slot_ref.\n4. Cree une mini-progression narrative par journee (matin: teasing, midi: contenu, soir: recap/engagement).\n5. Varie categories, angles et caption_styles sur la journee.\n6. Verifie que chaque story_text <= 60 caracteres.${hasStrategy && strategy.stories_guidelines ? '\\n7. Adapte le contenu semaine vs weekend selon les guidelines.' : ''}\nNe montre PAS ce raisonnement \\u2014 genere uniquement le JSON.\n</thinking>\n\nReponds avec le JSON :`;\n\nreturn [{ json: { systemPrompt, userPrompt } }];"
+      },
+      "id": "cd14",
+      "name": "Construire Prompt Stories Phase",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3632,
+        544
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.userPrompt }}",
+        "options": {
+          "systemMessage": "={{ $json.systemPrompt }}",
+          "maxIterations": 3
+        }
+      },
+      "id": "ag15",
+      "name": "Agent Planificateur Stories",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        3904,
+        544
+      ]
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "id",
+          "value": "gpt-4o"
+        },
+        "builtInTools": {},
+        "options": {
+          "maxTokens": 14000,
+          "temperature": 0.8
+        }
+      },
+      "id": "lm15a",
+      "name": "Modele OpenAI — Stories",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        3808,
+        784
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "PLACEHOLDER",
+          "name": "OpenAI"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const rawOutput = $json.output;\nconst phaseData = $('Boucle Phases').first().json;\n\nlet parsed;\nif (typeof rawOutput === 'object' && rawOutput !== null) {\n  parsed = rawOutput;\n} else {\n  try {\n    const cleaned = String(rawOutput).replace(/```json\\n?/g, '').replace(/```\\n?/g, '').trim();\n    parsed = JSON.parse(cleaned);\n  } catch (e) {\n    throw new Error(`Agent Stories (${phaseData.phase.name}): JSON invalide — ` + e.message);\n  }\n}\n\nconst { stories } = parsed;\nconst errors = [];\n\nif (stories.length !== phaseData.storiesCount) {\n  errors.push(`Phase ${phaseData.phase.name}: attendu ${phaseData.storiesCount} stories, recu ${stories.length}`);\n}\n\nconst phaseStart = new Date(phaseData.phase.start_date);\nconst phaseEnd = new Date(phaseData.phase.end_date);\nstories.forEach((s, idx) => {\n  const d = new Date(s.scheduled_date);\n  if (d < phaseStart || d > phaseEnd) errors.push(`Story ${idx}: date ${s.scheduled_date} hors phase`);\n});\n\nstories.forEach((s, idx) => {\n  if (s.story_text && s.story_text.length > 60) errors.push(`Story ${idx}: story_text ${s.story_text.length} chars (max 60)`);\n});\n\nconst byDay = {};\nstories.forEach(s => {\n  if (!byDay[s.scheduled_date]) byDay[s.scheduled_date] = [];\n  byDay[s.scheduled_date].push(s.scheduled_time);\n});\nfor (const [date, times] of Object.entries(byDay)) {\n  times.sort();\n  for (let i = 0; i < times.length - 1; i++) {\n    const [h1, m1] = times[i].split(':').map(Number);\n    const [h2, m2] = times[i+1].split(':').map(Number);\n    if ((h2 * 60 + m2) - (h1 * 60 + m1) < 90) {\n      errors.push(`Stories trop proches le ${date}: ${times[i]} et ${times[i+1]}`);\n    }\n  }\n}\n\nif (errors.length > 0) {\n  throw new Error('Validation stories phase echouee:\\n' + errors.join('\\n'));\n}\n\nconst staticData = $getWorkflowStaticData('global');\nif (!staticData.storiesAccumulator) staticData.storiesAccumulator = [];\nstaticData.storiesAccumulator.push(...stories);\n\nreturn [{ json: { phase: phaseData.phase.name, stories_count: stories.length } }];"
+      },
+      "id": "cd16",
+      "name": "Valider Stories Phase",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        4192,
+        544
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const staticData = $getWorkflowStaticData('global');\nconst allStories = staticData.storiesAccumulator || [];\ndelete staticData.storiesAccumulator;\n\nconst meta = $('Valider Posts').first().json;\nconst posts = meta.posts;\nconst errors = [];\n\nallStories.forEach((s, idx) => {\n  if (s.source_slot_ref !== null && (s.source_slot_ref < 0 || s.source_slot_ref >= posts.length)) {\n    errors.push(`Story ${idx}: source_slot_ref=${s.source_slot_ref} hors range (0-${posts.length - 1})`);\n  }\n});\n\nif (errors.length > 0) {\n  throw new Error('Validation finale echouee:\\n' + errors.join('\\n'));\n}\n\nreturn [{\n  json: {\n    strategy_summary: meta.strategy_summary,\n    campaign_phases: meta.campaign_phases,\n    posts,\n    stories: allStories,\n    postsCount: posts.length,\n    storiesCount: allStories.length,\n    totalSlots: posts.length + allStories.length,\n    campaignDays: meta.campaignDays,\n    campaignStartDate: meta.campaignStartDate,\n    campaignEndDate: meta.campaignEndDate,\n    campaignName: meta.campaignName,\n    campaignObjectives: meta.campaignObjectives,\n    campaignBrief: meta.campaignBrief,\n    intensityCurve: meta.intensityCurve\n  }\n}];"
+      },
+      "id": "cd17",
+      "name": "Assembler Calendrier",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        4448,
+        304
+      ]
+    },
+    {
+      "parameters": {
+        "tableId": "editorial_calendars",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "client_id",
+              "fieldValue": "={{ $('Charger Donnees Client').first().json.id }}"
+            },
+            {
+              "fieldId": "campaign_name",
+              "fieldValue": "={{ $json.campaignName }}"
+            },
+            {
+              "fieldId": "start_date",
+              "fieldValue": "={{ $json.campaignStartDate }}"
+            },
+            {
+              "fieldId": "end_date",
+              "fieldValue": "={{ $json.campaignEndDate }}"
+            },
+            {
+              "fieldId": "campaign_objectives",
+              "fieldValue": "={{ JSON.stringify($json.campaignObjectives) }}"
+            },
+            {
+              "fieldId": "campaign_brief",
+              "fieldValue": "={{ $json.campaignBrief }}"
+            },
+            {
+              "fieldId": "status",
+              "fieldValue": "draft"
+            },
+            {
+              "fieldId": "strategy_summary",
+              "fieldValue": "={{ $json.strategy_summary }}"
+            },
+            {
+              "fieldId": "ai_generation_data",
+              "fieldValue": "={{ JSON.stringify({ campaign_phases: $json.campaign_phases, posts_count: $json.postsCount, stories_count: $json.storiesCount, intensity_curve: $json.intensityCurve }) }}"
+            }
+          ]
+        }
+      },
+      "id": "sb18",
       "name": "Creer Calendrier Editorial",
       "type": "n8n-nodes-base.supabase",
       "typeVersion": 1,
-      "position": [2340, 300],
-      "parameters": {
-        "resource": "row",
-        "operation": "create",
-        "tableId": "editorial_calendars",
-        "dataToSend": "defineBelow",
-        "fieldsUi": {
-          "fieldValues": [
-            { "fieldId": "client_id", "fieldValue": "={{ $('Charger Donnees Client').first().json.id }}" },
-            { "fieldId": "campaign_name", "fieldValue": "={{ $json.campaignName }}" },
-            { "fieldId": "start_date", "fieldValue": "={{ $json.campaignStartDate }}" },
-            { "fieldId": "end_date", "fieldValue": "={{ $json.campaignEndDate }}" },
-            { "fieldId": "campaign_objectives", "fieldValue": "={{ JSON.stringify($json.campaignObjectives) }}" },
-            { "fieldId": "campaign_brief", "fieldValue": "={{ $json.campaignBrief }}" },
-            { "fieldId": "status", "fieldValue": "draft" },
-            { "fieldId": "strategy_summary", "fieldValue": "={{ $json.strategy_summary }}" },
-            { "fieldId": "ai_generation_data", "fieldValue": "={{ JSON.stringify({ campaign_phases: $json.campaign_phases, posts_count: $json.postsCount, stories_count: $json.storiesCount, intensity_curve: $('Construire Prompt Strategie').first().json.intensityCurve }) }}" }
-          ]
-        }
-      },
+      "position": [
+        4784,
+        304
+      ],
       "credentials": {
-        "supabaseApi": { "id": "PLACEHOLDER", "name": "Supabase Social Engine" }
+        "supabaseApi": {
+          "id": "3MfRNEiX8JttZZ8Z",
+          "name": "Supabase Neurolia Social"
+        }
       }
     },
     {
-      "id": "cd10",
+      "parameters": {
+        "jsCode": "const calendarId = $json.id;\nconst clientId = $('Charger Donnees Client').first().json.id;\nconst assembled = $('Assembler Calendrier').first().json;\nconst items = [];\n\nassembled.posts.forEach(p => {\n  items.push({\n    json: {\n      calendar_id: calendarId,\n      client_id: clientId,\n      scheduled_date: p.scheduled_date,\n      scheduled_time: p.scheduled_time,\n      content_type: 'post',\n      category: p.category,\n      theme: p.theme,\n      angle: p.angle,\n      tone: p.tone,\n      caption_style: p.caption_style,\n      objective: p.objective,\n      visual_direction: p.visual_direction,\n      sublimation_mode: p.sublimation_mode || 'creative',\n      compositing_context: p.compositing_context || null,\n      pillar: p.pillar || null\n    }\n  });\n});\n\nassembled.stories.forEach(s => {\n  items.push({\n    json: {\n      calendar_id: calendarId,\n      client_id: clientId,\n      scheduled_date: s.scheduled_date,\n      scheduled_time: s.scheduled_time,\n      content_type: 'story',\n      category: s.category,\n      theme: s.theme,\n      angle: s.angle,\n      tone: s.tone,\n      caption_style: s.caption_style,\n      objective: s.objective,\n      visual_direction: s.visual_direction,\n      sublimation_mode: s.sublimation_mode || 'light',\n      story_text: s.story_text || null,\n      pillar: s.pillar || null\n    }\n  });\n});\n\nreturn items;"
+      },
+      "id": "cd19",
       "name": "Preparer Slots",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [2620, 300],
-      "parameters": {
-        "mode": "runOnceForAllItems",
-        "jsCode": "// Transforms parsed calendar into individual slot items for batch insert\nconst calendarId = $json.id; // from Supabase create response\nconst clientId = $('Charger Donnees Client').first().json.id;\nconst validated = $('Valider Calendrier').first().json;\n\nconst items = [];\n\n// Posts\nvalidated.posts.forEach((p, idx) => {\n  items.push({\n    json: {\n      calendar_id: calendarId,\n      client_id: clientId,\n      scheduled_date: p.scheduled_date,\n      scheduled_time: p.scheduled_time,\n      content_type: 'post',\n      category: p.category,\n      theme: p.theme,\n      angle: p.angle,\n      tone: p.tone,\n      caption_style: p.caption_style,\n      objective: p.objective,\n      visual_direction: p.visual_direction,\n      sublimation_mode: p.sublimation_mode || 'creative'\n    }\n  });\n});\n\n// Stories\nvalidated.stories.forEach((s, idx) => {\n  const sourcePostIdx = s.source_slot_ref;\n  items.push({\n    json: {\n      calendar_id: calendarId,\n      client_id: clientId,\n      scheduled_date: s.scheduled_date,\n      scheduled_time: s.scheduled_time,\n      content_type: 'story',\n      category: s.category,\n      theme: s.theme,\n      angle: s.angle,\n      tone: s.tone,\n      caption_style: s.caption_style,\n      objective: s.objective,\n      visual_direction: s.visual_direction,\n      sublimation_mode: s.sublimation_mode || 'light',\n      story_text: s.story_text || null\n    }\n  });\n});\n\nreturn items;"
-      }
+      "position": [
+        5072,
+        304
+      ]
     },
     {
-      "id": "si11",
+      "parameters": {
+        "batchSize": 10,
+        "options": {}
+      },
+      "id": "si20",
       "name": "Boucle Slots",
       "type": "n8n-nodes-base.splitInBatches",
       "typeVersion": 3,
-      "position": [2900, 300],
-      "parameters": { "batchSize": 10, "options": {} }
+      "position": [
+        5344,
+        304
+      ]
     },
     {
-      "id": "sb12",
+      "parameters": {
+        "tableId": "editorial_slots",
+        "dataToSend": "autoMapInputData"
+      },
+      "id": "sb21",
       "name": "Creer Slot",
       "type": "n8n-nodes-base.supabase",
       "typeVersion": 1,
-      "position": [3180, 300],
-      "parameters": {
-        "resource": "row",
-        "operation": "create",
-        "tableId": "editorial_slots",
-        "dataToSend": "autoMapInputData",
-        "inputsToIgnore": ""
-      },
+      "position": [
+        5696,
+        544
+      ],
       "credentials": {
-        "supabaseApi": { "id": "PLACEHOLDER", "name": "Supabase Social Engine" }
+        "supabaseApi": {
+          "id": "3MfRNEiX8JttZZ8Z",
+          "name": "Supabase Neurolia Social"
+        }
       }
     },
     {
-      "id": "cd13",
+      "parameters": {
+        "jsCode": "const assembled = $('Assembler Calendrier').first().json;\nconst calendarId = $('Creer Calendrier Editorial').first().json.id;\n\nreturn [{\n  json: {\n    status: 'success',\n    calendar_id: calendarId,\n    campaign_name: assembled.campaignName,\n    slots_count: assembled.totalSlots,\n    posts_count: assembled.postsCount,\n    stories_count: assembled.storiesCount,\n    campaign_days: assembled.campaignDays,\n    phases: assembled.campaign_phases.map(p => p.name)\n  }\n}];"
+      },
+      "id": "cd22",
       "name": "Preparer Reponse",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [2900, 580],
-      "parameters": {
-        "mode": "runOnceForAllItems",
-        "jsCode": "// Prepares webhook response JSON\nconst validated = $('Valider Calendrier').first().json;\nconst calendarId = $('Creer Calendrier Editorial').first().json.id;\n\nreturn [{\n  json: {\n    status: 'success',\n    calendar_id: calendarId,\n    campaign_name: validated.campaignName,\n    slots_count: validated.totalSlots,\n    posts_count: validated.postsCount,\n    stories_count: validated.storiesCount,\n    campaign_days: validated.campaignDays,\n    phases: validated.campaign_phases.map(p => p.name)\n  }\n}];"
-      }
+      "position": [
+        5600,
+        288
+      ]
     },
     {
-      "id": "sb15",
-      "name": "Journal Execution",
-      "type": "n8n-nodes-base.supabase",
-      "typeVersion": 1,
-      "position": [3180, 700],
       "parameters": {
-        "resource": "row",
-        "operation": "create",
         "tableId": "workflow_logs",
-        "dataToSend": "defineBelow",
         "fieldsUi": {
           "fieldValues": [
-            { "fieldId": "client_id", "fieldValue": "={{ $('Charger Donnees Client').first().json.id }}" },
-            { "fieldId": "workflow_name", "fieldValue": "wf01-editorial-strategy" },
-            { "fieldId": "status", "fieldValue": "success" },
-            { "fieldId": "message", "fieldValue": "={{ 'Campaign \"' + $json.campaign_name + '\": ' + $json.slots_count + ' slots (' + $json.posts_count + ' posts + ' + $json.stories_count + ' stories, ' + $json.campaign_days + ' days)' }}" },
-            { "fieldId": "metadata", "fieldValue": "={{ JSON.stringify({ calendar_id: $json.calendar_id, campaign_name: $json.campaign_name, slots_count: $json.slots_count, campaign_days: $json.campaign_days }) }}" }
+            {
+              "fieldId": "client_id",
+              "fieldValue": "={{ $('Charger Donnees Client').first().json.id }}"
+            },
+            {
+              "fieldId": "workflow_name",
+              "fieldValue": "wf01-editorial-strategy"
+            },
+            {
+              "fieldId": "status",
+              "fieldValue": "success"
+            },
+            {
+              "fieldId": "message",
+              "fieldValue": "={{ 'Campaign \"' + $json.campaign_name + '\": ' + $json.slots_count + ' slots (' + $json.posts_count + ' posts + ' + $json.stories_count + ' stories, ' + $json.campaign_days + ' days) [multi-agent v2]' }}"
+            },
+            {
+              "fieldId": "metadata",
+              "fieldValue": "={{ JSON.stringify({ calendar_id: $json.calendar_id, campaign_name: $json.campaign_name, slots_count: $json.slots_count, campaign_days: $json.campaign_days }) }}"
+            }
           ]
         }
       },
+      "id": "sb24",
+      "name": "Journal Execution",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        6288,
+        400
+      ],
       "credentials": {
-        "supabaseApi": { "id": "PLACEHOLDER", "name": "Supabase Social Engine" }
+        "supabaseApi": {
+          "id": "3MfRNEiX8JttZZ8Z",
+          "name": "Supabase Neurolia Social"
+        }
       }
     },
     {
-      "id": "rw14",
-      "name": "Repondre Webhook",
-      "type": "n8n-nodes-base.respondToWebhook",
-      "typeVersion": 1.5,
-      "position": [3180, 520],
       "parameters": {
-        "respondWith": "firstIncomingItem",
+        "url": "=https://abbtnownnraylaylswqk.supabase.co/rest/v1/brand_assets?client_id=eq.{{ $('Charger Donnees Client').first().json.id }}&type=in.(background,photo_style)&is_active=eq.true&select=name,metadata",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFiYnRub3dubnJheWxheWxzd3FrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI3OTM0MTYsImV4cCI6MjA4ODM2OTQxNn0.OkRpMcaNgZDGSDLOxWP32F50iOZa3mhcRxSMH-5UlaM"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFiYnRub3dubnJheWxheWxzd3FrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI3OTM0MTYsImV4cCI6MjA4ODM2OTQxNn0.OkRpMcaNgZDGSDLOxWP32F50iOZa3mhcRxSMH-5UlaM"
+            }
+          ]
+        },
         "options": {}
+      },
+      "id": "hr03b",
+      "name": "Charger Catalogue Contexte",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        816,
+        304
+      ],
+      "alwaysOutputData": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {},
+      "id": "mt01",
+      "name": "Declencheur Manuel",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -160,
+        304
+      ]
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "mode": "list",
+          "value": ""
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "list",
+          "value": ""
+        }
+      },
+      "id": "gs01b",
+      "name": "Charger Parametres Campagne",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        0,
+        304
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Transforme la ligne Google Sheets en format attendu par le workflow\n// Colonnes attendues : client_id, campaign_name, start_date, end_date, primary_goal,\n// description, posts_per_week, stories_per_day, intensity_curve, brief,\n// themes_imposed (virgules), key_dates (JSON), kpis (JSON)\nconst row = $input.first().json;\n\nlet keyDates = [];\ntry { if (row.key_dates) keyDates = JSON.parse(row.key_dates); } catch(e) {}\n\nlet kpis = [];\ntry { if (row.kpis) kpis = JSON.parse(row.kpis); } catch(e) {}\n\nreturn [{ json: { body: {\n  client_id: row.client_id,\n  campaign: {\n    name: row.campaign_name || 'Campagne',\n    start_date: row.start_date,\n    end_date: row.end_date,\n    brief: row.brief || '',\n    objectives: {\n      primary_goal: row.primary_goal || 'engagement',\n      description: row.description || '',\n      posts_per_week: parseInt(row.posts_per_week) || 4,\n      stories_per_day: parseInt(row.stories_per_day) || 6,\n      intensity_curve: row.intensity_curve || 'flat',\n      themes_imposed: row.themes_imposed ? row.themes_imposed.split(',').map(t => t.trim()) : [],\n      key_dates: keyDates,\n      kpis: kpis\n    }\n  }\n}}}];"
+      },
+      "id": "cd01c",
+      "name": "Formater Inputs Campagne",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        208,
+        304
+      ]
+    },
+    {
+      "parameters": {
+        "url": "=https://abbtnownnraylaylswqk.supabase.co/rest/v1/content_strategy?client_id=eq.{{ $('Charger Donnees Client').first().json.id }}&select=*",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "supabaseApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFiYnRub3dubnJheWxheWxzd3FrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI3OTM0MTYsImV4cCI6MjA4ODM2OTQxNn0.OkRpMcaNgZDGSDLOxWP32F50iOZa3mhcRxSMH-5UlaM"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFiYnRub3dubnJheWxheWxzd3FrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI3OTM0MTYsImV4cCI6MjA4ODM2OTQxNn0.OkRpMcaNgZDGSDLOxWP32F50iOZa3mhcRxSMH-5UlaM"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "id": "hr03c",
+      "name": "Charger Strategie Client",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        928,
+        528
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "3MfRNEiX8JttZZ8Z",
+          "name": "Supabase Neurolia Social"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const strategyItems = $('Charger Strategie Client').all();\nconst raw = strategyItems[0]?.json;\nconst strategy = (Array.isArray(raw) ? raw[0] : raw) || null;\n\nconst campaign = $('Formater Inputs Campagne').first().json.body?.campaign\n  || $('Formater Inputs Campagne').first().json.campaign\n  || $('Formater Inputs Campagne').first().json;\n\nlet activePeriod = null;\n\nif (strategy && strategy.periods && Array.isArray(strategy.periods)) {\n  const campaignStart = new Date(campaign.start_date);\n  activePeriod = strategy.periods.find(p => {\n    if (!p.date_start || !p.date_end) return false;\n    return campaignStart >= new Date(p.date_start) && campaignStart <= new Date(p.date_end);\n  });\n  if (!activePeriod && strategy.periods.length > 0) {\n    activePeriod = strategy.periods[0];\n  }\n}\n\nreturn [{\n  json: {\n    strategy,\n    active_period: activePeriod,\n    _strategy_loaded: !!strategy && !!strategy.pillars\n  }\n}];"
+      },
+      "id": "cd03d",
+      "name": "Detecter Periode Active",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1152,
+        528
+      ]
+    },
+    {
+      "id": "sn08",
+      "name": "Sticky Note7",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        5888,
+        128
+      ],
+      "parameters": {
+        "width": 500,
+        "height": 120,
+        "content": "## 8. RAPPORT EDITORIAL\nGenere un rapport HTML self-contained avec le calendrier editorial, la distribution des piliers, et les controles de coherence."
+      }
+    },
+    {
+      "id": "cd22b",
+      "name": "Generer Rapport Editorial",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        5920,
+        288
+      ],
+      "parameters": {
+        "jsCode": "const campaign = $('Formater Inputs Campagne').first().json.body?.campaign || $('Formater Inputs Campagne').first().json.campaign || {};\nconst clientData = $('Charger Donnees Client').first().json;\nconst brandData = $('Charger Plateforme Marque').first().json;\nconst strategyNode = $('Detecter Periode Active').first().json;\nconst phasesNode = $('Valider Phases').first().json;\nconst postsNode = $('Valider Posts').first().json;\nconst calendarNode = $('Assembler Calendrier').first().json;\nconst resp = $('Preparer Reponse').first().json;\nconst clientName = clientData.name || clientData.slug || campaign.name || '?';\nconst campaignName = campaign.name || resp.campaign_name || '?';\nconst objectives = campaign.objectives || {};\nconst strategy = strategyNode.strategy || {};\nconst activePeriod = strategyNode.active_period || {};\nconst stPillars = Array.isArray(strategy.pillars) ? strategy.pillars : [];\nconst campaignPhases = Array.isArray(phasesNode.campaign_phases) ? phasesNode.campaign_phases : [];\nconst strategySummary = phasesNode.strategy_summary || {};\nconst posts = Array.isArray(postsNode.posts) ? postsNode.posts : [];\nconst stories = Array.isArray(calendarNode.stories) ? calendarNode.stories : [];\nconst totalPosts = posts.length;\nconst totalStories = stories.length;\nconst totalSlots = totalPosts + totalStories;\nconst postsPerWeek = objectives.posts_per_week || Math.round(totalPosts / ((calendarNode.campaignDays || 30) / 7));\nconst storiesPerDay = objectives.stories_per_day || Math.round(totalStories / (calendarNode.campaignDays || 30));\nconst startDate = campaign.start_date || calendarNode.campaignStartDate || '?';\nconst endDate = campaign.end_date || calendarNode.campaignEndDate || '?';\nconst totalWeeks = Math.ceil((calendarNode.campaignDays || 30) / 7);\nconst esc = s => String(s || '\\u2014').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');\nconst j = v => (v && typeof v === 'object') ? JSON.stringify(v) : String(v || '');\nconst COLORS = ['#C45C3B', '#0FB8C4', '#8B5CF6', '#10B981', '#F59E0B'];\nconst reportDate = new Date().toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' });\nconst pillarColorMap = {};\nstPillars.forEach((p, i) => { pillarColorMap[(p.name || '').toLowerCase()] = COLORS[i % COLORS.length]; });\nfunction pColor(name) { return pillarColorMap[(name || '').toLowerCase()] || '#737373'; }\nfunction card(l,t,d,a){return `<div style=\"background:#111827;border:1px solid rgba(255,255,255,0.08);border-radius:16px;padding:28px 24px;text-align:left;position:relative;overflow:hidden;\"><div style=\"position:absolute;top:0;left:0;right:0;height:3px;background:${a};\"></div><p style=\"font-family:'Satoshi',sans-serif;font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:${a};margin-bottom:4px;\">${esc(l)}</p><p style=\"font-family:'Satoshi',sans-serif;font-size:18px;font-weight:900;color:#F5F5F5;margin-bottom:6px;\">${esc(t)}</p><p style=\"font-size:14px;color:#A3A3A3;line-height:1.6;\">${esc(d)}</p></div>`;}\nfunction kpiB(t,v,l,c){return `<div style=\"background:#111827;border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:20px;text-align:center;\"><div style=\"font-family:'Satoshi',sans-serif;font-size:10px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:${c};opacity:0.6;margin-bottom:6px;\">${esc(t)}</div><div style=\"font-family:'Satoshi',sans-serif;font-size:22px;font-weight:900;color:${c};margin-bottom:4px;\">${esc(v)}</div><div style=\"font-size:12px;color:#737373;\">${esc(l)}</div></div>`;}\nfunction secTitle(t,c){return `<h3 style=\"font-family:'Satoshi',sans-serif;font-weight:700;font-size:20px;color:#F5F5F5;margin-bottom:20px;padding-left:16px;border-left:3px solid ${c};\">${esc(t)}</h3>`;}\nfunction tg(t,c){return `<span style=\"font-family:'Satoshi',sans-serif;font-size:11px;font-weight:600;padding:3px 10px;border-radius:999px;background:${c}25;color:${c};display:inline-block;margin:2px;\">${esc(t)}</span>`;}\nfunction chkRow(l,s,d){const ok=s==='ok';const dc=ok?'#10B981':'#F59E0B';const tt=ok?'OK':'Ecart';let h=`<div style=\"background:#111827;border:1px solid rgba(255,255,255,0.08);border-radius:14px;padding:16px 24px;margin-bottom:8px;\"><div style=\"display:flex;align-items:center;gap:12px;\"><span style=\"width:8px;height:8px;border-radius:50%;background:${dc};display:inline-block;\"></span><span style=\"font-size:14px;color:#D4D4D4;flex:1;\">${esc(l)}</span>${tg(tt,dc)}</div>`;if(d)h+=`<p style=\"font-size:13px;color:#737373;margin-top:8px;padding-left:20px;\">${esc(d)}</p>`;h+='</div>';return h;}\nconst pillarCounts = {};\nposts.forEach(p => { const n = p.pillar || p.category || '?'; pillarCounts[n] = (pillarCounts[n] || 0) + 1; });\nfunction pBar(data, ref) { return `<div style=\"display:flex;height:40px;border-radius:8px;overflow:hidden;margin-bottom:12px;\">` + ref.map((p, i) => { const pct = data[i] || 0; return `<div style=\"flex:${Math.max(pct, 5)};background:${COLORS[i % 5]};display:flex;align-items:center;justify-content:center;font-family:'Satoshi',sans-serif;font-size:11px;font-weight:700;color:rgba(255,255,255,0.9);\">${pct}%</div>`; }).join('') + '</div>'; }\nconst stratPcts = stPillars.map(p => p.percentage || 0);\nconst actualPcts = stPillars.map(p => { const c = pillarCounts[(p.name || '').toLowerCase()] || pillarCounts[p.name] || 0; return totalPosts > 0 ? Math.round((c / totalPosts) * 100) : 0; });\nconst maxDev = stPillars.reduce((m, p, i) => Math.max(m, Math.abs((stratPcts[i] || 0) - (actualPcts[i] || 0))), 0);\nconst distOk = maxDev <= 10;\nconst weekMap = {};\nposts.forEach(p => { const d = new Date(p.scheduled_date); const ws = new Date(d); ws.setDate(d.getDate() - d.getDay() + 1); const wk = ws.toISOString().split('T')[0]; if (!weekMap[wk]) weekMap[wk] = { start: wk, posts: [] }; weekMap[wk].posts.push(p); });\nconst weeks = Object.values(weekMap).sort((a, b) => a.start.localeCompare(b.start));\nconst cChecks = [];\ncChecks.push({ label: `Distribution piliers (+-10%)`, ok: distOk, detail: distOk ? '' : `Dev max: ${maxDev}%` });\nconst expP = postsPerWeek * totalWeeks;\ncChecks.push({ label: `Volume posts (${totalPosts} vs ~${expP})`, ok: Math.abs(totalPosts - expP) <= 4, detail: '' });\nconst expS = storiesPerDay * (calendarNode.campaignDays || 30);\ncChecks.push({ label: `Volume stories (${totalStories} vs ~${expS})`, ok: Math.abs(totalStories - expS) <= totalStories * 0.2, detail: '' });\nlet consOk = true;\nfor (let i = 2; i < posts.length; i++) { const c = posts[i].category || posts[i].pillar; if (c && c === (posts[i-1].category || posts[i-1].pillar) && c === (posts[i-2].category || posts[i-2].pillar)) { consOk = false; break; } }\ncChecks.push({ label: 'Pas de 3x consecutif', ok: consOk, detail: consOk ? '' : '3+ posts meme pilier.' });\nconst html = `<!DOCTYPE html><html lang=\"fr\"><head><meta charset=\"UTF-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1.0\"><title>Strategie Editoriale — ${esc(campaignName)}</title><link href=\"https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap\" rel=\"stylesheet\"><link rel=\"stylesheet\" href=\"https://api.fontshare.com/v2/css?f[]=satoshi@500,700,900&display=swap\"><style>*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}body{font-family:'Inter',sans-serif;font-size:15px;line-height:1.7;color:#D4D4D4;background:#050810;-webkit-font-smoothing:antialiased}h1,h2,h3,h4{font-family:'Satoshi',sans-serif;color:#F5F5F5;line-height:1.2}a{color:inherit;text-decoration:none}.ctn{max-width:1200px;margin:0 auto;padding:0 24px}.sec{padding:80px 0}.se{background:#0A0F1A;border-top:1px solid rgba(255,255,255,0.08);border-bottom:1px solid rgba(255,255,255,0.08)}.g2{display:grid;grid-template-columns:repeat(2,1fr);gap:20px}.g3{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}@media(max-width:768px){.g2,.g3{grid-template-columns:1fr}}</style></head><body><section style=\"padding:120px 0 60px;text-align:center;position:relative;overflow:hidden;\"><div style=\"position:absolute;top:-200px;left:50%;transform:translateX(-50%);width:800px;height:800px;background:radial-gradient(circle,rgba(196,92,59,0.08) 0%,transparent 70%);pointer-events:none;\"></div><div class=\"ctn\"><p style=\"font-family:'Satoshi',sans-serif;font-size:12px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:#C45C3B;margin-bottom:20px;\">WF01 — Strategie Editoriale</p><h1 style=\"font-size:clamp(32px,5vw,56px);font-weight:900;margin-bottom:16px;background:linear-gradient(135deg,#F5F5F5 0%,#A3A3A3 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;\">${esc(campaignName)}</h1><p style=\"font-size:clamp(16px,2vw,20px);color:#A3A3A3;max-width:600px;margin:0 auto 48px;\">Calendrier genere par 3 agents IA pour ${esc(clientName)}.</p><div class=\"g3\" style=\"max-width:960px;margin:0 auto;\">${card('Periode',activePeriod.name||campaignName,startDate+' > '+endDate,COLORS[0])}${card('Volume',totalPosts+' posts',postsPerWeek+'/sem '+totalWeeks+' sem',COLORS[1])}${card('Stories',totalStories+' stories',storiesPerDay+'/jour',COLORS[2])}</div></div></section><section class=\"sec se\"><div class=\"ctn\"><div style=\"display:flex;align-items:flex-start;gap:20px;margin-bottom:48px;\"><div style=\"font-family:'Satoshi',sans-serif;font-size:48px;font-weight:900;color:#C45C3B;line-height:1;\">01</div><div><h2 style=\"font-size:clamp(24px,3.5vw,36px);font-weight:900;margin-bottom:12px;\">Vision Strategique</h2><p style=\"font-size:16px;color:#A3A3A3;\">Agent 1 Stratege (GPT-4o, temp 0.7)</p></div></div><div style=\"background:#111827;border-radius:12px;padding:24px 28px;margin-bottom:40px;border-left:3px solid #C45C3B;\"><p style=\"font-size:14.5px;color:#A3A3A3;\"><strong style=\"color:#F5F5F5;\">Resume</strong></p><p style=\"font-size:14.5px;color:#A3A3A3;margin-top:8px;\">${esc(typeof strategySummary==='string'?strategySummary:(strategySummary.summary||strategySummary.resume||j(strategySummary)))}</p></div>${campaignPhases.length>0?secTitle('Phases',COLORS[0])+'<div class=\"g2\" style=\"margin-bottom:40px;\">'+campaignPhases.map((p,i)=>`<div style=\"background:#111827;border:1px solid rgba(255,255,255,0.08);border-radius:14px;padding:28px;\"><div style=\"display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:12px;gap:12px;\"><span style=\"font-family:'Satoshi',sans-serif;font-size:13px;font-weight:700;width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;background:${COLORS[0]}30;color:${COLORS[0]};\">${i+1}</span><span style=\"font-family:'Satoshi',sans-serif;font-size:17px;font-weight:700;color:#F5F5F5;flex:1;\">${esc(p.name||'?')}</span></div><p style=\"font-size:14px;color:#A3A3A3;\">${esc(p.directive||p.focus||p.description||'')}</p></div>`).join('')+'</div>':''}</div></section><section class=\"sec\"><div class=\"ctn\"><div style=\"display:flex;align-items:flex-start;gap:20px;margin-bottom:48px;\"><div style=\"font-family:'Satoshi',sans-serif;font-size:48px;font-weight:900;color:#0FB8C4;line-height:1;\">02</div><div><h2 style=\"font-size:clamp(24px,3.5vw,36px);font-weight:900;margin-bottom:12px;\">Distribution Piliers</h2><p style=\"font-size:16px;color:#A3A3A3;\">Reel vs. objectifs strategie.</p></div></div>${secTitle('Objectif',COLORS[1])}${pBar(stratPcts,stPillars)}<div style=\"margin-top:32px;\">${secTitle('Reel',COLORS[1])}${pBar(actualPcts,stPillars)}</div><div style=\"display:flex;flex-wrap:wrap;gap:16px 32px;margin:24px 0 40px;\">${stPillars.map((p,i)=>{const c=pillarCounts[(p.name||'').toLowerCase()]||pillarCounts[p.name]||0;return `<div style=\"display:flex;align-items:center;gap:8px;font-size:13px;color:#A3A3A3;\"><div style=\"width:10px;height:10px;border-radius:3px;background:${COLORS[i%5]};\"></div>${esc(p.name)} cible ${stratPcts[i]}% reel ${actualPcts[i]}% (${c})</div>`;}).join('')}</div><div style=\"background:#111827;border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:24px 28px;\"><h4 style=\"font-family:'Satoshi',sans-serif;font-weight:700;font-size:16px;color:#F5F5F5;margin-bottom:8px;\">${distOk?'Distribution conforme':'Ecart detecte'}</h4><p style=\"font-size:14px;color:#A3A3A3;font-style:italic;\">Dev max: ${maxDev}%.</p></div></div></section><section class=\"sec se\"><div class=\"ctn\"><div style=\"display:flex;align-items:flex-start;gap:20px;margin-bottom:48px;\"><div style=\"font-family:'Satoshi',sans-serif;font-size:48px;font-weight:900;color:#C45C3B;line-height:1;\">03</div><div><h2 style=\"font-size:clamp(24px,3.5vw,36px);font-weight:900;margin-bottom:12px;\">Calendrier Posts</h2><p style=\"font-size:16px;color:#A3A3A3;\">${totalPosts} posts sur ${totalWeeks} semaines.</p></div></div>${weeks.map((wk,wi)=>{const we=new Date(wk.start);we.setDate(we.getDate()+6);const dr=new Date(wk.start).toLocaleDateString('fr-FR',{day:'2-digit',month:'short'})+' > '+we.toLocaleDateString('fr-FR',{day:'2-digit',month:'short'});return `<div style=\"margin-bottom:40px;\"><h3 style=\"font-family:'Satoshi',sans-serif;font-weight:700;font-size:16px;color:#F5F5F5;margin-bottom:16px;\"><span style=\"color:#737373;font-size:13px;background:#1A1F2E;padding:4px 12px;border-radius:5px;margin-right:12px;\">S${wi+1}</span>${dr}</h3><div class=\"g2\">${wk.posts.map(p=>{const pc=pColor(p.pillar||p.category);const dn=p.scheduled_date?new Date(p.scheduled_date).toLocaleDateString('fr-FR',{weekday:'short'}):'?';return `<div style=\"background:#111827;border:1px solid rgba(255,255,255,0.08);border-radius:14px;padding:24px;\"><div style=\"display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:12px;gap:8px;\"><span style=\"font-family:'Satoshi',sans-serif;font-size:11px;font-weight:700;padding:4px 8px;border-radius:5px;background:${pc}20;color:${pc};\">${esc(dn)}</span><span style=\"font-family:'Satoshi',sans-serif;font-size:15px;font-weight:700;color:#F5F5F5;flex:1;\">${esc(p.theme||p.angle||'?')}</span><span style=\"font-family:'Satoshi',sans-serif;font-size:11px;font-weight:600;color:#737373;background:#1A1F2E;padding:4px 10px;border-radius:5px;\">${esc(p.pillar||p.category||'?')}</span></div><table style=\"width:100%;border-collapse:collapse;font-size:13px;\"><tr><td style=\"width:120px;padding:6px 0;color:#737373;\">Angle</td><td style=\"padding:6px 0;color:#A3A3A3;\">${esc(p.angle||p.theme)}</td></tr><tr><td style=\"padding:6px 0;color:#737373;\">Ton</td><td style=\"padding:6px 0;color:#A3A3A3;\">${esc(p.tone||p.ton)}</td></tr><tr><td style=\"padding:6px 0;color:#737373;\">Direction visuelle</td><td style=\"padding:6px 0;color:#A3A3A3;\">${esc(p.visual_direction)}</td></tr>${p.compositing_context?'<tr><td style=\"padding:6px 0;color:#737373;\">Compositing</td><td style=\"padding:6px 0;\">'+tg(p.compositing_context,'#8B5CF6')+'</td></tr>':''}</table></div>`;}).join('')}</div></div>`;}).join('')}</div></section><section class=\"sec\"><div class=\"ctn\"><div style=\"display:flex;align-items:flex-start;gap:20px;margin-bottom:48px;\"><div style=\"font-family:'Satoshi',sans-serif;font-size:48px;font-weight:900;color:#8B5CF6;line-height:1;\">04</div><div><h2 style=\"font-size:clamp(24px,3.5vw,36px);font-weight:900;margin-bottom:12px;\">Stories</h2><p style=\"font-size:16px;color:#A3A3A3;\">${totalStories} stories (Agent 3).</p></div></div><div class=\"g3\" style=\"margin-bottom:40px;\">${kpiB('Total',totalStories.toString(),'generees','#8B5CF6')}${kpiB('Par jour',storiesPerDay.toString(),'stories/jour','#8B5CF6')}${kpiB('Duree',(calendarNode.campaignDays||'?')+'j','campagne','#8B5CF6')}</div></div></section><section class=\"sec se\"><div class=\"ctn\"><div style=\"display:flex;align-items:flex-start;gap:20px;margin-bottom:48px;\"><div style=\"font-family:'Satoshi',sans-serif;font-size:48px;font-weight:900;color:#F59E0B;line-height:1;\">05</div><div><h2 style=\"font-size:clamp(24px,3.5vw,36px);font-weight:900;margin-bottom:12px;\">Coherence</h2></div></div>${cChecks.map(c=>chkRow(c.label,c.ok?'ok':'warning',c.detail)).join('')}<div style=\"display:flex;align-items:center;justify-content:center;gap:24px;margin:48px 0 32px;flex-wrap:wrap;\">${[{l:'Agent 1',t:'Stratege',a:COLORS[0]},{l:'Agent 2',t:'Posts',a:COLORS[1]},{l:'Agent 3',t:'Stories',a:COLORS[2]},{l:'Total',t:totalSlots+' slots',a:COLORS[3]}].map((n,i,arr)=>`<div style=\"background:#111827;border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:24px 32px;text-align:center;min-width:140px;\"><p style=\"font-family:'Satoshi',sans-serif;font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:${n.a};margin-bottom:6px;\">${n.l}</p><p style=\"font-family:'Satoshi',sans-serif;font-size:22px;font-weight:900;color:#F5F5F5;\">${n.t}</p></div>`+(i<arr.length-1?'<span style=\"font-size:24px;color:#737373;\">></span>':'')).join('')}</div><p style=\"text-align:center;max-width:700px;margin:0 auto 40px;font-size:16px;color:#A3A3A3;\">${totalPosts} posts + ${totalStories} stories = ${totalSlots} slots.</p><div style=\"background:#111827;border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:24px 28px;\"><h4 style=\"font-family:'Satoshi',sans-serif;font-weight:700;font-size:16px;color:#F5F5F5;margin-bottom:8px;\">${cChecks.every(c=>c.ok)?'Pret pour WF1.5':'Ecarts a verifier'}</h4><p style=\"font-size:14px;color:#A3A3A3;font-style:italic;\">${cChecks.every(c=>c.ok)?'Calendrier coherent. WF1.5 peut demarrer.':'Verifiez distribution et volumes.'}</p></div></div></section><footer style=\"padding:48px 0;text-align:center;border-top:1px solid rgba(255,255,255,0.08);\"><div class=\"ctn\"><p style=\"font-family:'Satoshi',sans-serif;font-size:15px;font-weight:700;color:#F5F5F5;\">Neurolia Social Engine</p><p style=\"font-size:14px;color:#737373;font-style:italic;\">WF01 — ${esc(campaignName)} — ${esc(clientName)}</p><p style=\"font-size:12px;color:#737373;\">${reportDate} — Confidentiel</p></div></footer></body></html>`;\nreturn [{json:{...resp,report_html:html}}];"
       }
     }
   ],
   "connections": {
-    "Webhook": { "main": [[{ "node": "Charger Donnees Client", "type": "main", "index": 0 }]] },
-    "Charger Donnees Client": { "main": [[{ "node": "Charger Plateforme Marque", "type": "main", "index": 0 }]] },
-    "Charger Plateforme Marque": { "main": [[{ "node": "Charger Metriques Precedentes", "type": "main", "index": 0 }]] },
-    "Charger Metriques Precedentes": { "main": [[{ "node": "Charger Captions Recentes", "type": "main", "index": 0 }]] },
-    "Charger Captions Recentes": { "main": [[{ "node": "Construire Prompt Strategie", "type": "main", "index": 0 }]] },
-    "Construire Prompt Strategie": { "main": [[{ "node": "Agent Strategiste", "type": "main", "index": 0 }]] },
-    "Modele OpenAI — Strategiste": { "ai_languageModel": [[{ "node": "Agent Strategiste", "type": "ai_languageModel", "index": 0 }]] },
-    "Parseur Sortie — Calendrier": { "ai_outputParser": [[{ "node": "Agent Strategiste", "type": "ai_outputParser", "index": 0 }]] },
-    "Agent Strategiste": { "main": [[{ "node": "Valider Calendrier", "type": "main", "index": 0 }]] },
-    "Valider Calendrier": { "main": [[{ "node": "Creer Calendrier Editorial", "type": "main", "index": 0 }]] },
-    "Creer Calendrier Editorial": { "main": [[{ "node": "Preparer Slots", "type": "main", "index": 0 }]] },
-    "Preparer Slots": { "main": [[{ "node": "Boucle Slots", "type": "main", "index": 0 }]] },
-    "Boucle Slots": { "main": [[{ "node": "Preparer Reponse", "type": "main", "index": 0 }], [{ "node": "Creer Slot", "type": "main", "index": 0 }]] },
-    "Creer Slot": { "main": [[{ "node": "Boucle Slots", "type": "main", "index": 0 }]] },
-    "Preparer Reponse": { "main": [[{ "node": "Repondre Webhook", "type": "main", "index": 0 }, { "node": "Journal Execution", "type": "main", "index": 0 }]] }
-  }
+    "Charger Donnees Client": {
+      "main": [
+        [
+          {
+            "node": "Charger Plateforme Marque",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Charger Metriques Precedentes": {
+      "main": [
+        [
+          {
+            "node": "Charger Captions Recentes",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Charger Captions Recentes": {
+      "main": [
+        [
+          {
+            "node": "Construire Prompt Strategie",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Construire Prompt Strategie": {
+      "main": [
+        [
+          {
+            "node": "Agent Stratege",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Modele OpenAI — Stratege": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Agent Stratege",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Agent Stratege": {
+      "main": [
+        [
+          {
+            "node": "Valider Phases",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Valider Phases": {
+      "main": [
+        [
+          {
+            "node": "Construire Prompt Posts",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Construire Prompt Posts": {
+      "main": [
+        [
+          {
+            "node": "Agent Planificateur Posts",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Modele OpenAI — Posts": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Agent Planificateur Posts",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Agent Planificateur Posts": {
+      "main": [
+        [
+          {
+            "node": "Valider Posts",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Valider Posts": {
+      "main": [
+        [
+          {
+            "node": "Preparer Phases Stories",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparer Phases Stories": {
+      "main": [
+        [
+          {
+            "node": "Boucle Phases",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Boucle Phases": {
+      "main": [
+        [
+          {
+            "node": "Assembler Calendrier",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Construire Prompt Stories Phase",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Construire Prompt Stories Phase": {
+      "main": [
+        [
+          {
+            "node": "Agent Planificateur Stories",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Modele OpenAI — Stories": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Agent Planificateur Stories",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Agent Planificateur Stories": {
+      "main": [
+        [
+          {
+            "node": "Valider Stories Phase",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Valider Stories Phase": {
+      "main": [
+        [
+          {
+            "node": "Boucle Phases",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Assembler Calendrier": {
+      "main": [
+        [
+          {
+            "node": "Creer Calendrier Editorial",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Creer Calendrier Editorial": {
+      "main": [
+        [
+          {
+            "node": "Preparer Slots",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparer Slots": {
+      "main": [
+        [
+          {
+            "node": "Boucle Slots",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Boucle Slots": {
+      "main": [
+        [
+          {
+            "node": "Preparer Reponse",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Creer Slot",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Creer Slot": {
+      "main": [
+        [
+          {
+            "node": "Boucle Slots",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Charger Plateforme Marque": {
+      "main": [
+        [
+          {
+            "node": "Charger Catalogue Contexte",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Declencheur Manuel": {
+      "main": [
+        [
+          {
+            "node": "Charger Parametres Campagne",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Charger Parametres Campagne": {
+      "main": [
+        [
+          {
+            "node": "Formater Inputs Campagne",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Formater Inputs Campagne": {
+      "main": [
+        [
+          {
+            "node": "Charger Donnees Client",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Charger Catalogue Contexte": {
+      "main": [
+        [
+          {
+            "node": "Charger Strategie Client",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Charger Strategie Client": {
+      "main": [
+        [
+          {
+            "node": "Detecter Periode Active",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Detecter Periode Active": {
+      "main": [
+        [
+          {
+            "node": "Charger Metriques Precedentes",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparer Reponse": {
+      "main": [
+        [
+          {
+            "node": "Generer Rapport Editorial",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generer Rapport Editorial": {
+      "main": [
+        [
+          {
+            "node": "Journal Execution",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "Europe/Paris",
+    "saveDataErrorExecution": "all",
+    "saveDataSuccessExecution": "all",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": false
+  },
+  "staticData": null,
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "pinData": {},
+  "versionId": "9be2f2e5-8035-4db8-98b9-574e42d70013",
+  "activeVersionId": null,
+  "versionCounter": 93,
+  "triggerCount": 1,
+  "shared": [
+    {
+      "updatedAt": "2026-03-05T17:51:31.734Z",
+      "createdAt": "2026-03-05T17:51:31.734Z",
+      "role": "workflow:owner",
+      "workflowId": "TG3Pxizh8oWKA3Ab",
+      "projectId": "lc05l94jXnd3xcML",
+      "project": {
+        "updatedAt": "2025-12-18T17:12:06.601Z",
+        "createdAt": "2025-12-18T14:47:13.737Z",
+        "id": "lc05l94jXnd3xcML",
+        "name": "Dorian Gustiez <dorian.gustiez@gmail.com>",
+        "type": "personal",
+        "icon": null,
+        "description": null,
+        "creatorId": "d67028b9-af92-4215-8935-96348dd29218"
+      }
+    }
+  ],
+  "tags": [],
+  "activeVersion": null
 }

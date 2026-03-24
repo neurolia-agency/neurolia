@@ -91,6 +91,10 @@ CHARTE GRAPHIQUE :
 - Style visuel : {visual_style}
 - Style photo : {photo_style}
 
+IDENTITE DE MARQUE :
+- Essence : {brand_essence}
+- Registre visuel : {archetype_visual}
+
 DIRECTION VISUELLE DU SLOT :
 {visual_direction}
 
@@ -274,6 +278,8 @@ CHARTE GRAPHIQUE :
 - Couleurs secondaires : ${(brand.secondary_colors || []).join(', ')}
 - Style visuel : ${brand.visual_style || ''}
 - Style photo : ${brand.photo_style || ''}
+- Essence de marque : ${brand.brand_essence || ''}
+- Registre visuel : ${(brand.archetype && typeof brand.archetype === 'object' ? brand.archetype?.manifestation?.visuel : '') || ''}
 
 DIRECTION VISUELLE DU SLOT :
 ${slot.visual_direction || 'Sublimation creative, ambiance premium coherente avec la marque.'}
