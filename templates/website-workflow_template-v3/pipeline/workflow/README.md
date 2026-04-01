@@ -1,4 +1,4 @@
-# Pipeline Workflow v2.0
+# Pipeline Workflow v4.0
 
 Index des fichiers de documentation du workflow.
 
@@ -6,72 +6,59 @@ Index des fichiers de documentation du workflow.
 
 ### Phase A : Architecture (Markdown uniquement)
 ```
-A01-Init → A02-Brand → A03-Art Direction → A04-Structure → A05-Wireframes → A06-Design Tokens
+A01-Init -> A02-Brand -> A03-Art Direction -> A04-Structure -> A05-Creative Briefs -> A06-Design Tokens
 ```
 
 ### Phase B : Design / Vibe Coding (Code avec frontend-design2 + agents)
 ```
-B01-Layout → B02-Homepage → B03-Pages → B04-Polish → B05-Validate → B06-Deploy
+B01-Layout -> B02-Homepage -> B03-Pages -> B04-Polish -> B05-Validate -> B06-Deploy
 ```
 
-## Circuit d'Agents (Phase B)
+## Circuit d'Agents v4 (Phase B)
 
 Chaque composant/section passe par :
 
 ```
-Context Assembler (haiku) → Aesthetic Director (opus-4.6) → Claude + frontend-design2 → Constraint Validator (haiku)
+Creative Director (opus-4.6) -> Claude + frontend-design2 -> Technical Validator (haiku)
 ```
 
-Custom subagents : `.claude/agents/` (context-assembler, aesthetic-director, constraint-validator)
+Le Creative Director DECIDE le layout, les techniques et les dials. Le Technical Validator verifie les regles techniques (pas les choix creatifs).
 
 ## Fichiers
 
 | Fichier | Contenu |
 |---------|---------|
 | `DESIGN_STACK.md` | Stack technique, structure codebase, conventions |
-| `DEPENDENCIES.md` | Matrice inputs/outputs, circuit agents, parallélisme |
+| `DEPENDENCIES.md` | Matrice inputs/outputs, circuit agents, parallelisme |
 
 ## Custom Subagents
 
-Définis dans `.claude/agents/` (racine du projet, pas dans pipeline/) :
+Definis dans `.claude/agents/` (racine du projet) :
 
-| Fichier | Agent | Phase | Modèle | Skills préchargés |
+| Fichier | Agent | Phase | Modele | Skills precharges |
 |---------|-------|-------|--------|-------------------|
-| `.claude/agents/context-assembler.md` | Résolveur de contexte | B | Haiku | — |
-| `.claude/agents/aesthetic-director.md` | Direction créative | B | Opus 4.6 | — |
-| `.claude/agents/constraint-validator.md` | Vérificateur de règles | B | Haiku | frontend-design2 |
-| `.claude/agents/wireframe-validator.md` | Validateur wireframes | A05 | Haiku | — |
-| `.claude/agents/token-auditor.md` | Auditeur tokens CSS | A06 | Haiku | — |
+| `creative-director.md` | Directeur creatif | B | Opus 4.6 | — |
+| `technical-validator.md` | Verificateur technique | B | Haiku | frontend-design2 |
+| `source-reader.md` | Utilitaire resolution | B (opt.) | Haiku | — |
+| `visual-reviewer.md` | Evaluation visuelle | B (opt.) | Haiku | — |
+| `wireframe-validator.md` | Validateur briefs | A05 | Haiku | — |
+| `token-auditor.md` | Auditeur tokens CSS | A06 | Haiku | — |
 
-## Source Unique
+## Phase B : Workflow par section
 
-**Statut pipeline et flux de contexte** : voir `CLAUDE.md` (racine du projet)
+1. **Creative Director** lit le creative brief + sources -> DECIDE layout, technique, dials -> `_preflight/[page]/[section]-creative-direction.md`
+2. **Claude + frontend-design2** lit la creative direction -> code le composant
+3. **Technical Validator** verifie le code -> pass/fail + corrections
 
-## Exécuter une Étape
+**Fichiers cles consommes** :
+- `output/03.5-wireframes/*.md` — Creative Briefs (contenu + emotion + contraintes)
+- `output/02-art-direction/project-dials.md` — Dials globaux + Creative Palette
+- `output/02-art-direction/constraints.md` — ON FAIT / ON NE FAIT PAS
+- `output/02-art-direction/ui-kit.md` — Composants autorises
+- `output/02-art-direction/emotion-map.md` — Emotions par section
 
-```bash
-# Phase A (Architecture) - Production de documents Markdown
-/apex -a -s exécuter étape [XX]-[nom] depuis stages/[XX]-[nom].md
-```
-
-## Phase B : Vibe Coding avec frontend-design2 + agents
-
-**OBLIGATOIRE** : Tout développement UI en Phase B passe par le circuit d'agents.
-
-**Workflow par section** :
-1. **Context Assembler** lit le wireframe → produit `_preflight/[page]/[section]-context.md`
-2. **Aesthetic Director** lit le context block → produit `_preflight/[page]/[section]-direction.md`
-3. **Claude + frontend-design2** lit les 2 fichiers preflight → code le composant
-4. **Constraint Validator** vérifie le code → pass/fail + corrections
-
-**Fichiers clés consommés** :
-- `output/02-art-direction/project-dials.md` — Dials par section
-- `output/02-art-direction/constraints.md` — Règles ON FAIT / ON NE FAIT PAS
-- `output/02-art-direction/ui-kit.md` — Composants autorisés
-- `output/02-art-direction/emotion-map.md` — Émotions par section
-
-**Règle** : Ne jamais écrire de composant UI sans passer par le circuit. Les fichiers `_preflight/` sont la trace de ce circuit.
+**Regle** : Ne jamais ecrire de composant UI sans passer par le circuit.
 
 ---
 
-*Template Workflow v2.0 — 2026-03-03*
+*Template Workflow v4.0 — 2026-03-21*

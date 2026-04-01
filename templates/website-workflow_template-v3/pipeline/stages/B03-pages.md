@@ -1,76 +1,72 @@
-# Étape B3 : Pages Secondaires
+# Etape B3 : Pages Secondaires
 
 > **Phase B : Design / Vibe Coding** - Pages Services, Portfolio, About, Contact.
 
-## Workflow Agents + frontend-design2
+## Circuit d'Agents v4
 
-**Identique à B02.** Chaque section de chaque page passe par le circuit d'agents complet :
+**Identique a B02.** Chaque section de chaque page passe par le circuit :
 
 ```
-Context Assembler (haiku) → Aesthetic Director (opus-4.6) → Code + frontend-design2 → Constraint Validator (haiku)
+Creative Director (opus-4.6) -> Code + frontend-design2 -> Technical Validator (haiku)
 ```
 
-> **Rappel** : Les wireframes enrichis (v2) sont auto-suffisants — chaque section porte ses émotions,
-> dials, techniques et contraintes. L'agent Context Assembler résout tout automatiquement.
+> **Creative Briefs v4** : Chaque brief definit le contenu et l'emotion.
+> Le Creative Director decide le layout, les techniques et les dials par section.
 
 ---
 
 ## Objectif
 
-Créer les pages secondaires, chaque page utilisant **uniquement son wireframe** comme source de contenu.
+Creer les pages secondaires, chaque page utilisant son **creative brief** comme source de contenu.
 
 ## Input
 
-| Page | Wireframe | Dials Section |
-|------|-----------|---------------|
-| Services | `output/03.5-wireframes/services.md` | `project-dials.md > [sections services]` |
-| Portfolio | `output/03.5-wireframes/portfolio.md` | `project-dials.md > [sections portfolio]` |
-| About | `output/03.5-wireframes/about.md` | `project-dials.md > [sections about]` |
-| Contact | `output/03.5-wireframes/contact.md` | `project-dials.md > [sections contact]` |
+| Page | Creative Brief |
+|------|---------------|
+| Services | `output/03.5-wireframes/services.md` |
+| Portfolio | `output/03.5-wireframes/portfolio.md` |
+| About | `output/03.5-wireframes/about.md` |
+| Contact | `output/03.5-wireframes/contact.md` |
 
-**Contexte supplémentaire** :
+**Contexte supplementaire** (lu par le Creative Director) :
 - `app/globals.css` — Design tokens
-- `output/02-art-direction/constraints.md` — Règles visuelles
-- `output/02-art-direction/emotion-map.md` — Émotions par section
+- `output/02-art-direction/` — Brand + art direction
 
-**Exception** : Page Contact peut lire `01-brand/about.md` pour les coordonnées.
+**Exception** : Page Contact peut lire `01-brand/about.md` pour les coordonnees.
 
-## Pages à Créer
+## Pages a Creer
 
 ### 1. Services (/services)
 
-**Wireframe** : `output/03.5-wireframes/services.md`
+**Creative Brief** : `output/03.5-wireframes/services.md`
 
-Pour chaque section du wireframe :
-1. Agent Context Assembler → context block avec dials de la section
-2. Agent Aesthetic Director → direction créative
-3. Code avec frontend-design2 (chargé via Read explicite de .claude/skills/frontend-design2/SKILL.md)
-4. Agent Constraint Validator → pass/fail
+Pour chaque section du brief :
+1. Creative Director -> direction creative (layout, technique, dials)
+2. Code avec frontend-design2
+3. Technical Validator -> pass/fail
 
-> **Attention** : La page Services est particulièrement à risque pour les anti-patterns
-> (grid 3 colonnes, cards génériques). Vérifier que project-dials.md > Anti-Patterns
-> est bien appliqué.
+> **Attention** : La page Services est particulierement a risque pour les anti-patterns
+> (grid 3 colonnes, cards generiques). Verifier project-dials.md > Anti-Patterns.
 
 ### 2. Portfolio (/portfolio)
 
-**Wireframe** : `output/03.5-wireframes/portfolio.md`
+**Creative Brief** : `output/03.5-wireframes/portfolio.md`
 
-Même circuit. Le portfolio est souvent la page la plus visuellement expressive —
-les dials de section seront probablement plus élevés en VARIANCE.
+Meme circuit. Le portfolio est souvent la page la plus visuellement expressive.
 
 ### 3. About (/about)
 
-**Wireframe** : `output/03.5-wireframes/about.md`
+**Creative Brief** : `output/03.5-wireframes/about.md`
 
-Même circuit. Page narrative — l'Aesthetic Director devrait produire
-des directions plus storytelling que techniques.
+Meme circuit. Page narrative — le Creative Director devrait produire
+des directions plus storytelling.
 
 ### 4. Contact (/contact)
 
-**Wireframe** : `output/03.5-wireframes/contact.md`
+**Creative Brief** : `output/03.5-wireframes/contact.md`
 
-Même circuit. Page de conversion — les dials MOTION et VARIANCE devraient
-être au minimum. Pas de distraction.
+Meme circuit. Page de conversion — le Creative Director calibrera
+probablement les dials MOTION et VARIANCE au minimum.
 
 **Stack formulaire** :
 ```bash
@@ -83,45 +79,29 @@ npx shadcn@latest add input textarea select
 ```
 _preflight/
 ├── services/
-│   ├── [section]-context.md
-│   └── [section]-direction.md
+│   └── [section]-creative-direction.md
 ├── portfolio/
-│   ├── [section]-context.md
-│   └── [section]-direction.md
+│   └── [section]-creative-direction.md
 ├── about/
-│   ├── [section]-context.md
-│   └── [section]-direction.md
+│   └── [section]-creative-direction.md
 └── contact/
-    ├── [section]-context.md
-    └── [section]-direction.md
+    └── [section]-creative-direction.md
 
 app/
-├── services/
-│   └── page.tsx
-├── portfolio/
-│   └── page.tsx
-├── about/
-│   └── page.tsx
-├── contact/
-│   └── page.tsx
-└── actions/
-    └── contact.ts
+├── services/page.tsx
+├── portfolio/page.tsx
+├── about/page.tsx
+├── contact/page.tsx
+└── actions/contact.ts
 
-components/
-└── pages/
-    ├── services/
-    │   └── [sections].tsx
-    ├── portfolio/
-    │   └── [sections].tsx
-    ├── about/
-    │   └── [sections].tsx
-    └── contact/
-        └── [sections].tsx
+components/pages/
+├── services/[sections].tsx
+├── portfolio/[sections].tsx
+├── about/[sections].tsx
+└── contact/[sections].tsx
 ```
 
-## Composants Réutilisables
-
-Ces composants créés en B2 sont réutilisés :
+## Composants Reutilisables
 
 | Composant | Usage |
 |-----------|-------|
@@ -130,26 +110,24 @@ Ces composants créés en B2 sont réutilisés :
 
 ## Validation
 
-- [ ] **Preflight** : Context block + direction créative produits pour CHAQUE section de CHAQUE page
-- [ ] Toutes les pages créées selon leur wireframe
-- [ ] Server/Client Components correctement séparés
+- [ ] Direction creative produite pour CHAQUE section de CHAQUE page
+- [ ] Toutes les pages creees selon leur creative brief
+- [ ] Server/Client Components correctement separes
 - [ ] Formulaire Contact fonctionnel (validation Zod + Server Action)
-- [ ] Composants réutilisés (CtaFinal, AnimatedSection)
+- [ ] Composants reutilises (CtaFinal, AnimatedSection)
 - [ ] Responsive mobile-first
-- [ ] **Constraint Validator** : pass sur CHAQUE section de CHAQUE page
-- [ ] **Dials respectés** : valeurs par section cohérentes avec project-dials.md
-- [ ] **Techniques implémentées** : celles recommandées dans project-dials.md > Arsenal
-- [ ] **Anti-patterns évités** : grid 3 colonnes (Services), layout centré (si VARIANCE ≥ 4), cards génériques
+- [ ] **Technical Validator** : pass sur CHAQUE section de CHAQUE page
+- [ ] Anti-patterns evites (grid 3 colonnes, layout centre, cards generiques)
 
-## Prochaine Étape
+## Prochaine Etape
 
-→ `stages/B04-polish.md`
+-> `stages/B04-polish.md`
 
 ---
 
-**Version** : 2.0
+**Version** : 4.0
 **Phase** : B3 (Design / Vibe Coding)
-**Dépendances** : B1 (Layout), A5 (Wireframes), A3 (project-dials, constraints, emotion-map)
-**Agents** : Context Assembler (haiku), Aesthetic Director (opus-4.6), Constraint Validator (haiku)
+**Dependances** : B1 (Layout), A5 (Creative Briefs), A3 (art-direction)
+**Agents** : Creative Director (opus-4.6), Technical Validator (haiku)
 **Skill** : frontend-design2
 **Produit pour** : B4 (Polish)

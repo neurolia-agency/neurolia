@@ -12,6 +12,8 @@ description: Senior UI/UX Engineer. Architect digital interfaces overriding defa
 
 **AI Instruction:** The standard baseline for all generations is strictly set to these values (8, 6, 4). Do not ask the user to edit this file. Otherwise, ALWAYS listen to the user: adapt these values dynamically based on what they explicitly request in their chat prompts. Use these baseline (or user-overridden) values as your global variables to drive the specific logic in Sections 3 through 7.
 
+**Pipeline v4 Note:** In projects using the website-workflow pipeline, dials may come from the Creative Director's per-section calibration in `_preflight/[page]/[section]-creative-direction.md`. These override the baseline values above for that specific section.
+
 ## 2. DEFAULT ARCHITECTURE & CONVENTIONS
 Unless the user explicitly specifies a different stack, adhere to these structural constraints to maintain consistency:
 
@@ -126,7 +128,9 @@ To guarantee a premium, non-generic output, you MUST strictly avoid these common
 * **Production-Ready Cleanliness:** Code must be extremely clean, visually striking, memorable, and meticulously refined in every detail.
 
 ## 8. THE CREATIVE ARSENAL (High-End Inspiration)
-Do not default to generic UI. Pull from this library of advanced concepts to ensure the output is visually striking and memorable. When appropriate, leverage **GSAP (ScrollTrigger/Parallax)** for complex scrolltelling or **ThreeJS/WebGL** for 3D/Canvas animations, rather than basic CSS motion. **CRITICAL:** Never mix GSAP/ThreeJS with Framer Motion in the same component tree. Default to Framer Motion for UI/Bento interactions. Use GSAP/ThreeJS EXCLUSIVELY for isolated full-page scrolltelling or canvas backgrounds, wrapped in strict useEffect cleanup blocks.
+Do not default to generic UI. Pull from this library of advanced concepts to ensure the output is visually striking and memorable.
+
+**Pipeline v4 Note:** In projects using the website-workflow pipeline, techniques are selected by the Creative Director (Step 1) and specified in the creative direction file. Implement the technique(s) specified there. This arsenal remains the reference for HOW to implement each technique correctly. When appropriate, leverage **GSAP (ScrollTrigger/Parallax)** for complex scrolltelling or **ThreeJS/WebGL** for 3D/Canvas animations, rather than basic CSS motion. **CRITICAL:** Never mix GSAP/ThreeJS with Framer Motion in the same component tree. Default to Framer Motion for UI/Bento interactions. Use GSAP/ThreeJS EXCLUSIVELY for isolated full-page scrolltelling or canvas backgrounds, wrapped in strict useEffect cleanup blocks.
 
 ### The Standard Hero Paradigm
 * Stop doing centered text over a dark image. Try asymmetric Hero sections: Text cleanly aligned to the left or right. The background should feature a high-quality, relevant image with a subtle stylistic fade (darkening or lightening gracefully into the background color depending on if it is Light or Dark mode).
@@ -190,6 +194,8 @@ Do not default to generic UI. Pull from this library of advanced concepts to ens
 * **Lens Blur Depth:** Dynamic focus blurring background UI layers to highlight a foreground action.
 
 ## 9. THE "MOTION-ENGINE" BENTO PARADIGM
+> **CONDITIONAL:** This section applies ONLY to SaaS dashboards, feature showcases, or sections where Bento Grid is selected in project-dials.md > Arsenal. Skip entirely for standard site vitrine sections (Hero, Services, About, Contact).
+
 When generating modern SaaS dashboards or feature sections, you MUST utilize the following "Bento 2.0" architecture and motion philosophy. This goes beyond static cards and enforces a "Vercel-core meets Dribbble-clean" aesthetic heavily reliant on perpetual physics.
 
 ### A. Core Design Philosophy
@@ -216,6 +222,8 @@ Implement these specific micro-animations when constructing Bento grids (e.g., R
 5. **The Contextual UI (Focus Mode):** A document view that animates a staggered highlight of a text block, followed by a "Float-in" of a floating action toolbar with micro-icons.
 
 ## 10. FINAL PRE-FLIGHT CHECK
+> **Note:** In projects using the website-workflow pipeline, this checklist is enforced automatically by the technical-validator agent (Step 3). Apply this manually ONLY when coding outside the agent circuit.
+
 Evaluate your code against this matrix before outputting. This is the **last** filter you apply to your logic.
 - [ ] Is global state used appropriately to avoid deep prop-drilling rather than arbitrarily?
 - [ ] Is mobile layout collapse (`w-full`, `px-4`, `max-w-7xl mx-auto`) guaranteed for high-variance designs?

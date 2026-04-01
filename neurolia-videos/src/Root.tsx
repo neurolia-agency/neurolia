@@ -8,6 +8,8 @@ import { FeatureFlash, featureFlashSchema } from './templates/FeatureFlash';
 import { StatReveal, statRevealSchema } from './templates/StatReveal';
 import { DotServicesReel, dotServicesReelSchema } from './compositions/DotServices/DotServicesReel';
 import { DotBrandReel, dotBrandReelSchema } from './compositions/DotBrandReel';
+import { FogBeforeAfter, fogBeforeAfterSchema } from './compositions/FogBeforeAfter';
+import { fogBeforeAfterConfig } from './data/videos/V-FOG-BA-01';
 
 export const RemotionRoot: React.FC = () => {
   return (
@@ -130,6 +132,25 @@ export const RemotionRoot: React.FC = () => {
           }}
         />
       </Folder>
+
+        {/* FOG Before/After — Portfolio showcase */}
+        <Composition
+          id="FogBeforeAfterReel"
+          component={FogBeforeAfter}
+          schema={fogBeforeAfterSchema}
+          durationInFrames={30 * fogBeforeAfterConfig.durationSeconds}
+          fps={videoFormats.reel.fps}
+          width={videoFormats.reel.width}
+          height={videoFormats.reel.height}
+          defaultProps={{
+            hookLine1: fogBeforeAfterConfig.hookLine1,
+            hookLine2: fogBeforeAfterConfig.hookLine2,
+            beforeVideo: fogBeforeAfterConfig.beforeVideo,
+            afterVideo: fogBeforeAfterConfig.afterVideo,
+            ctaText: fogBeforeAfterConfig.ctaText,
+            url: fogBeforeAfterConfig.url,
+          }}
+        />
 
       {/* ============================================
           WEBSITE - Background & embedded videos

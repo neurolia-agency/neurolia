@@ -1,60 +1,46 @@
-# Étape B2 : Homepage
+# Etape B2 : Homepage
 
 > **Phase B : Design / Vibe Coding** - Page d'accueil.
 
-## Workflow Agents + frontend-design2
+## Circuit d'Agents v4
 
-**OBLIGATOIRE** : Chaque section passe par le circuit d'agents complet.
-
-### Circuit pour chaque section
+**OBLIGATOIRE** : Chaque section passe par le circuit.
 
 ```
-1. AGENT Context Assembler (haiku — déterministe)
-   → Lit la section du wireframe (homepage.md)
-   → Résout TOUS les pointeurs : visual-vocabulary, constraints, emotions, tokens
-   → Extrait les dials de la section depuis project-dials.md
-   → Produit : _preflight/homepage/[section]-context.md
+1. AGENT Creative Director (opus-4.6 — creatif)
+   -> Lit le creative brief de la section (03.5-wireframes/homepage.md)
+   -> Lit les fichiers brand/art-direction + references visuelles
+   -> DECIDE : layout, technique(s), dials section, choreographie
+   -> Produit : _preflight/homepage/[section]-creative-direction.md
 
-2. AGENT Aesthetic Director (opus-4.6 — créatif)
-   → Lit le context block
-   → Transforme en direction créative sensorielle
-   → Sélectionne la/les technique(s) depuis l'arsenal (max 2-3 par section)
-   → Décrit l'intention émotionnelle en termes visuels
-   → Produit : _preflight/homepage/[section]-direction.md
+2. CLAUDE + frontend-design2 (charge via Read explicite de .claude/skills/frontend-design2/SKILL.md)
+   -> Lit frontend-design2/SKILL.md (OBLIGATOIRE)
+   -> Lit la creative direction (1 seul fichier — decisions + intention)
+   -> Implemente les decisions du Creative Director
+   -> Code le composant
 
-3. CLAUDE + frontend-design2 (chargé via Read explicite de .claude/skills/frontend-design2/SKILL.md)
-   → Lit .claude/skills/frontend-design2/SKILL.md (OBLIGATOIRE — chargement garanti)
-   → Lit les 2 fichiers preflight
-   → Les dials de la SECTION (pas les globaux) sont actifs
-   → Code le composant
-   → Applique la technique recommandée
-
-4. AGENT Constraint Validator (haiku — vérification)
-   → Compare le code contre constraints.md (règle par règle)
-   → Vérifie les dials (ex: si VARIANCE=6, le layout ne doit pas être centré symétrique)
-   → Vérifie la technique (ex: si "Sticky Scroll Stack" recommandé, est-il implémenté ?)
-   → Produit : pass/fail + corrections
+3. AGENT Technical Validator (haiku — verification)
+   -> Verifie : tokens, a11y, responsive, anti-patterns, server/client
+   -> NE verifie PAS les choix creatifs (layout, technique)
+   -> Produit : pass/fail + corrections
 ```
 
 ---
 
 ## Objectif
 
-Créer la page d'accueil **section par section**, chaque section utilisant le circuit d'agents complet.
+Creer la page d'accueil **section par section**, chaque section utilisant le circuit d'agents complet.
 
 ## Input
 
 | Fichier | Usage |
 |---------|-------|
-| `output/03.5-wireframes/homepage.md` | **Source de contenu** — wireframe auto-suffisant |
+| `output/03.5-wireframes/homepage.md` | **Source de contenu** — creative brief |
 | `app/globals.css` | Design tokens |
-| `output/02-art-direction/project-dials.md` | Dials par section |
-| `output/02-art-direction/constraints.md` | Règles visuelles |
-| `output/02-art-direction/emotion-map.md` | Émotions par section |
+| `output/02-art-direction/` | Brand + art direction (lus par le Creative Director) |
 
-> **Wireframe auto-suffisant** : Le wireframe enrichi (v2) contient déjà les pointeurs vers
-> toutes les sources (émotions, dials, contraintes, techniques). L'agent Context Assembler
-> résout ces pointeurs automatiquement — pas de pré-chargement manuel nécessaire.
+> **Creative Brief v4** : Le brief definit QUOI (contenu, emotion, contraintes).
+> Le Creative Director decide COMMENT (layout, technique, dials).
 
 ## Server vs Client Components
 
@@ -70,103 +56,73 @@ Créer la page d'accueil **section par section**, chaque section utilisant le ci
 
 ## Workflow : Section par Section
 
-Pour **chaque section** du wireframe `homepage.md` :
+Pour **chaque section** du creative brief `homepage.md` :
 
-### Étape 1 — Preflight (automatique)
+### Etape 1 — Creative Direction
 
-L'agent Context Assembler lit la section du wireframe et produit un context block du type :
-
-```markdown
-## Hero — Context Block
-
-### Dials Section
-DESIGN_VARIANCE: 6 | MOTION_INTENSITY: 5 | VISUAL_DENSITY: 2
-Source : project-dials.md > Hero
-
-### Contenu Résolu
-- H1 : "Votre artisan de confiance depuis 1987"  ← positioning.md > tagline
-- Baseline : "Dépannage, installation..."  ← positioning.md > baseline
-- CTA : "Appelez-nous" → tel:+33...  ← positioning.md > cta_principal
-
-### Émotion
-- Primaire : Impact, confiance immédiate  ← emotion-map.md > Homepage > Hero
-- Tension : Sobriété du fond vs énergie du CTA accent
-
-### Layout
-Split screen 60/40 — texte aligné à gauche, espace négatif à droite  ← wireframe
-
-### Tokens Actifs
-- Fond : oklch(0.15 0.02 265) = --background  ← visual-vocabulary > fond principal
-- H1 : clamp(3rem, 6vw + 1rem, 4.5rem) = --font-size-h1  ← visual-vocabulary > typo massive
-- Transition : 300ms ease-out = --transition-reveal  ← visual-vocabulary > apparition douce
-
-### Contraintes Applicables
-- ON FAIT #1 : [règle résolue]
-- ON FAIT #3 : [règle résolue]
-- ON NE FAIT PAS #2 : [règle résolue]
-- ON NE FAIT PAS #5 : [règle résolue]
-
-### Technique Recommandée
-Text Scramble Effect — renforce la première impression de maîtrise
-Source : project-dials.md > Arsenal
-```
-
-### Étape 2 — Direction Créative (automatique)
-
-L'agent Aesthetic Director transforme le context block en intention sensorielle :
+Le Creative Director lit le brief + les fichiers sources, puis DECIDE l'approche :
 
 ```markdown
-## Hero — Direction Créative
+## Hero — Direction Creative
 
-L'entrée sur le site doit frapper par sa retenue maîtrisée. Le fond charbon absorbe
-le regard, le silence visuel est total — puis la tagline surgit lettre par lettre
-(Text Scramble), comme un artisan qui pose ses outils un par un avant de parler.
-Le CTA ocre est le seul point de chaleur : il dit "je suis là" sans crier.
+### Calibrage Dials
+VARIANCE: 6 | MOTION: 5 | DENSITY: 2
+Rationale : Hero = premiere impression, asymetrie pour se differencier
 
-L'espace négatif à droite n'est pas vide — il respire. Il dit : "on a de la place,
-on prend le temps". Le visiteur doit ressentir de la confiance avant d'avoir lu un mot.
+### Decision Layout
+Split asymetrique 40/60 — texte ancre a gauche, visuel debordant a droite
+Mobile : stack vertical, visuel en premier (above the fold)
+Rationale : l'asymetrie cree de la tension, le vide a gauche = respiration
 
-Technique : Text Scramble Effect sur le H1 (révélation progressive, 50ms par caractère)
-Palette active : fond charbon + texte craie + CTA ocre (seul accent)
-Interdit : aucun mouvement sur le fond, aucune image hero, aucun gradient
+### Technique(s) Selectionnee(s)
+**Apparition Decalee (Stagger)** — revele les elements un par un
+- Comportement : translateY(24px) -> 0 + opacity, stagger 100ms
+- Timing : 600ms cubic-bezier(0.22, 1, 0.36, 1)
+- Fallback : tout visible immediatement
+
+### Intention Sensorielle
+[Description de l'experience visiteur...]
+
+### Resume en 1 phrase
+"[...]"
 ```
 
-### Étape 3 — Code (avec frontend-design2 chargé via Read explicite)
+### Etape 2 — Code
 
 Claude code le composant avec :
-- Le SKILL.md de frontend-design2 lu explicitement via Read (`.claude/skills/frontend-design2/SKILL.md`)
-- Le context block (valeurs concrètes)
-- La direction créative (âme du composant)
-- Les dials de la section comme override
+- Le SKILL.md de frontend-design2 lu explicitement
+- La creative direction (decisions + intention)
+- Les dials de la section decides par le Creative Director
 
-### Étape 4 — Validation (automatique)
+### Etape 3 — Validation technique
 
-L'agent Constraint Validator vérifie :
-- [ ] Chaque règle de constraints.md applicable → code conforme
-- [ ] Dials respectés (ex: VARIANCE=6 → pas de layout centré symétrique)
-- [ ] Technique implémentée si recommandée
-- [ ] Tokens CSS utilisés (pas de valeurs hardcodées)
+Le Technical Validator verifie :
+- [ ] Tokens CSS utilises (pas de valeurs hardcodees)
+- [ ] Contraintes constraints.md respectees
+- [ ] UI Kit conforme
+- [ ] Anti-patterns fd2 absents
 - [ ] Server/Client separation correcte
+- [ ] Responsive present
+- [ ] A11y basique (aria, focus, contraste)
 
 ---
 
-## Sections à Créer
+## Sections a Creer
 
-> L'ordre et le contenu exact viennent du wireframe homepage.md.
-> Les sections ci-dessous sont un EXEMPLE — adapter au projet réel.
+> L'ordre et le contenu exact viennent du creative brief homepage.md.
 
 ### Section 1 : Hero
 **Type** : Server Component (+ wrapper AnimatedSection si animation)
-→ Circuit agents complet
+-> Circuit complet
 
-### Section 2 : Services (aperçu)
+### Section 2 : Services (apercu)
 **Type** : Server Component
-→ Circuit agents complet
+-> Circuit complet
 
-### Section 3-N : [Sections depuis wireframe]
-→ Circuit agents complet pour chaque section
+### Section 3-N : [Sections depuis brief]
+-> Circuit complet pour chaque section
 
-### Contact Mini (si présent)
+### Contact Mini (si present)
 **Type** : Client Component
 
 **Stack formulaire** :
@@ -181,18 +137,16 @@ npx shadcn@latest add input textarea
 
 ## Assemblage Page
 
-`app/page.tsx` — assembler les sections dans l'ordre du wireframe.
+`app/page.tsx` — assembler les sections dans l'ordre du brief.
 
 ## Output
 
 ```
 _preflight/homepage/
-├── hero-context.md
-├── hero-direction.md
-├── services-preview-context.md
-├── services-preview-direction.md
-├── [section]-context.md
-└── [section]-direction.md
+├── hero-creative-direction.md
+├── services-preview-creative-direction.md
+├── [section]-creative-direction.md
+└── ...
 
 app/
 ├── page.tsx
@@ -211,25 +165,23 @@ components/
 
 ## Validation
 
-- [ ] **Preflight** : Context block + direction créative produits pour CHAQUE section
-- [ ] Chaque section créée individuellement via le circuit agents
-- [ ] Wireframe respecté (contenu, layout, interactions, **émotions**, **techniques**)
-- [ ] Server/Client Components correctement séparés
+- [ ] Direction creative produite pour CHAQUE section (Creative Director)
+- [ ] Chaque section creee via le circuit
+- [ ] Creative brief respecte (contenu, emotion)
+- [ ] Server/Client Components correctement separes
 - [ ] Responsive mobile-first
-- [ ] **Constraint Validator** : pass sur CHAQUE section
-- [ ] **Dials respectés** : valeurs par section cohérentes avec project-dials.md
-- [ ] **Techniques implémentées** : celles recommandées dans project-dials.md > Arsenal
-- [ ] Accessibilité : labels, aria-invalid sur inputs, focus visible
+- [ ] **Technical Validator** : pass sur CHAQUE section
+- [ ] Accessibilite : labels, aria-invalid sur inputs, focus visible
 
-## Prochaine Étape
+## Prochaine Etape
 
-→ `stages/B03-pages.md`
+-> `stages/B03-pages.md`
 
 ---
 
-**Version** : 2.0
+**Version** : 4.0
 **Phase** : B2 (Design / Vibe Coding)
-**Dépendances** : B1 (Layout), A5 (Wireframes), A3 (project-dials, constraints, emotion-map)
-**Agents** : Context Assembler (haiku), Aesthetic Director (opus-4.6), Constraint Validator (haiku)
+**Dependances** : B1 (Layout), A5 (Creative Briefs), A3 (art-direction)
+**Agents** : Creative Director (opus-4.6), Technical Validator (haiku)
 **Skill** : frontend-design2
 **Produit pour** : B4 (Polish)

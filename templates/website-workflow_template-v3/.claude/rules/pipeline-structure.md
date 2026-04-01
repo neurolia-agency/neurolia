@@ -11,42 +11,38 @@ paths:
 ├── README.md                      # Vue d'ensemble projet
 │
 ├── pipeline/                      # WORKFLOW
-│   ├── input/                     # Données client (immutables)
+│   ├── input/                     # Donnees client (immutables)
 │   │   ├── brief-client.md        # Questionnaire rempli (OBLIGATOIRE)
 │   │   ├── assets/                # Logo, images fournies
 │   │   ├── references/
-│   │   │   ├── sites.md           # Sites d'inspiration annotés
-│   │   │   └── screenshots/       # Captures visuelles (prioritaires)
+│   │   │   ├── sites.md           # Sites d'inspiration annotes
+│   │   │   └── screenshots/       # Captures visuelles (prioritaires — input creatif)
 │   │   ├── content/               # Textes fournis
-│   │   ├── typographies/          # Polices si identité existante
+│   │   ├── typographies/          # Polices si identite existante
 │   │   └── forms/                 # Formulaires externes (CSV + manifests)
-│   │       ├── README.md
-│   │       └── .gitkeep
 │   │
-│   ├── output/                    # Artifacts générés (immutables)
+│   ├── output/                    # Artifacts generes (immutables)
 │   │   ├── 00-brief.md
-│   │   ├── 01-brand/              # Stratégie (8 fichiers)
+│   │   ├── 01-brand/              # Strategie (8 fichiers)
 │   │   ├── 02-art-direction/      # Direction artistique (7 fichiers)
 │   │   ├── 03-sitemap.md
-│   │   ├── 03.5-wireframes/       # Wireframes auto-suffisants
+│   │   ├── 03.5-wireframes/       # Creative Briefs (contenu + emotion + contraintes)
 │   │   ├── 07-validation.md       # B05
 │   │   └── 08-deploy.md           # B06
 │   │
-│   ├── stages/                    # Instructions par étape (A01-A06, B01-B06)
+│   ├── stages/                    # Instructions par etape (A01-A06, B01-B06)
 │   │
 │   └── workflow/                  # Documentation process
 │       ├── DEPENDENCIES.md
 │       ├── DESIGN_STACK.md
 │       └── README.md
 │
-├── _preflight/                    # Contexte pré-coding (généré par agents)
+├── _preflight/                    # Contexte pre-coding (genere par agents)
 │   ├── [page]/
-│   │   ├── [section]-context.md   # Context Assembler
-│   │   └── [section]-direction.md # Aesthetic Director
+│   │   └── [section]-creative-direction.md  # Creative Director (decisions + intention)
 │   └── validation/                # Rapports finaux
 │
-├── public/                        # ASSETS STATIQUES (images, fonts, etc.)
-│   └── images/                    # Photos produits, hero, artisans, etc.
+├── public/images/
 │
 ├── app/                           # CODE NEXT.JS
 │   ├── globals.css                # Tokens CSS (source unique)
@@ -60,19 +56,16 @@ paths:
 │
 └── .claude/
     ├── agents/                    # Custom subagents
-    │   ├── context-assembler.md   # Haiku — résout le contexte (Phase B)
-    │   ├── aesthetic-director.md  # Opus 4.6 — direction créative (Phase B)
-    │   ├── constraint-validator.md # Haiku — vérifie les règles (Phase B, skills: [frontend-design2])
-    │   ├── wireframe-validator.md # Haiku — valide les wireframes (A05)
-    │   └── token-auditor.md       # Haiku — audite les tokens CSS (A06)
+    │   ├── creative-director.md   # Opus 4.6 — DECIDE layout, technique, dials (Phase B)
+    │   ├── technical-validator.md # Haiku — verifie regles techniques (Phase B)
+    │   ├── source-reader.md       # Haiku — utilitaire optionnel
+    │   ├── visual-reviewer.md     # Haiku — evaluation visuelle optionnelle
+    │   ├── wireframe-validator.md # Haiku — valide les creative briefs (A05)
+    │   ├── token-auditor.md       # Haiku — audite les tokens CSS (A06)
+    │   └── references/
     └── skills/
-        ├── section-builder/       # Skill orchestrateur Phase B
-        │   └── SKILL.md
+        ├── brand-expression/      # Skill creatif (Phase A — A02)
+        ├── section-builder/       # Orchestrateur Phase B (circuit 3 etapes)
         ├── frontend-design2/      # Skill comportemental UI (Phase B)
-        │   └── SKILL.md
         └── ui-ux-pro-max/         # Donnees design (Phase A — palettes + font pairings)
-            ├── SKILL.md
-            └── data/
-                ├── colors.csv     # 97 palettes par industrie
-                └── typography.csv # 57 font pairings par mood
 ```

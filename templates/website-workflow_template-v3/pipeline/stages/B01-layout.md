@@ -1,46 +1,34 @@
-# Étape B1 : Layout (Header & Footer)
+# Etape B1 : Layout (Header & Footer)
 
-> **Phase B : Design / Vibe Coding** - Début de la construction du site.
+> **Phase B : Design / Vibe Coding** - Debut de la construction du site.
 
-## Workflow Agents + frontend-design2
+## Circuit d'Agents v4
 
-**OBLIGATOIRE** : Chaque composant UI de cette étape passe par le circuit d'agents avant d'être codé.
-
-### Circuit pour chaque composant
+**OBLIGATOIRE** : Chaque composant UI passe par le circuit d'agents.
 
 ```
-1. AGENT Context Assembler (haiku)
-   → Lit le sitemap + project-dials.md (dials globaux)
-   → Résout les tokens depuis globals.css
-   → Résout les contraintes applicables depuis constraints.md
-   → Produit : _preflight/[composant]-context.md
+1. AGENT Creative Director (opus-4.6)
+   -> Lit le sitemap + project-dials.md (dials globaux) + constraints + visual-vocabulary
+   -> DECIDE le layout, le style, la technique (si applicable)
+   -> Produit : _preflight/[composant]-creative-direction.md
 
-2. AGENT Aesthetic Director (opus-4.6)
-   → Lit le context block
-   → Produit une direction créative sensorielle
-   → Recommande des techniques de l'arsenal si applicable (ex: navigation)
-   → Produit : _preflight/[composant]-direction.md
+2. CLAUDE + frontend-design2 (charge via Read explicite de .claude/skills/frontend-design2/SKILL.md)
+   -> Lit frontend-design2/SKILL.md + creative direction
+   -> Code le composant en implementant les decisions du Creative Director
+   -> Les dials GLOBAUX de project-dials.md sont actifs (via la direction creative)
 
-3. CLAUDE + frontend-design2 (chargé via Read explicite de .claude/skills/frontend-design2/SKILL.md)
-   → Lit .claude/skills/frontend-design2/SKILL.md (OBLIGATOIRE — chargement garanti)
-   → Lit _preflight/[composant]-context.md + _preflight/[composant]-direction.md
-   → Code le composant en suivant les règles du skill
-   → Les dials GLOBAUX de project-dials.md sont actifs
-
-4. AGENT Constraint Validator (haiku)
-   → Vérifie le code contre constraints.md
-   → Vérifie la cohérence avec project-dials.md
-   → Produit : pass/fail + corrections
+3. AGENT Technical Validator (haiku)
+   -> Verifie : tokens, a11y, responsive, anti-patterns, server/client
+   -> Produit : pass/fail + corrections
 ```
 
 > **Note** : Pour B01 (layout), les dials sont GLOBAUX car header/footer sont transversaux.
-> Pas d'override par section ici — utiliser les valeurs de `project-dials.md > Dials Globaux`.
 
 ---
 
 ## Objectif
 
-Créer les composants layout transversaux (Header, Footer) utilisés sur toutes les pages.
+Creer les composants layout transversaux (Header, Footer) utilises sur toutes les pages.
 
 ## Input
 
@@ -48,57 +36,20 @@ Créer les composants layout transversaux (Header, Footer) utilisés sur toutes 
 |---------|-------|
 | `app/globals.css` | Design tokens (source unique) |
 | `output/03-sitemap.md` | Navigation (liens menu) + CTA |
-| `output/02-art-direction/project-dials.md` | Dials globaux pour frontend-design2 |
-| `output/02-art-direction/constraints.md` | Règles visuelles à respecter |
+| `output/02-art-direction/project-dials.md` | Dials globaux |
+| `output/02-art-direction/constraints.md` | Regles visuelles |
 
-## Composants à Créer
+## Composants a Creer
 
 ### 1. Header
 
 **Fichier** : `components/layout/header.tsx`
 
-**Context block attendu** (produit par Context Assembler) :
-```markdown
-## Header — Context Block
-
-### Dials actifs
-DESIGN_VARIANCE: [val globale] | MOTION_INTENSITY: [val globale] | VISUAL_DENSITY: [val globale]
-
-### Contenu
-- Navigation : [liens résolus depuis sitemap.md]
-- CTA : [texte + destination]
-- Logo : [texte ou asset]
-
-### Tokens actifs
-- --color-background, --color-foreground, --color-accent
-- --font-sans, --transition-hover, --shadow-subtle
-- --max-width-content
-
-### Contraintes applicables
-- constraints.md > ON FAIT > [#numéros pertinents pour navigation]
-- constraints.md > ON NE FAIT PAS > [#numéros pertinents]
-
-### Techniques envisageables (si MOTION > 4)
-- Magnetic Button (CTAs)
-- Mega Menu Reveal (si sous-navigation)
-```
-
-**Direction créative attendue** (produite par Aesthetic Director) :
-```markdown
-## Header — Direction Créative
-
-[Paragraphe sensoriel décrivant l'intention : ex: "Le header doit être un souffle discret
-— présent sans peser, comme un guide silencieux. L'accent n'apparaît que sur le CTA,
-seul point d'ancrage chromatique dans un espace monochrome."]
-
-Technique recommandée : [ex: aucune / Magnetic Button sur CTA si MOTION > 5]
-```
-
 **Architecture** :
 - header.tsx = Server Component (pas de "use client")
 - mobile-menu.tsx = Client Component (useState pour toggle)
 
-**Accessibilité** :
+**Accessibilite** :
 - aria-label sur nav
 - aria-expanded sur hamburger
 - aria-current="page" sur lien actif
@@ -108,7 +59,7 @@ Technique recommandée : [ex: aucune / Magnetic Button sur CTA si MOTION > 5]
 
 **Fichier** : `components/layout/footer.tsx`
 
-Même circuit d'agents. Footer = Server Component.
+Meme circuit. Footer = Server Component.
 
 ### 3. Root Layout
 
@@ -121,7 +72,6 @@ import './globals.css'
 import Header from '@/components/layout/header'
 import Footer from '@/components/layout/footer'
 import { SmoothScrollProvider } from '@/components/smooth-scroll-provider'
-import { ThemeProvider } from '@/components/theme-provider'
 
 const font = [Font]({ subsets: ['latin'] })
 
@@ -138,18 +88,11 @@ export default function RootLayout({
   return (
     <html lang="fr" suppressHydrationWarning>
       <body className={font.className}>
-        <ThemeProvider
-          attribute="class"
-          defaultTheme="[light/dark]"
-          enableSystem={false}
-          disableTransitionOnChange
-        >
-          <SmoothScrollProvider>
-            <Header />
-            <main id="main-content">{children}</main>
-            <Footer />
-          </SmoothScrollProvider>
-        </ThemeProvider>
+        <SmoothScrollProvider>
+          <Header />
+          <main id="main-content">{children}</main>
+          <Footer />
+        </SmoothScrollProvider>
       </body>
     </html>
   )
@@ -169,10 +112,8 @@ export default function RootLayout({
 
 ```
 _preflight/
-├── header-context.md
-├── header-direction.md
-├── footer-context.md
-└── footer-direction.md
+├── header-creative-direction.md
+└── footer-creative-direction.md
 
 components/layout/
 ├── header.tsx        (Server Component)
@@ -180,31 +121,30 @@ components/layout/
 └── footer.tsx        (Server Component)
 
 app/
-└── layout.tsx        (mise à jour)
+└── layout.tsx        (mise a jour)
 ```
 
 ## Validation
 
-- [ ] **Agents** : Context block et direction créative produits pour chaque composant
+- [ ] Direction creative produite pour chaque composant (Creative Director)
 - [ ] Header responsive (desktop + mobile)
 - [ ] Mobile menu fonctionnel
 - [ ] Footer minimaliste
 - [ ] Navigation correcte (liens depuis sitemap)
 - [ ] CTA visible dans header
-- [ ] Server/Client Components correctement séparés
-- [ ] Accessibilité : aria-labels, focus visible
-- [ ] **Constraint Validator** : pass sur constraints.md
-- [ ] **Dials respectés** : DESIGN_VARIANCE, MOTION_INTENSITY, VISUAL_DENSITY cohérents avec project-dials.md
+- [ ] Server/Client Components correctement separes
+- [ ] Accessibilite : aria-labels, focus visible
+- [ ] **Technical Validator** : pass sur chaque composant
 
-## Prochaine Étape
+## Prochaine Etape
 
-→ `stages/B02-homepage.md`
+-> `stages/B02-homepage.md`
 
 ---
 
-**Version** : 2.0
+**Version** : 4.0
 **Phase** : B1 (Design / Vibe Coding)
-**Dépendances** : A6 (Design Tokens), A4 (Sitemap), A3 (project-dials, constraints)
-**Agents** : Context Assembler (haiku), Aesthetic Director (opus-4.6), Constraint Validator (haiku)
+**Dependances** : A6 (Design Tokens), A4 (Sitemap), A3 (project-dials, constraints)
+**Agents** : Creative Director (opus-4.6), Technical Validator (haiku)
 **Skill** : frontend-design2
 **Produit pour** : B2 (Homepage), B3 (Pages)

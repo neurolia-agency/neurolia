@@ -5,24 +5,26 @@ paths:
   - "_preflight/**"
 ---
 
-# Phase B : Circuit d'Agents
+# Phase B : Circuit d'Agents v4
 
-Pour chaque section demandée, le skill section-builder orchestre :
+Pour chaque section demandee, le skill section-builder orchestre :
 
-1. Context Assembler (haiku)
-   Lit : wireframe + project-dials + emotion-map + constraints + visual-vocabulary + ui-kit + globals.css
-   Produit : _preflight/[page]/[section]-context.md
+1. Creative Director (opus-4.6)
+   Lit : creative brief + project-dials + emotion-map + constraints + visual-vocabulary + ui-kit + globals.css + screenshots
+   DECIDE : layout, technique(s), dials section, choreographie
+   Produit : _preflight/[page]/[section]-creative-direction.md
 
-2. Aesthetic Director (opus-4.6)
-   Lit : context block
-   Produit : _preflight/[page]/[section]-direction.md
-
-3. Code (Claude + frontend-design2)
-   Lit : context block + direction créative
+2. Code (Claude + frontend-design2)
+   Lit : creative direction + frontend-design2 SKILL.md
    Produit : composant .tsx
 
-4. Constraint Validator (haiku)
-   Lit : code + context block + constraints + project-dials + ui-kit + globals.css
-   Produit : rapport PASS/FAIL → corrections si nécessaire
+3. Technical Validator (haiku)
+   Lit : code + constraints + ui-kit + globals.css
+   Verifie : tokens, a11y, responsive, anti-patterns, server/client
+   NE verifie PAS : layout, technique, dials (decisions creatives)
+   Produit : rapport PASS/FAIL -> corrections si necessaire
 
-**Règle** : Ne jamais écrire de composants UI sans passer par le circuit d'agents.
+3b. Visual Check (optionnel, si Playwright disponible)
+   Prend un screenshot + evalue qualitativement
+
+**Regle** : Ne jamais ecrire de composants UI sans passer par le circuit d'agents.

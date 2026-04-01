@@ -1,18 +1,19 @@
-# Étape A5 : Wireframes
+# Etape A5 : Creative Briefs (Wireframes)
 
-> **Phase A : Architecture** - Définition du contenu de chaque page.
+> **Phase A : Architecture** - Definition du contenu et de l'intention de chaque page.
 
 ## Objectif
 
-Créer un brief structuré pour chaque page, servant d'**unique source de contenu** pour la Phase B (frontend-design).
+Creer un **creative brief** pour chaque page, servant de source de contenu et d'intention emotionnelle pour la Phase B. Le Creative Director s'appuie sur ces briefs pour DECIDER l'approche visuelle — le brief ne prescrit pas le HOW.
 
-**Principe clé** : Les wireframes **référencent** les fichiers brand/ sans dupliquer leur contenu.
+**Principe cle v4** : Les briefs definissent QUOI montrer et QUELLE emotion viser. Le COMMENT (layout, techniques, animations) est decide par le Creative Director en Phase B.
 
 ## Input
 
 - `output/01-brand/` (tous les fichiers)
-- `output/02-art-direction/` (contraintes, vocabulaire, **emotion-map**, **project-dials**)
+- `output/02-art-direction/` (contraintes, vocabulaire, emotion-map, project-dials)
 - `output/03-sitemap.md` (architecture pages)
+- `input/references/screenshots/` (references visuelles — si disponibles)
 
 ## Output
 
@@ -26,17 +27,17 @@ output/03.5-wireframes/
 └── contact.md
 ```
 
-## Format Wireframe (STRICT)
+## Format Creative Brief (STRICT)
 
-Chaque wireframe suit ce format enrichi. La différence avec le format classique : chaque section porte son **contexte émotionnel**, ses **dials**, et sa **technique recommandée**, pour que le skill frontend-design2 reçoive un contexte complet.
+Chaque page contient des sections. Chaque section suit ce format allege qui laisse l'espace creatif au Creative Director.
 
 ```markdown
-# [Page] - Wireframe
+# [Page] - Creative Brief
 
 **Route** : /[route]
 **Objectif** : [1 phrase]
 
-> Dérive de : `03-sitemap.md > [Page]`, `01-brand/positioning.md`, `02-art-direction/constraints.md`
+> Derive de : `03-sitemap.md > [Page]`, `01-brand/positioning.md`, `02-art-direction/constraints.md`
 
 ---
 
@@ -45,133 +46,133 @@ Chaque wireframe suit ce format enrichi. La différence avec le format classique
 **Contenu** :
 - H1 : `positioning.md > tagline`
 - Baseline : `positioning.md > baseline`
-- CTA : `positioning.md > cta_principal` → /contact
+- CTA : `positioning.md > cta_principal` -> /contact
 
-**Layout** : [Description précise — ex: "Split screen 60/40, texte à gauche, image à droite"]
-**Fond** : `visual-vocabulary.md > couleurs > [terme]` ([#hex])
-**Interaction** : [hover/scroll/click — avec valeurs depuis visual-vocabulary.md]
+**Emotion** : `emotion-map.md > [Page] > [Section]`
+- Primaire : [emotion]
+- Tension : [ex: "Calme du fond vs Energie du CTA"]
 
-**Émotion** : `emotion-map.md > [Page] > [Section]`
-- Primaire : [émotion]
-- Tension : [ex: "Calme du fond vs Énergie du CTA"]
+**Contraintes** : `constraints.md > ON FAIT > #1, #3, #7` | `ON NE FAIT PAS > #2, #5`
 
-**Dials (override section)** : `project-dials.md > [Section]`
-- VARIANCE: [val] | MOTION: [val] | DENSITY: [val]
+**References visuelles** (optionnel) :
+- [Chemin screenshot ou description d'une reference qui capture le feeling]
+- [Ce qu'on en retient et ce qu'on evite]
 
-**Technique** : `project-dials.md > Arsenal > [Technique]`
-- [Ex: "Kinetic Marquee" — justification : renforce le dynamisme d'entrée]
-
-**Contraintes applicables** : `constraints.md > ON FAIT > [#numéros]`, `ON NE FAIT PAS > [#numéros]`
+**Notes** (optionnel) :
+- [Exigences client specifiques : "telephone prominent", "image produit obligatoire"]
+- [Indication de densite : "minimal — juste tagline + CTA" ou "riche — 3 blocs"]
 
 ---
 
 ## Section 2 : [Nom]
 
-[Même structure enrichie...]
+[Meme structure...]
 ```
 
-### Règles du Format
+### Champs par section
 
-1. **Pas de texte dupliqué** : Utiliser la notation `fichier.md > clé` pour référencer brand/
-2. **Sections numérotées** : Ordre d'apparition sur la page
-3. **1 section = 1 bloc** : Sera traité individuellement avec frontend-design2
-4. **Émotion obligatoire** : Chaque section DOIT porter son émotion depuis emotion-map.md
-5. **Dials obligatoires** : Chaque section DOIT porter ses dials depuis project-dials.md
-6. **Technique recommandée** : Si une technique de l'arsenal s'applique, la noter
-7. **Contraintes explicites** : Lister les numéros de contraintes applicables (pas "valider après")
-8. **Layout précis** : "Plein écran, centré" est INTERDIT. Spécifier la structure exacte (split, asymétrique, grid colonnes, etc.)
+| Champ | Obligatoire | Contenu |
+|-------|-------------|---------|
+| **Contenu** | Oui | References aux textes, CTAs, images depuis brand/ |
+| **Emotion** | Oui | Emotion primaire + tension depuis emotion-map.md |
+| **Contraintes** | Oui | Numeros de contraintes applicables depuis constraints.md |
+| **References visuelles** | Non | Screenshots ou descriptions de references qui capturent le feeling |
+| **Notes** | Non | Exigences client, indication de densite, precisions |
 
-## Notation des Références
+### Ce qui N'EST PLUS dans le brief (decide en Phase B par le Creative Director)
+
+| Ancien champ v3 | Maintenant decide par |
+|------------------|----------------------|
+| Layout ("Split screen 40/60") | Creative Director (Phase B, etape 1) |
+| Fond (`visual-vocabulary.md > couleurs > fond principal`) | Creative Director |
+| Interaction (hover/scroll/click) | Creative Director |
+| Dials override (VARIANCE: 6, MOTION: 7) | Creative Director |
+| Technique ("Sticky Scroll Stack, P0") | Creative Director |
+
+## Notation des References
 
 | Notation | Signification |
 |----------|---------------|
-| `fichier.md > clé` | Valeur à récupérer dans le fichier brand/ |
-| `fichier.md > array[0-2]` | Premiers éléments d'une liste |
-| `(placeholder)` | Contenu à définir plus tard |
-| `→ /route` | Destination du lien/CTA |
+| `fichier.md > cle` | Valeur a recuperer dans le fichier brand/ |
+| `fichier.md > array[0-2]` | Premiers elements d'une liste |
+| `(placeholder)` | Contenu a definir plus tard |
+| `-> /route` | Destination du lien/CTA |
 
 ## Exemple : Homepage
 
 ```markdown
-# Homepage - Wireframe
+# Homepage - Creative Brief
 
 **Route** : /
-**Objectif** : Captiver, différencier, convertir
+**Objectif** : Captiver, differencier, convertir
 
-> Dérive de : `03-sitemap.md > Accueil`, `01-brand/positioning.md`, `02-art-direction/constraints.md`
+> Derive de : `03-sitemap.md > Accueil`, `01-brand/positioning.md`, `02-art-direction/constraints.md`
 
 ---
 
 ## Section 1 : Hero
 
 **Contenu** :
-- H1 : `positioning.md > tagline` — `visual-vocabulary.md > typographie > typo massive`
-- Baseline : `positioning.md > baseline` — `visual-vocabulary.md > typographie > corps large`
-- CTA : `positioning.md > cta_principal` → /contact
+- H1 : `positioning.md > tagline`
+- Baseline : `positioning.md > baseline`
+- CTA Primaire : `positioning.md > cta_principal` -> /contact
+- Visuel : `input/assets/hero.webp` (image produit / portrait)
 
-**Layout** : Split screen 60/40 — texte aligné à gauche, espace négatif à droite avec élément graphique
-**Fond** : `visual-vocabulary.md > couleurs > fond principal` (#hex)
-**Interaction** : `visual-vocabulary.md > transitions > apparition douce` — staggered au load
+**Emotion** : `emotion-map.md > Homepage > Hero`
+- Primaire : Impact, confiance immediate
+- Tension : Sobriete du fond vs energie du CTA accent
 
-**Émotion** : `emotion-map.md > Homepage > Hero`
-- Primaire : [Ex: Impact, confiance immédiate]
-- Tension : [Ex: Sobriété du fond vs énergie du CTA accent]
+**Contraintes** : `constraints.md > ON FAIT > #1, #3, #7` | `ON NE FAIT PAS > #2, #5, #7`
 
-**Dials** : `project-dials.md > Hero`
-- VARIANCE: 6 | MOTION: 5 | DENSITY: 2
+**References visuelles** :
+- `input/references/screenshots/ref-hero-01.png` — retenir : asymetrie, espace negatif genereux
+- Eviter : hero centre classique, stock photo generique
 
-**Technique** : `project-dials.md > Arsenal > [Ex: Text Scramble Effect]`
-- Justification : [Ex: renforce la première impression de maîtrise technique]
-
-**Contraintes** : `constraints.md > ON FAIT > #1, #3, #7` | `ON NE FAIT PAS > #2, #5`
+**Notes** :
+- Densite minimale — le hero doit respirer
+- Le visuel produit est l'element dominant
 
 ---
 
-## Section 2 : Services (aperçu)
+## Section 2 : Services (apercu)
 
 **Contenu** :
 - Titre : `positioning.md > messages > services`
 - Items : `services.md > services[0-2]` (3 premiers services)
-- Lien : "Voir tous les services" → /services
+- Lien : "Voir tous les services" -> /services
 
-**Layout** : Zig-zag alternée (image gauche/texte droite, puis inverse) — PAS de grid 3 colonnes
-**Fond** : `visual-vocabulary.md > couleurs > fond alternatif` (#hex)
-**Interaction** : `visual-vocabulary.md > transitions > hover subtil` + reveal au scroll
-
-**Émotion** : `emotion-map.md > Homepage > Services`
-- Primaire : [Ex: Curiosité, découverte progressive]
-- Transition depuis Hero : [Ex: Du "wow" initial vers l'exploration concrète]
-
-**Dials** : `project-dials.md > Services`
-- VARIANCE: 5 | MOTION: 4 | DENSITY: 4
-
-**Technique** : `project-dials.md > Arsenal > [Ex: Sticky Scroll Stack]`
+**Emotion** : `emotion-map.md > Homepage > Services`
+- Primaire : Curiosite, decouverte progressive
+- Transition depuis Hero : Du "wow" initial vers l'exploration concrete
 
 **Contraintes** : `constraints.md > ON FAIT > #4, #8` | `ON NE FAIT PAS > #1`
 
+**Notes** :
+- PAS de grid 3 colonnes egales (anti-pattern renforce dans project-dials.md)
+
 ---
 
-[Continuer pour chaque section avec le même niveau de détail]
+[Continuer pour chaque section]
 ```
 
-## Pages à Créer
+## Pages a Creer
 
 | Page | Sections principales |
 |------|---------------------|
-| homepage.md | Hero, Services, Portfolio, Témoignages, CTA |
+| homepage.md | Hero, Services, Portfolio, Temoignages, CTA |
 | services.md | Hero, Grid services, Process, FAQ, CTA |
-| portfolio.md | Hero, Grid projets, Étude de cas, CTA |
-| about.md | Hero, Mission, Valeurs, Équipe, Chiffres, CTA |
-| contact.md | Hero, Formulaire, Coordonnées |
+| portfolio.md | Hero, Grid projets, Etude de cas, CTA |
+| about.md | Hero, Mission, Valeurs, Equipe, Chiffres, CTA |
+| contact.md | Hero, Formulaire, Coordonnees |
 
 ## README.md
 
-Créer un index :
+Creer un index :
 
 ```markdown
-# Wireframes - [NOM_PROJET]
+# Creative Briefs - [NOM_PROJET]
 
-Source unique de contenu pour les étapes B1-B3.
+Source unique de contenu et d'intention pour les etapes B1-B3.
 
 ## Fichiers
 
@@ -183,31 +184,28 @@ Source unique de contenu pour les étapes B1-B3.
 | about.md | /about | X sections |
 | contact.md | /contact | X sections |
 
-## Principe
+## Principe v4
 
-Les wireframes référencent les fichiers brand et art-direction sans dupliquer :
-```
-positioning.md > tagline
-services.md > services[0-2]
-emotion-map.md > Homepage > Hero
-project-dials.md > Hero > VARIANCE: 6
-constraints.md > ON FAIT > #1, #3
-```
+Les creative briefs definissent QUOI montrer et QUELLE emotion viser.
+Le Creative Director decide COMMENT en Phase B (layout, technique, dials par section).
+
+Chaque section contient :
+- **Contenu** : references aux fichiers brand/ (textes, CTAs, images)
+- **Emotion** : cible emotionnelle depuis emotion-map.md
+- **Contraintes** : gardes-fous depuis constraints.md
 
 ## Usage
 
-| Étape | Lire | Contexte supplémentaire |
-|-------|------|------------------------|
-| B1-Layout | 03-sitemap.md | project-dials.md (dials globaux) |
-| B2-Homepage | homepage.md | **Tout le contexte est dans le wireframe** (émotions, dials, contraintes) |
-| B3-Pages | Le wireframe de chaque page | **Tout le contexte est dans le wireframe** |
-
-**Principe clé** : Chaque wireframe est maintenant **auto-suffisant** — il contient toutes les références nécessaires pour que les agents Context Assembler et Aesthetic Director puissent produire un brief complet sans aller chercher ailleurs.
+| Etape | Lire | Qui decide le HOW |
+|-------|------|-------------------|
+| B1-Layout | 03-sitemap.md | Creative Director |
+| B2-Homepage | homepage.md | Creative Director (par section) |
+| B3-Pages | Le brief de chaque page | Creative Director (par section) |
 ```
 
 ## Validation — Wireframe Validator (OBLIGATOIRE)
 
-**Après avoir produit tous les wireframes**, lancer le custom subagent `wireframe-validator` pour une vérification structurelle automatisée.
+**Apres avoir produit tous les creative briefs**, lancer le custom subagent `wireframe-validator` pour une verification structurelle automatisee.
 
 ```
 Agent(
@@ -215,39 +213,40 @@ Agent(
   model: "haiku",
   prompt: """
     PROJET : [NOM_PROJET] — chemin racine : [CHEMIN_PROJET]
-    Valide tous les wireframes dans pipeline/output/03.5-wireframes/
+    Valide tous les creative briefs dans pipeline/output/03.5-wireframes/
     contre le sitemap pipeline/output/03-sitemap.md
-    et les fichiers de référence dans pipeline/output/02-art-direction/ et pipeline/output/01-brand/.
+    et les fichiers de reference dans pipeline/output/02-art-direction/ et pipeline/output/01-brand/.
   """
 )
 ```
 
-Le wireframe-validator vérifie :
+Le wireframe-validator verifie :
 
-- **Couverture** : chaque page du sitemap a un wireframe, chaque section est présente
-- **Complétude** : les 7 champs obligatoires par section (contenu, layout, fond, émotion, dials, contraintes, interaction/technique)
-- **Références croisées** : chaque `fichier.md > clé` pointe vers une valeur réelle
-- **Qualité structurelle** : pas de layout vague, pas de placeholders non résolus
+- **Couverture** : chaque page du sitemap a un creative brief, chaque section est presente
+- **Completude** : les 3 champs obligatoires par section (Contenu, Emotion, Contraintes)
+- **References croisees** : chaque `fichier.md > cle` pointe vers une valeur reelle
+- **Qualite** : emotions specifiques (pas vagues), contenu reel (pas de placeholder non resolu)
 
 **Action selon le verdict :**
-- Si **✅ PASS** → Passer à A06
-- Si **⚠️ PASS avec réserves** → Corriger les réserves, puis passer à A06
-- Si **❌ FAIL** → Corriger les wireframes en suivant le rapport, puis relancer le validator
+- Si PASS -> Passer a A06
+- Si PASS avec reserves -> Corriger les reserves, puis passer a A06
+- Si FAIL -> Corriger les briefs en suivant le rapport, puis relancer le validator
 
-### Checklist manuelle complémentaire
+### Checklist manuelle complementaire
 
-- [ ] **Transitions émotionnelles** notées entre sections adjacentes
-- [ ] Aucune "grid 3 colonnes" par défaut (vérifier project-dials.md > Anti-Patterns)
-- [ ] Les wireframes racontent un **parcours**, pas une liste de sections
+- [ ] **Transitions emotionnelles** notees entre sections adjacentes (via le champ Tension)
+- [ ] Aucune prescription de layout, technique ou dials dans les briefs
+- [ ] Les briefs racontent un **parcours**, pas une liste de sections
+- [ ] Les references visuelles (si presentes) decrivent le FEELING, pas l'implementation
 
-## Prochaine Étape
+## Prochaine Etape
 
-Une fois les wireframes validés (wireframe-validator PASS) → Passer à `stages/A06-design-tokens.md`
+Une fois les creative briefs valides (wireframe-validator PASS) -> Passer a `stages/A06-design-tokens.md`
 
 ---
 
-**Version** : 2.1
+**Version** : 4.0
 **Phase** : A5 (Architecture)
-**Dépendances** : A3 (02-Art Direction — emotion-map, project-dials, constraints), A4 (03-Structure)
+**Dependances** : A3 (02-Art Direction — emotion-map, project-dials, constraints), A4 (03-Structure)
 **Agents** : wireframe-validator (haiku) — validation structurelle
-**Produit pour** : A6 (Design Tokens), B1-B3 (Frontend — via agents Context Assembler + Aesthetic Director)
+**Produit pour** : A6 (Design Tokens), B1-B3 (Frontend — via Creative Director)

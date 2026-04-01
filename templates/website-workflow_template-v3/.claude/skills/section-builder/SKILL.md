@@ -1,173 +1,145 @@
 ---
 name: section-builder
-description: "Orchestrateur Phase B du pipeline website-workflow v2. Lance automatiquement le circuit d'agents (Context Assembler → Aesthetic Director → Code + frontend-design2 → Constraint Validator) pour coder une section ou un composant. Utiliser pour toute construction UI en Phase B : layout, homepage, pages, polish."
+description: "Orchestrateur Phase B du pipeline website-workflow v4. Lance le circuit d'agents (Creative Director -> Code + frontend-design2 -> Technical Validator) pour coder une section ou un composant. Utiliser pour toute construction UI en Phase B : layout, homepage, pages, polish."
 allowed-tools: Read, Write, Edit, Bash, Glob, Grep, Agent
 ---
 
-# Section Builder — Orchestrateur Phase B
+# Section Builder — Orchestrateur Phase B (v4)
 
 ## ARCHITECTURE
 
-Ce skill orchestre un circuit de **4 étapes séquentielles** pour coder chaque section.
+Ce skill orchestre un circuit de **3 etapes sequentielles** pour coder chaque section.
 
-Les étapes 1, 2 et 4 délèguent à des **custom subagents** définis dans `.claude/agents/`. Ces agents ont leurs instructions complètes dans leur fichier de définition — le prompt Agent ne contient que les **données dynamiques** de l'invocation.
-
-L'étape 3 (coding) est exécutée **directement par Claude** avec chargement explicite du skill frontend-design2.
+L'etape 1 delegue au **Creative Director** (opus-4.6) qui DECIDE l'approche visuelle.
+L'etape 2 est executee **directement par Claude** avec le skill frontend-design2.
+L'etape 3 delegue au **Technical Validator** (haiku) pour verification technique.
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                    SECTION BUILDER (skill)                    │
-│                                                               │
-│  Étape 1 ──→ .claude/agents/context-assembler.md    [haiku]  │
-│  Étape 2 ──→ .claude/agents/aesthetic-director.md   [opus-4.6] │
-│  Étape 3 ──→ Claude direct + Read frontend-design2           │
-│  Étape 4 ──→ .claude/agents/constraint-validator.md [haiku]  │
-│                                     └─ skills: [frontend-design2] │
-└─────────────────────────────────────────────────────────────┘
++-------------------------------------------------------------+
+|                    SECTION BUILDER (skill)                     |
+|                                                               |
+|  Etape 1 --> .claude/agents/creative-director.md  [opus-4.6] |
+|              DECIDE : layout, technique, dials, choreographie |
+|                                                               |
+|  Etape 2 --> Claude direct + Read frontend-design2            |
+|              CODE le composant selon la direction creative     |
+|                                                               |
+|  Etape 3 --> .claude/agents/technical-validator.md [haiku]    |
+|              VERIFIE : tokens, a11y, responsive, anti-patterns|
+|                    skills: [frontend-design2]                  |
+|                                                               |
+|  (3b opt) --> .claude/agents/visual-reviewer.md    [haiku]    |
+|              EVALUE visuellement (si Playwright disponible)    |
++-------------------------------------------------------------+
 ```
 
 ## QUAND CE SKILL S'ACTIVE
 
-Ce skill s'active quand l'utilisateur demande de **coder un composant ou une section** dans un projet qui utilise le pipeline website-workflow v2. Exemples de déclencheurs :
+Ce skill s'active quand l'utilisateur demande de **coder un composant ou une section** dans un projet qui utilise le pipeline website-workflow. Exemples :
 
 - "Code le Hero de la homepage"
 - "Construis la section Services"
 - "Fais le header"
 - "Code la page Contact"
-- Toute demande de type B01 (layout), B02 (homepage), B03 (pages), B04 (polish d'un nouveau composant)
+- Toute demande de type B01 (layout), B02 (homepage), B03 (pages), B04 (polish)
 
-## PRÉREQUIS — VÉRIFICATION OBLIGATOIRE
+## PREREQUIS — VERIFICATION OBLIGATOIRE
 
-Avant de lancer le circuit, vérifier que ces fichiers existent dans le projet :
+Avant de lancer le circuit, verifier que ces fichiers existent :
 
-1. `pipeline/output/02-art-direction/project-dials.md` — Dials par section
-2. `pipeline/output/02-art-direction/constraints.md` — Règles ON FAIT / ON NE FAIT PAS
-3. `pipeline/output/02-art-direction/ui-kit.md` — Composants autorisés
-4. `pipeline/output/02-art-direction/emotion-map.md` — Émotions par section
-5. `pipeline/output/02-art-direction/visual-vocabulary.md` — Traductions visuelles
-6. `app/globals.css` — Design tokens
-7. Le wireframe de la section dans `pipeline/output/03.5-wireframes/`
-8. `.claude/skills/frontend-design2/SKILL.md` — Skill de qualité UI (CRITIQUE)
-9. `.claude/agents/context-assembler.md` — Custom subagent
-10. `.claude/agents/aesthetic-director.md` — Custom subagent
-11. `.claude/agents/constraint-validator.md` — Custom subagent (avec `skills: [frontend-design2]`)
+1. Le creative brief de la section dans `pipeline/output/03.5-wireframes/`
+2. `pipeline/output/02-art-direction/project-dials.md` — Dials globaux + Creative Palette
+3. `pipeline/output/02-art-direction/constraints.md` — ON FAIT / ON NE FAIT PAS
+4. `pipeline/output/02-art-direction/emotion-map.md` — Emotions par section
+5. `pipeline/output/02-art-direction/visual-vocabulary.md` — Vocabulaire design
+6. `pipeline/output/02-art-direction/ui-kit.md` — Composants autorises
+7. `app/globals.css` — Design tokens
+8. `.claude/skills/frontend-design2/SKILL.md` — Skill qualite UI
+9. `.claude/agents/creative-director.md` — Custom subagent
+10. `.claude/agents/technical-validator.md` — Custom subagent
 
-Si un fichier manque, **STOPPER** et prévenir l'utilisateur. Ne pas deviner. Ne pas continuer sans contexte complet.
+Si un fichier manque, **STOPPER** et prevenir l'utilisateur.
 
-## LE CIRCUIT (4 ÉTAPES SÉQUENTIELLES)
+## LE CIRCUIT (3 ETAPES SEQUENTIELLES)
 
-Pour chaque section demandée, exécuter les 4 étapes dans l'ordre. Ne jamais sauter une étape.
-
----
-
-### ÉTAPE 1 : Context Assembler
-
-**Objectif** : Résoudre tous les pointeurs d'une section en un bloc de contexte auto-suffisant.
-
-**Déléguer au custom subagent `context-assembler`** via Agent tool :
-
-```
-Agent(
-  subagent_type: "context-assembler",
-  model: "haiku",
-  prompt: """
-    SECTION : [PAGE] > [SECTION]
-    PROJET : [NOM_PROJET] — chemin racine : [CHEMIN_PROJET]
-
-    Résous le context block pour cette section.
-    Écris le résultat dans : [CHEMIN]/_preflight/[page]/[section]-context.md
-  """
-)
-```
-
-Le subagent sait quels fichiers lire et quel format produire — ses instructions sont dans `.claude/agents/context-assembler.md`.
-
-**Vérification** : Confirmer que `_preflight/[page]/[section]-context.md` a été créé. Si le subagent signale des ⚠️ NON RÉSOLU, les remonter à l'utilisateur avant de continuer.
+Pour chaque section demandee, executer les 3 etapes dans l'ordre.
 
 ---
 
-### ÉTAPE 2 : Aesthetic Director
+### ETAPE 1 : Creative Director
 
-**Objectif** : Transformer le context block technique en direction créative sensorielle.
+**Objectif** : DECIDER l'approche visuelle — layout, technique(s), dials, choreographie.
 
-**LIRE** `_preflight/[page]/[section]-context.md` pour récupérer le context block produit à l'étape 1.
-
-**Déléguer au custom subagent `aesthetic-director`** via Agent tool :
+**Deleguer au custom subagent `creative-director`** via Agent tool :
 
 ```
 Agent(
-  subagent_type: "aesthetic-director",
+  subagent_type: "creative-director",
   model: "opus-4.6",
   prompt: """
     SECTION : [PAGE] > [SECTION]
     PROJET : [NOM_PROJET] — Secteur : [SECTEUR/DOMAINE DU CLIENT]
     CHEMIN : [CHEMIN_PROJET]
 
-    CONTEXT BLOCK :
-    [COLLER le contenu intégral de _preflight/[page]/[section]-context.md]
-
-    Produis la direction créative et écris-la dans : [CHEMIN]/_preflight/[page]/[section]-direction.md
+    Lis le creative brief et les fichiers brand/art-direction,
+    puis produis ta direction creative dans : [CHEMIN]/_preflight/[page]/[section]-creative-direction.md
   """
 )
 ```
 
-Le subagent connaît les règles de calibrage par dials et le format de sortie — ses instructions sont dans `.claude/agents/aesthetic-director.md`.
+Le subagent sait quels fichiers lire et quelles decisions prendre — ses instructions sont dans `.claude/agents/creative-director.md`.
 
-**Vérification** : Confirmer que `_preflight/[page]/[section]-direction.md` a été créé et contient un "Résumé en 1 phrase".
+**Verification** : Confirmer que `_preflight/[page]/[section]-creative-direction.md` a ete cree et contient un "Resume en 1 phrase" + des decisions de layout et technique.
 
 ---
 
-### ÉTAPE 3 : Code avec frontend-design2 — CHARGEMENT GARANTI
+### ETAPE 2 : Code avec frontend-design2
 
-**Objectif** : Coder le composant React/Next.js en s'appuyant sur les 2 fichiers preflight ET les règles de qualité du skill frontend-design2.
+**Objectif** : Coder le composant React/Next.js en implementant les DECISIONS du Creative Director.
 
-**⚠️ C'est Claude qui code directement** (pas un subagent). Le skill frontend-design2 n'est PAS automatiquement chargé à cette étape. Il faut le charger explicitement.
+**C'est Claude qui code directement** (pas un subagent).
 
-**AVANT de coder, exécuter ces 3 lectures dans cet ordre :**
+**AVANT de coder, executer ces 2 lectures :**
 
 1. **LIRE** `.claude/skills/frontend-design2/SKILL.md` avec l'outil Read
-   → Ce fichier contient les règles anti-slop, les 100 AI Tells, l'architecture composants, les dials par défaut, et l'arsenal créatif (Section 8). **Tout son contenu s'applique au coding.**
+   -> Regles anti-slop, 100 AI Tells, architecture composants, arsenal creatif
 
-2. **LIRE** `_preflight/[page]/[section]-context.md`
-   → Données factuelles : contenu, tokens CSS, contraintes, dials section, composants ui-kit
+2. **LIRE** `_preflight/[page]/[section]-creative-direction.md`
+   -> Decisions du Creative Director : layout, technique, dials, palette, intention
 
-3. **LIRE** `_preflight/[page]/[section]-direction.md`
-   → Intention créative : expérience sensorielle, palette, techniques, interdits
+**REGLES DE PRIORITE pendant le coding :**
 
-**RÈGLES DE PRIORITÉ pendant le coding :**
-
-| Priorité | Source | Exemple |
+| Priorite | Source | Exemple |
 |----------|--------|---------|
-| 1 (max) | Contraintes du context block (constraints.md) | "ON NE FAIT PAS : gradients" |
-| 2 | Dials du context block (project-dials.md) | VARIANCE=5 override le default 8 |
-| 3 | Règles de frontend-design2 SKILL.md | Anti-slop, architecture, conventions |
+| 1 (max) | Contraintes constraints.md (via direction creative > INTERDIT) | "ON NE FAIT PAS : gradients" |
+| 2 | Decisions du Creative Director (layout, technique, dials) | "Asymetrie 40/60 + parallax leger" |
+| 3 | Regles de frontend-design2 SKILL.md | Anti-slop, architecture, conventions |
 | 4 (min) | Defaults de frontend-design2 | Dials (8, 6, 4) si pas d'override |
 
 **Pendant le coding :**
-- Chaque composant respecte ui-kit.md (variantes de boutons, cards, inputs)
-- Toutes les valeurs visuelles passent par les tokens CSS de globals.css (pas de hardcode)
-- Les techniques viennent de la direction créative (étape 2), pas de l'improvisation
-- Server Components par défaut. `"use client"` UNIQUEMENT si hooks nécessaires
-- Vérifier package.json avant tout import de librairie tierce
+- Le layout vient de la direction creative, pas de l'improvisation
+- La technique vient de la direction creative
+- Les dials section viennent de la direction creative
+- Chaque composant respecte ui-kit.md (via direction creative > Contenu Reference)
+- Toutes les valeurs visuelles passent par les tokens CSS de globals.css
+- Server Components par defaut. `"use client"` UNIQUEMENT si hooks necessaires
+- Verifier package.json avant tout import de librairie tierce
 
-**Output** : Le composant `.tsx` dans le bon répertoire (`components/sections/`, `components/layout/`, etc.)
+**Output** : Le composant `.tsx` dans le bon repertoire
 
 ---
 
-### ÉTAPE 4 : Constraint Validator
+### ETAPE 3 : Technical Validator
 
-**Objectif** : Vérifier systématiquement que le code respecte toutes les règles du projet.
+**Objectif** : Verifier que le code respecte les regles TECHNIQUES du projet.
 
-**Note** : Ce subagent a `skills: [frontend-design2]` dans son frontmatter — le skill est **préchargé automatiquement** dans son contexte. Pas besoin de le lui passer.
+**LIRE** le composant `.tsx` cree a l'etape 2.
 
-**LIRE** le composant `.tsx` créé à l'étape 3 pour récupérer le code source.
-**LIRE** `_preflight/[page]/[section]-direction.md` pour récupérer le "Résumé en 1 phrase".
-
-**Déléguer au custom subagent `constraint-validator`** via Agent tool :
+**Deleguer au custom subagent `technical-validator`** via Agent tool :
 
 ```
 Agent(
-  subagent_type: "constraint-validator",
+  subagent_type: "technical-validator",
   model: "haiku",
   prompt: """
     SECTION : [PAGE] > [SECTION]
@@ -176,80 +148,120 @@ Agent(
     CODE SOURCE DU COMPOSANT :
     [COLLER le code tsx complet]
 
-    CONTEXT BLOCK :
-    [COLLER le contenu de _preflight/[page]/[section]-context.md]
+    RESUME DIRECTION :
+    "[Coller le 'Resume en 1 phrase' de la direction creative]"
 
-    RÉSUMÉ DIRECTION :
-    "[Coller le 'Résumé en 1 phrase' de la direction créative]"
-
-    Vérifie ce composant contre toutes les règles du projet.
+    Verifie ce composant contre les regles techniques du projet.
   """
 )
 ```
 
-Le subagent connaît la checklist de vérification, les sources de règles à lire, et le format de rapport — ses instructions sont dans `.claude/agents/constraint-validator.md`. Le skill **frontend-design2 est déjà dans son contexte** (garanti par `skills: [frontend-design2]` dans le frontmatter).
+Le subagent verifie : tokens, a11y, responsive, anti-patterns, server/client, ui-kit, constraints.
+Il ne verifie PAS les choix creatifs (layout, technique, dials).
 
 **Action selon le verdict :**
-- Si **✅ PASS** → Passer à la section suivante
-- Si **⚠️ PASS avec réserves** → Informer l'utilisateur des réserves, continuer
-- Si **❌ FAIL** → Appliquer le Protocole FAIL ci-dessous
+- Si PASS -> Passer a la section suivante (ou etape 3b optionnelle)
+- Si PASS avec reserves -> Informer l'utilisateur, continuer
+- Si FAIL -> Appliquer le Protocole FAIL ci-dessous
 
-### Protocole FAIL (boucle de correction)
+### Protocole FAIL
 
-Si le Constraint Validator retourne **FAIL** :
+**Type A — Tokens/CSS** (valeurs hardcodees, mauvais var()) :
+-> Correction automatique ciblee. Re-lancer Technical Validator uniquement.
+-> Max 1 iteration. Si echec -> STOP.
 
-1. **Lire** le rapport FAIL — identifier les violations listées
-2. **Corriger** le code du composant directement (pas de re-spawn Context Assembler ni Aesthetic Director)
-3. **Re-lancer** Constraint Validator uniquement (Agent constraint-validator)
-4. **Max 2 itérations**. Si FAIL après 2 corrections → STOP + rapport détaillé au user avec les violations restantes
+**Type B — Contraintes projet** (violation ON FAIT / ON NE FAIT PAS, anti-patterns) :
+-> Correction du code. Re-lancer Technical Validator uniquement.
+-> Max 2 iterations. Si echec -> STOP + rapport.
 
-> Le re-spawn du circuit complet n'est justifié que si le FAIL porte sur un problème d'architecture (mauvaise technique, mauvais layout) — pas sur des violations de tokens ou de contraintes CSS.
+**Regle** : Les decisions creatives du Creative Director sont RESPECTEES meme en cas de FAIL technique. On corrige le code pour respecter les regles techniques, on ne change pas le layout ou la technique.
+
+---
+
+### ETAPE 3b (optionnelle) : Visual Check
+
+**Prerequis** : Playwright MCP disponible + serveur dev en cours (`npm run dev`)
+
+Si disponible, apres PASS du Technical Validator :
+
+```
+Agent(
+  subagent_type: "visual-reviewer",
+  model: "haiku",
+  prompt: """
+    SECTION : [PAGE] > [SECTION]
+    URL : http://localhost:3000[/route]
+    DIRECTION : [CHEMIN]/_preflight/[page]/[section]-creative-direction.md
+
+    Prends un screenshot et evalue visuellement.
+  """
+)
+```
+
+Le Visual Reviewer produit une evaluation qualitative — pas un PASS/FAIL.
+Informer l'utilisateur du resultat. Ne PAS auto-corriger.
 
 ---
 
 ## GESTION DE PLUSIEURS SECTIONS
 
-Quand l'utilisateur demande de coder une **page entière** (ex: "code la homepage") :
+Quand l'utilisateur demande de coder une **page entiere** :
 
-1. Lire le wireframe de la page → identifier toutes les sections dans l'ordre
-2. Exécuter le circuit complet (étapes 1-4) pour CHAQUE section, **une par une, dans l'ordre du wireframe**
-3. Ne pas paralléliser les sections — chaque section peut dépendre visuellement de la précédente
-4. À la fin, informer l'utilisateur : "[X] sections codées, [Y] passes de validation réussies"
+1. Lire le creative brief de la page -> identifier toutes les sections dans l'ordre
+2. Executer le circuit complet (etapes 1-3) pour CHAQUE section dans l'ordre
+3. A la fin, informer l'utilisateur
 
-## CAS SPÉCIAUX
+### Pipeline Overlapping (optimisation multi-sections)
+
+Quand une page a 3+ sections :
+
+```
+Section 1 : [1-Creative Dir.] -> [2-CODE] -> [3-Validate]
+Section 2 :                      [1-Creative Dir.] -> [2-CODE] -> [3-Validate]
+Section 3 :                                           [1-Creative Dir.] -> ...
+```
+
+**Principe** : pendant que Claude code la section N (etape 2), lancer en parallele l'etape 1 de la section N+1 (Creative Director en background).
+
+**Regles du pipeline overlapping** :
+- L'etape 1 de N+1 peut tourner EN PARALLELE de l'etape 2 de N
+- L'etape 2 (code) reste SEQUENTIELLE — une seule section codee a la fois
+- L'etape 3 de N doit finir AVANT l'etape 2 de N+1
+- Si N+1 depend visuellement de N (transition scroll, meme background), NE PAS overlapper
+
+## CAS SPECIAUX
 
 ### Layout (B01) — Header / Footer
-- Utiliser les dials **GLOBAUX** (pas de section spécifique)
-- Le header/footer sont transversaux → contraintes de cohérence avec toutes les pages
+- Le Creative Director utilise les dials **GLOBAUX** (pas de section specifique dans le brief)
+- Header/footer sont transversaux -> coherence avec toutes les pages
 
 ### Polish (B04) — Ajustement d'un composant existant
-- Si l'ajustement est mineur (correction de spacing, couleur) → Étape 3 + Étape 4 seulement
-- Si l'ajustement change le feeling → Circuit complet (1-2-3-4)
 
-### Composant non listé dans le wireframe
-- Stopper et demander à l'utilisateur de décrire le composant
-- Créer un mini-wireframe inline avant de lancer le circuit
+3 niveaux :
+
+| Ajustement | Circuit | Exemple |
+|------------|---------|---------|
+| **Micro** (tokens, spacing, couleur) | Etape 2 seulement | "Augmente le padding du Hero" |
+| **Mineur** (animation, etat, responsive) | Etape 2 + Etape 3 | "Ajoute un hover effect" |
+| **Majeur** (feeling, layout, technique) | Circuit complet 1-2-3 | "Le Hero ne transmet pas la bonne emotion" |
+
+### Composant non liste dans le creative brief
+- Stopper et demander a l'utilisateur de decrire le composant
+- Creer un mini-brief inline avant de lancer le circuit
 
 ## TRACE
 
-Le circuit laisse une trace dans `_preflight/` pour chaque composant :
 ```
 _preflight/
-├── header-context.md          ← Étape 1
-├── header-direction.md        ← Étape 2
-├── footer-context.md
-├── footer-direction.md
+├── header-creative-direction.md      <- Etape 1
+├── footer-creative-direction.md
 ├── homepage/
-│   ├── hero-context.md
-│   ├── hero-direction.md
-│   ├── services-context.md
-│   ├── services-direction.md
+│   ├── hero-creative-direction.md
+│   ├── services-creative-direction.md
 │   └── ...
 ├── services/
 │   └── ...
-└── validation/                ← Étape 4 (pass final B05)
+└── validation/                       <- Etape 3 (pass final B05)
     ├── homepage-report.md
     └── ...
 ```
-
-Ces fichiers sont la preuve que le circuit a tourné. Ils permettent de débugger si un composant ne correspond pas à l'intention.
